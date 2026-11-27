@@ -55,6 +55,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 29792,
         "presents_delivered_at_stop": 29792
       },
       "transit_to_here": {
@@ -93,6 +94,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 894,
         "presents_delivered_at_stop": 894
       },
       "transit_to_here": {
@@ -131,6 +133,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3606258,
         "presents_delivered_at_stop": 3606258
       },
       "transit_to_here": {
@@ -169,6 +172,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 4538315,
         "presents_delivered_at_stop": 4538315
       },
       "transit_to_here": {
@@ -208,6 +212,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 732979,
         "presents_delivered_at_stop": 732979
       },
       "transit_to_here": {
@@ -246,6 +251,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 732979,
         "presents_delivered_at_stop": 732979
       },
       "transit_to_here": {
@@ -284,6 +290,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3123958,
         "presents_delivered_at_stop": 3123958
       },
       "transit_to_here": {
@@ -322,6 +329,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 732979,
         "presents_delivered_at_stop": 732979
       },
       "transit_to_here": {
@@ -360,6 +368,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 47555,
         "presents_delivered_at_stop": 47555
       },
       "transit_to_here": {
@@ -399,6 +408,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 47555,
         "presents_delivered_at_stop": 47555
       },
       "transit_to_here": {
@@ -438,6 +448,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 115021,
         "presents_delivered_at_stop": 115021
       },
       "transit_to_here": {
@@ -476,6 +487,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 834108,
         "presents_delivered_at_stop": 834108
       },
       "transit_to_here": {
@@ -514,6 +526,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 47555,
         "presents_delivered_at_stop": 47555
       },
       "transit_to_here": {
@@ -552,6 +565,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 265803,
         "presents_delivered_at_stop": 265803
       },
       "transit_to_here": {
@@ -590,6 +604,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 201081,
         "presents_delivered_at_stop": 201081
       },
       "transit_to_here": {
@@ -628,6 +643,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 120789,
         "presents_delivered_at_stop": 120789
       },
       "transit_to_here": {
@@ -666,6 +682,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 47555,
         "presents_delivered_at_stop": 47555
       },
       "transit_to_here": {
@@ -704,6 +721,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 47555,
         "presents_delivered_at_stop": 47555
       },
       "transit_to_here": {
@@ -742,6 +760,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 299148,
         "presents_delivered_at_stop": 299148
       },
       "transit_to_here": {
@@ -781,6 +800,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 632122,
         "presents_delivered_at_stop": 632122
       },
       "transit_to_here": {
@@ -819,6 +839,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 91001,
         "presents_delivered_at_stop": 91001
       },
       "transit_to_here": {
@@ -857,6 +878,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 518468,
         "presents_delivered_at_stop": 518468
       },
       "transit_to_here": {
@@ -895,6 +917,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 67926,
         "presents_delivered_at_stop": 67926
       },
       "transit_to_here": {
@@ -933,6 +956,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 67926,
         "presents_delivered_at_stop": 67926
       },
       "transit_to_here": {
@@ -971,6 +995,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 273512,
         "presents_delivered_at_stop": 273512
       },
       "transit_to_here": {
@@ -1010,6 +1035,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 224598,
         "presents_delivered_at_stop": 224598
       },
       "transit_to_here": {
@@ -1049,6 +1075,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 67926,
         "presents_delivered_at_stop": 67926
       },
       "transit_to_here": {
@@ -1088,6 +1115,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 31449865,
         "presents_delivered_at_stop": 31449865
       },
       "transit_to_here": {
@@ -1127,6 +1155,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1772292,
         "presents_delivered_at_stop": 1772292
       },
       "transit_to_here": {
@@ -1166,6 +1195,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 221453,
         "presents_delivered_at_stop": 221453
       },
       "transit_to_here": {
@@ -1205,6 +1235,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 95246,
         "presents_delivered_at_stop": 95246
       },
       "transit_to_here": {
@@ -1244,6 +1275,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3127944,
         "presents_delivered_at_stop": 3127944
       },
       "transit_to_here": {
@@ -1283,6 +1315,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 67926,
         "presents_delivered_at_stop": 67926
       },
       "transit_to_here": {
@@ -1322,6 +1355,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3910490,
         "presents_delivered_at_stop": 3910490
       },
       "transit_to_here": {
@@ -1361,6 +1395,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3962557,
         "presents_delivered_at_stop": 3962557
       },
       "transit_to_here": {
@@ -1400,6 +1435,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 557769,
         "presents_delivered_at_stop": 557769
       },
       "transit_to_here": {
@@ -1438,6 +1474,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6827705,
         "presents_delivered_at_stop": 6827705
       },
       "transit_to_here": {
@@ -1476,6 +1513,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1402398,
         "presents_delivered_at_stop": 1402398
       },
       "transit_to_here": {
@@ -1514,6 +1552,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 557769,
         "presents_delivered_at_stop": 557769
       },
       "transit_to_here": {
@@ -1552,6 +1591,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3294406,
         "presents_delivered_at_stop": 3294406
       },
       "transit_to_here": {
@@ -1590,6 +1630,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1464255,
         "presents_delivered_at_stop": 1464255
       },
       "transit_to_here": {
@@ -1628,6 +1669,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 848590,
         "presents_delivered_at_stop": 848590
       },
       "transit_to_here": {
@@ -1667,6 +1709,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 557769,
         "presents_delivered_at_stop": 557769
       },
       "transit_to_here": {
@@ -1706,6 +1749,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 422138,
         "presents_delivered_at_stop": 422138
       },
       "transit_to_here": {
@@ -1744,6 +1788,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 338069,
         "presents_delivered_at_stop": 338069
       },
       "transit_to_here": {
@@ -1782,6 +1827,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3789241,
         "presents_delivered_at_stop": 3789241
       },
       "transit_to_here": {
@@ -1820,6 +1866,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1438393,
         "presents_delivered_at_stop": 1438393
       },
       "transit_to_here": {
@@ -1858,6 +1905,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 7073219,
         "presents_delivered_at_stop": 7073219
       },
       "transit_to_here": {
@@ -1896,6 +1944,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 12326360,
         "presents_delivered_at_stop": 12326360
       },
       "transit_to_here": {
@@ -1934,6 +1983,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 8101644,
         "presents_delivered_at_stop": 8101644
       },
       "transit_to_here": {
@@ -1972,6 +2022,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 43466020,
         "presents_delivered_at_stop": 43466020
       },
       "transit_to_here": {
@@ -2010,6 +2061,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 32539145,
         "presents_delivered_at_stop": 32539145
       },
       "transit_to_here": {
@@ -2048,6 +2100,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 10207119,
         "presents_delivered_at_stop": 10207119
       },
       "transit_to_here": {
@@ -2086,6 +2139,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 26139981,
         "presents_delivered_at_stop": 26139981
       },
       "transit_to_here": {
@@ -2124,6 +2178,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 28434021,
         "presents_delivered_at_stop": 28434021
       },
       "transit_to_here": {
@@ -2162,6 +2217,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 23396068,
         "presents_delivered_at_stop": 23396068
       },
       "transit_to_here": {
@@ -2200,6 +2256,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 44311192,
         "presents_delivered_at_stop": 44311192
       },
       "transit_to_here": {
@@ -2238,6 +2295,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 8557403,
         "presents_delivered_at_stop": 8557403
       },
       "transit_to_here": {
@@ -2276,6 +2334,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 21474146,
         "presents_delivered_at_stop": 21474146
       },
       "transit_to_here": {
@@ -2314,6 +2373,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 10322999,
         "presents_delivered_at_stop": 10322999
       },
       "transit_to_here": {
@@ -2352,6 +2412,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 74254451,
         "presents_delivered_at_stop": 74254451
       },
       "transit_to_here": {
@@ -2390,6 +2451,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 5660272,
         "presents_delivered_at_stop": 5660272
       },
       "transit_to_here": {
@@ -2428,6 +2490,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 10733571,
         "presents_delivered_at_stop": 10733571
       },
       "transit_to_here": {
@@ -2466,6 +2529,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 27324370,
         "presents_delivered_at_stop": 27324370
       },
       "transit_to_here": {
@@ -2505,6 +2569,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 314701,
         "presents_delivered_at_stop": 314701
       },
       "transit_to_here": {
@@ -2544,6 +2609,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 14221130,
         "presents_delivered_at_stop": 14221130
       },
       "transit_to_here": {
@@ -2582,6 +2648,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 29913300,
         "presents_delivered_at_stop": 29913300
       },
       "transit_to_here": {
@@ -2620,6 +2687,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 44121118,
         "presents_delivered_at_stop": 44121118
       },
       "transit_to_here": {
@@ -2658,6 +2726,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 8796498,
         "presents_delivered_at_stop": 8796498
       },
       "transit_to_here": {
@@ -2696,6 +2765,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 14620989,
         "presents_delivered_at_stop": 14620989
       },
       "transit_to_here": {
@@ -2734,6 +2804,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 35295667,
         "presents_delivered_at_stop": 35295667
       },
       "transit_to_here": {
@@ -2772,6 +2843,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 8811824,
         "presents_delivered_at_stop": 8811824
       },
       "transit_to_here": {
@@ -2810,6 +2882,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 25648153,
         "presents_delivered_at_stop": 25648153
       },
       "transit_to_here": {
@@ -2848,6 +2921,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 12200370,
         "presents_delivered_at_stop": 12200370
       },
       "transit_to_here": {
@@ -2886,6 +2960,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 29876291,
         "presents_delivered_at_stop": 29876291
       },
       "transit_to_here": {
@@ -2924,6 +2999,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 8910987,
         "presents_delivered_at_stop": 8910987
       },
       "transit_to_here": {
@@ -2962,6 +3038,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 10072990,
         "presents_delivered_at_stop": 10072990
       },
       "transit_to_here": {
@@ -3000,6 +3077,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 23339348,
         "presents_delivered_at_stop": 23339348
       },
       "transit_to_here": {
@@ -3038,6 +3116,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 11029272,
         "presents_delivered_at_stop": 11029272
       },
       "transit_to_here": {
@@ -3076,6 +3155,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 15735063,
         "presents_delivered_at_stop": 15735063
       },
       "transit_to_here": {
@@ -3114,6 +3194,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 122536492,
         "presents_delivered_at_stop": 122536492
       },
       "transit_to_here": {
@@ -3152,6 +3233,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 51378633,
         "presents_delivered_at_stop": 51378633
       },
       "transit_to_here": {
@@ -3190,6 +3272,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 23602595,
         "presents_delivered_at_stop": 23602595
       },
       "transit_to_here": {
@@ -3228,6 +3311,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 4720519,
         "presents_delivered_at_stop": 4720519
       },
       "transit_to_here": {
@@ -3266,6 +3350,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 23602595,
         "presents_delivered_at_stop": 23602595
       },
       "transit_to_here": {
@@ -3304,6 +3389,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 15735063,
         "presents_delivered_at_stop": 15735063
       },
       "transit_to_here": {
@@ -3342,6 +3428,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 82011151,
         "presents_delivered_at_stop": 82011151
       },
       "transit_to_here": {
@@ -3380,6 +3467,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 13057900,
         "presents_delivered_at_stop": 13057900
       },
       "transit_to_here": {
@@ -3418,6 +3506,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 13368101,
         "presents_delivered_at_stop": 13368101
       },
       "transit_to_here": {
@@ -3456,6 +3545,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 226773734,
         "presents_delivered_at_stop": 226773734
       },
       "transit_to_here": {
@@ -3494,6 +3584,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 17897061,
         "presents_delivered_at_stop": 17897061
       },
       "transit_to_here": {
@@ -3532,6 +3623,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 7181861,
         "presents_delivered_at_stop": 7181861
       },
       "transit_to_here": {
@@ -3570,6 +3662,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9330893,
         "presents_delivered_at_stop": 9330893
       },
       "transit_to_here": {
@@ -3608,6 +3701,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 163131697,
         "presents_delivered_at_stop": 163131697
       },
       "transit_to_here": {
@@ -3646,6 +3740,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 27536361,
         "presents_delivered_at_stop": 27536361
       },
       "transit_to_here": {
@@ -3684,6 +3779,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 11525273,
         "presents_delivered_at_stop": 11525273
       },
       "transit_to_here": {
@@ -3722,6 +3818,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2593925,
         "presents_delivered_at_stop": 2593925
       },
       "transit_to_here": {
@@ -3760,6 +3857,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 11021153,
         "presents_delivered_at_stop": 11021153
       },
       "transit_to_here": {
@@ -3798,6 +3896,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 15910761,
         "presents_delivered_at_stop": 15910761
       },
       "transit_to_here": {
@@ -3836,6 +3935,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 30085441,
         "presents_delivered_at_stop": 30085441
       },
       "transit_to_here": {
@@ -3874,6 +3974,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 24820678,
         "presents_delivered_at_stop": 24820678
       },
       "transit_to_here": {
@@ -3912,6 +4013,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 16822514,
         "presents_delivered_at_stop": 16822514
       },
       "transit_to_here": {
@@ -3950,6 +4052,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9546180,
         "presents_delivered_at_stop": 9546180
       },
       "transit_to_here": {
@@ -3988,6 +4091,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 20537531,
         "presents_delivered_at_stop": 20537531
       },
       "transit_to_here": {
@@ -4026,6 +4130,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 25459333,
         "presents_delivered_at_stop": 25459333
       },
       "transit_to_here": {
@@ -4064,6 +4169,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 28386054,
         "presents_delivered_at_stop": 28386054
       },
       "transit_to_here": {
@@ -4102,6 +4208,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 545944,
         "presents_delivered_at_stop": 545944
       },
       "transit_to_here": {
@@ -4140,6 +4247,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 474979,
         "presents_delivered_at_stop": 474979
       },
       "transit_to_here": {
@@ -4178,6 +4286,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 11173059,
         "presents_delivered_at_stop": 11173059
       },
       "transit_to_here": {
@@ -4216,6 +4325,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 25679623,
         "presents_delivered_at_stop": 25679623
       },
       "transit_to_here": {
@@ -4254,6 +4364,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 670755,
         "presents_delivered_at_stop": 670755
       },
       "transit_to_here": {
@@ -4292,6 +4403,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 8742443,
         "presents_delivered_at_stop": 8742443
       },
       "transit_to_here": {
@@ -4330,6 +4442,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6119710,
         "presents_delivered_at_stop": 6119710
       },
       "transit_to_here": {
@@ -4368,6 +4481,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 76548828,
         "presents_delivered_at_stop": 76548828
       },
       "transit_to_here": {
@@ -4406,6 +4520,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 34427739,
         "presents_delivered_at_stop": 34427739
       },
       "transit_to_here": {
@@ -4444,6 +4559,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 10379815,
         "presents_delivered_at_stop": 10379815
       },
       "transit_to_here": {
@@ -4482,6 +4598,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6119710,
         "presents_delivered_at_stop": 6119710
       },
       "transit_to_here": {
@@ -4520,6 +4637,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6235739,
         "presents_delivered_at_stop": 6235739
       },
       "transit_to_here": {
@@ -4558,6 +4676,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 30581064,
         "presents_delivered_at_stop": 30581064
       },
       "transit_to_here": {
@@ -4596,6 +4715,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 174849,
         "presents_delivered_at_stop": 174849
       },
       "transit_to_here": {
@@ -4634,6 +4754,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 5245466,
         "presents_delivered_at_stop": 5245466
       },
       "transit_to_here": {
@@ -4672,6 +4793,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 19600556,
         "presents_delivered_at_stop": 19600556
       },
       "transit_to_here": {
@@ -4710,6 +4832,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 5245465,
         "presents_delivered_at_stop": 5245465
       },
       "transit_to_here": {
@@ -4748,6 +4871,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 25632842,
         "presents_delivered_at_stop": 25632842
       },
       "transit_to_here": {
@@ -4786,6 +4910,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 4788988,
         "presents_delivered_at_stop": 4788988
       },
       "transit_to_here": {
@@ -4824,6 +4949,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 681771,
         "presents_delivered_at_stop": 681771
       },
       "transit_to_here": {
@@ -4862,6 +4988,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1827258,
         "presents_delivered_at_stop": 1827258
       },
       "transit_to_here": {
@@ -4900,6 +5027,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 4389685,
         "presents_delivered_at_stop": 4389685
       },
       "transit_to_here": {
@@ -4938,6 +5066,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 5857157,
         "presents_delivered_at_stop": 5857157
       },
       "transit_to_here": {
@@ -4976,6 +5105,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 879525,
         "presents_delivered_at_stop": 879525
       },
       "transit_to_here": {
@@ -5014,6 +5144,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6800221,
         "presents_delivered_at_stop": 6800221
       },
       "transit_to_here": {
@@ -5052,6 +5183,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 4520717,
         "presents_delivered_at_stop": 4520717
       },
       "transit_to_here": {
@@ -5090,6 +5222,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 15817244,
         "presents_delivered_at_stop": 15817244
       },
       "transit_to_here": {
@@ -5128,6 +5261,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 593028,
         "presents_delivered_at_stop": 593028
       },
       "transit_to_here": {
@@ -5166,6 +5300,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 14060043,
         "presents_delivered_at_stop": 14060043
       },
       "transit_to_here": {
@@ -5204,6 +5339,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 593028,
         "presents_delivered_at_stop": 593028
       },
       "transit_to_here": {
@@ -5242,6 +5378,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 24828819,
         "presents_delivered_at_stop": 24828819
       },
       "transit_to_here": {
@@ -5280,6 +5417,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2134823,
         "presents_delivered_at_stop": 2134823
       },
       "transit_to_here": {
@@ -5318,6 +5456,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 70157690,
         "presents_delivered_at_stop": 70157690
       },
       "transit_to_here": {
@@ -5356,6 +5495,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1809812,
         "presents_delivered_at_stop": 1809812
       },
       "transit_to_here": {
@@ -5394,6 +5534,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1565515,
         "presents_delivered_at_stop": 1565515
       },
       "transit_to_here": {
@@ -5432,6 +5573,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 54822,
         "presents_delivered_at_stop": 54822
       },
       "transit_to_here": {
@@ -5470,6 +5612,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2241633,
         "presents_delivered_at_stop": 2241633
       },
       "transit_to_here": {
@@ -5508,6 +5651,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3810119,
         "presents_delivered_at_stop": 3810119
       },
       "transit_to_here": {
@@ -5546,6 +5690,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 384690,
         "presents_delivered_at_stop": 384690
       },
       "transit_to_here": {
@@ -5584,6 +5729,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6386898,
         "presents_delivered_at_stop": 6386898
       },
       "transit_to_here": {
@@ -5623,6 +5769,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 607202,
         "presents_delivered_at_stop": 607202
       },
       "transit_to_here": {
@@ -5661,6 +5808,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 7166705,
         "presents_delivered_at_stop": 7166705
       },
       "transit_to_here": {
@@ -5699,6 +5847,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 17529129,
         "presents_delivered_at_stop": 17529129
       },
       "transit_to_here": {
@@ -5737,6 +5886,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 16761900,
         "presents_delivered_at_stop": 16761900
       },
       "transit_to_here": {
@@ -5775,6 +5925,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 32555534,
         "presents_delivered_at_stop": 32555534
       },
       "transit_to_here": {
@@ -5813,6 +5964,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 15768579,
         "presents_delivered_at_stop": 15768579
       },
       "transit_to_here": {
@@ -5851,6 +6003,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 37089757,
         "presents_delivered_at_stop": 37089757
       },
       "transit_to_here": {
@@ -5889,6 +6042,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 13840197,
         "presents_delivered_at_stop": 13840197
       },
       "transit_to_here": {
@@ -5927,6 +6081,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 29024861,
         "presents_delivered_at_stop": 29024861
       },
       "transit_to_here": {
@@ -5965,6 +6120,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 15910154,
         "presents_delivered_at_stop": 15910154
       },
       "transit_to_here": {
@@ -6003,6 +6159,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 15702059,
         "presents_delivered_at_stop": 15702059
       },
       "transit_to_here": {
@@ -6041,6 +6198,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 391847145,
         "presents_delivered_at_stop": 391847145
       },
       "transit_to_here": {
@@ -6079,6 +6237,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 13676084,
         "presents_delivered_at_stop": 13676084
       },
       "transit_to_here": {
@@ -6117,6 +6276,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 23856232,
         "presents_delivered_at_stop": 23856232
       },
       "transit_to_here": {
@@ -6155,6 +6315,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1098293,
         "presents_delivered_at_stop": 1098293
       },
       "transit_to_here": {
@@ -6193,6 +6354,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 25452130,
         "presents_delivered_at_stop": 25452130
       },
       "transit_to_here": {
@@ -6231,6 +6393,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3318503,
         "presents_delivered_at_stop": 3318503
       },
       "transit_to_here": {
@@ -6269,6 +6432,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 5374484,
         "presents_delivered_at_stop": 5374484
       },
       "transit_to_here": {
@@ -6307,6 +6471,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 14802500,
         "presents_delivered_at_stop": 14802500
       },
       "transit_to_here": {
@@ -6345,6 +6510,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3435143,
         "presents_delivered_at_stop": 3435143
       },
       "transit_to_here": {
@@ -6383,6 +6549,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6053454,
         "presents_delivered_at_stop": 6053454
       },
       "transit_to_here": {
@@ -6421,6 +6588,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3336174,
         "presents_delivered_at_stop": 3336174
       },
       "transit_to_here": {
@@ -6459,6 +6627,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 541575,
         "presents_delivered_at_stop": 541575
       },
       "transit_to_here": {
@@ -6497,6 +6666,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 4256779,
         "presents_delivered_at_stop": 4256779
       },
       "transit_to_here": {
@@ -6535,6 +6705,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3030272,
         "presents_delivered_at_stop": 3030272
       },
       "transit_to_here": {
@@ -6573,6 +6744,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3466576,
         "presents_delivered_at_stop": 3466576
       },
       "transit_to_here": {
@@ -6611,6 +6783,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 117972614,
         "presents_delivered_at_stop": 117972614
       },
       "transit_to_here": {
@@ -6649,6 +6822,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 7469330,
         "presents_delivered_at_stop": 7469330
       },
       "transit_to_here": {
@@ -6687,6 +6861,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 861385,
         "presents_delivered_at_stop": 861385
       },
       "transit_to_here": {
@@ -6725,6 +6900,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1728129,
         "presents_delivered_at_stop": 1728129
       },
       "transit_to_here": {
@@ -6763,6 +6939,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 323301,
         "presents_delivered_at_stop": 323301
       },
       "transit_to_here": {
@@ -6801,6 +6978,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2089350,
         "presents_delivered_at_stop": 2089350
       },
       "transit_to_here": {
@@ -6839,6 +7017,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2917707,
         "presents_delivered_at_stop": 2917707
       },
       "transit_to_here": {
@@ -6877,6 +7056,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2403344,
         "presents_delivered_at_stop": 2403344
       },
       "transit_to_here": {
@@ -6915,6 +7095,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6885788,
         "presents_delivered_at_stop": 6885788
       },
       "transit_to_here": {
@@ -6953,6 +7134,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3757627,
         "presents_delivered_at_stop": 3757627
       },
       "transit_to_here": {
@@ -6991,6 +7173,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3107124,
         "presents_delivered_at_stop": 3107124
       },
       "transit_to_here": {
@@ -7029,6 +7212,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 617999,
         "presents_delivered_at_stop": 617999
       },
       "transit_to_here": {
@@ -7067,6 +7251,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 8959076,
         "presents_delivered_at_stop": 8959076
       },
       "transit_to_here": {
@@ -7105,6 +7290,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 11645800,
         "presents_delivered_at_stop": 11645800
       },
       "transit_to_here": {
@@ -7143,6 +7329,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2183751,
         "presents_delivered_at_stop": 2183751
       },
       "transit_to_here": {
@@ -7181,6 +7368,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 958484,
         "presents_delivered_at_stop": 958484
       },
       "transit_to_here": {
@@ -7219,6 +7407,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 134710,
         "presents_delivered_at_stop": 134710
       },
       "transit_to_here": {
@@ -7257,6 +7446,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 8021824,
         "presents_delivered_at_stop": 8021824
       },
       "transit_to_here": {
@@ -7295,6 +7485,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 134710,
         "presents_delivered_at_stop": 134710
       },
       "transit_to_here": {
@@ -7333,6 +7524,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 452300,
         "presents_delivered_at_stop": 452300
       },
       "transit_to_here": {
@@ -7371,6 +7563,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 8129605,
         "presents_delivered_at_stop": 8129605
       },
       "transit_to_here": {
@@ -7409,6 +7602,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 28589377,
         "presents_delivered_at_stop": 28589377
       },
       "transit_to_here": {
@@ -7447,6 +7641,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3760534,
         "presents_delivered_at_stop": 3760534
       },
       "transit_to_here": {
@@ -7485,6 +7680,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 723605,
         "presents_delivered_at_stop": 723605
       },
       "transit_to_here": {
@@ -7523,6 +7719,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 4085305,
         "presents_delivered_at_stop": 4085305
       },
       "transit_to_here": {
@@ -7561,6 +7758,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2115786,
         "presents_delivered_at_stop": 2115786
       },
       "transit_to_here": {
@@ -7599,6 +7797,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 134709,
         "presents_delivered_at_stop": 134709
       },
       "transit_to_here": {
@@ -7637,6 +7836,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 24636540,
         "presents_delivered_at_stop": 24636540
       },
       "transit_to_here": {
@@ -7675,6 +7875,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 70157289,
         "presents_delivered_at_stop": 70157289
       },
       "transit_to_here": {
@@ -7713,6 +7914,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1361324,
         "presents_delivered_at_stop": 1361324
       },
       "transit_to_here": {
@@ -7751,6 +7953,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 44480279,
         "presents_delivered_at_stop": 44480279
       },
       "transit_to_here": {
@@ -7790,6 +7993,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 17298841,
         "presents_delivered_at_stop": 17298841
       },
       "transit_to_here": {
@@ -7828,6 +8032,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 63284700,
         "presents_delivered_at_stop": 63284700
       },
       "transit_to_here": {
@@ -7866,6 +8071,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 26688167,
         "presents_delivered_at_stop": 26688167
       },
       "transit_to_here": {
@@ -7904,6 +8110,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 10583453,
         "presents_delivered_at_stop": 10583453
       },
       "transit_to_here": {
@@ -7942,6 +8149,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 22184002,
         "presents_delivered_at_stop": 22184002
       },
       "transit_to_here": {
@@ -7980,6 +8188,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 18449591,
         "presents_delivered_at_stop": 18449591
       },
       "transit_to_here": {
@@ -8018,6 +8227,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 11402688,
         "presents_delivered_at_stop": 11402688
       },
       "transit_to_here": {
@@ -8056,6 +8266,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 4137065,
         "presents_delivered_at_stop": 4137065
       },
       "transit_to_here": {
@@ -8094,6 +8305,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 30246590,
         "presents_delivered_at_stop": 30246590
       },
       "transit_to_here": {
@@ -8132,6 +8344,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 23927322,
         "presents_delivered_at_stop": 23927322
       },
       "transit_to_here": {
@@ -8170,6 +8383,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 28313998,
         "presents_delivered_at_stop": 28313998
       },
       "transit_to_here": {
@@ -8208,6 +8422,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2075665,
         "presents_delivered_at_stop": 2075665
       },
       "transit_to_here": {
@@ -8246,6 +8461,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2300704,
         "presents_delivered_at_stop": 2300704
       },
       "transit_to_here": {
@@ -8284,6 +8500,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 306761,
         "presents_delivered_at_stop": 306761
       },
       "transit_to_here": {
@@ -8322,6 +8539,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3947947,
         "presents_delivered_at_stop": 3947947
       },
       "transit_to_here": {
@@ -8360,6 +8578,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 369432,
         "presents_delivered_at_stop": 369432
       },
       "transit_to_here": {
@@ -8398,6 +8617,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 11818165,
         "presents_delivered_at_stop": 11818165
       },
       "transit_to_here": {
@@ -8436,6 +8656,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3193592,
         "presents_delivered_at_stop": 3193592
       },
       "transit_to_here": {
@@ -8474,6 +8695,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6810575,
         "presents_delivered_at_stop": 6810575
       },
       "transit_to_here": {
@@ -8512,6 +8734,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1752155,
         "presents_delivered_at_stop": 1752155
       },
       "transit_to_here": {
@@ -8550,6 +8773,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 27445590,
         "presents_delivered_at_stop": 27445590
       },
       "transit_to_here": {
@@ -8588,6 +8812,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 16809159,
         "presents_delivered_at_stop": 16809159
       },
       "transit_to_here": {
@@ -8626,6 +8851,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 467963,
         "presents_delivered_at_stop": 467963
       },
       "transit_to_here": {
@@ -8664,6 +8890,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 4792520,
         "presents_delivered_at_stop": 4792520
       },
       "transit_to_here": {
@@ -8702,6 +8929,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2239904,
         "presents_delivered_at_stop": 2239904
       },
       "transit_to_here": {
@@ -8740,6 +8968,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 620239,
         "presents_delivered_at_stop": 620239
       },
       "transit_to_here": {
@@ -8778,6 +9007,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 306761,
         "presents_delivered_at_stop": 306761
       },
       "transit_to_here": {
@@ -8816,6 +9046,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 12343063,
         "presents_delivered_at_stop": 12343063
       },
       "transit_to_here": {
@@ -8854,6 +9085,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 4084701,
         "presents_delivered_at_stop": 4084701
       },
       "transit_to_here": {
@@ -8892,6 +9124,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 15152253,
         "presents_delivered_at_stop": 15152253
       },
       "transit_to_here": {
@@ -8930,6 +9163,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9252481,
         "presents_delivered_at_stop": 9252481
       },
       "transit_to_here": {
@@ -8968,6 +9202,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2300704,
         "presents_delivered_at_stop": 2300704
       },
       "transit_to_here": {
@@ -9006,6 +9241,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1745191,
         "presents_delivered_at_stop": 1745191
       },
       "transit_to_here": {
@@ -9044,6 +9280,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 28191294,
         "presents_delivered_at_stop": 28191294
       },
       "transit_to_here": {
@@ -9082,6 +9319,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3439921,
         "presents_delivered_at_stop": 3439921
       },
       "transit_to_here": {
@@ -9120,6 +9358,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 14310502,
         "presents_delivered_at_stop": 14310502
       },
       "transit_to_here": {
@@ -9158,6 +9397,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 8797494,
         "presents_delivered_at_stop": 8797494
       },
       "transit_to_here": {
@@ -9196,6 +9436,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 15794149,
         "presents_delivered_at_stop": 15794149
       },
       "transit_to_here": {
@@ -9234,6 +9475,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 24019351,
         "presents_delivered_at_stop": 24019351
       },
       "transit_to_here": {
@@ -9272,6 +9514,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 11422045,
         "presents_delivered_at_stop": 11422045
       },
       "transit_to_here": {
@@ -9310,6 +9553,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 11266122,
         "presents_delivered_at_stop": 11266122
       },
       "transit_to_here": {
@@ -9349,6 +9593,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 764417,
         "presents_delivered_at_stop": 764417
       },
       "transit_to_here": {
@@ -9387,6 +9632,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 13261373,
         "presents_delivered_at_stop": 13261373
       },
       "transit_to_here": {
@@ -9425,6 +9671,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 13947352,
         "presents_delivered_at_stop": 13947352
       },
       "transit_to_here": {
@@ -9463,6 +9710,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 10805592,
         "presents_delivered_at_stop": 10805592
       },
       "transit_to_here": {
@@ -9501,6 +9749,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 12950683,
         "presents_delivered_at_stop": 12950683
       },
       "transit_to_here": {
@@ -9539,6 +9788,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1850790,
         "presents_delivered_at_stop": 1850790
       },
       "transit_to_here": {
@@ -9577,6 +9827,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 7335053,
         "presents_delivered_at_stop": 7335053
       },
       "transit_to_here": {
@@ -9615,6 +9866,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 389106,
         "presents_delivered_at_stop": 389106
       },
       "transit_to_here": {
@@ -9653,6 +9905,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 212568,
         "presents_delivered_at_stop": 212568
       },
       "transit_to_here": {
@@ -9691,6 +9944,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 7072446,
         "presents_delivered_at_stop": 7072446
       },
       "transit_to_here": {
@@ -9729,6 +9983,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 10749580,
         "presents_delivered_at_stop": 10749580
       },
       "transit_to_here": {
@@ -9767,6 +10022,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 66151264,
         "presents_delivered_at_stop": 66151264
       },
       "transit_to_here": {
@@ -9805,6 +10061,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6365550,
         "presents_delivered_at_stop": 6365550
       },
       "transit_to_here": {
@@ -9843,6 +10100,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 12754100,
         "presents_delivered_at_stop": 12754100
       },
       "transit_to_here": {
@@ -9881,6 +10139,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 8606913,
         "presents_delivered_at_stop": 8606913
       },
       "transit_to_here": {
@@ -9919,6 +10178,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 10404157,
         "presents_delivered_at_stop": 10404157
       },
       "transit_to_here": {
@@ -9957,6 +10217,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 8940305,
         "presents_delivered_at_stop": 8940305
       },
       "transit_to_here": {
@@ -9995,6 +10256,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 12754100,
         "presents_delivered_at_stop": 12754100
       },
       "transit_to_here": {
@@ -10033,6 +10295,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1510851,
         "presents_delivered_at_stop": 1510851
       },
       "transit_to_here": {
@@ -10071,6 +10334,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 212568,
         "presents_delivered_at_stop": 212568
       },
       "transit_to_here": {
@@ -10109,6 +10373,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1622130,
         "presents_delivered_at_stop": 1622130
       },
       "transit_to_here": {
@@ -10147,6 +10412,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 7400311,
         "presents_delivered_at_stop": 7400311
       },
       "transit_to_here": {
@@ -10185,6 +10451,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1916048,
         "presents_delivered_at_stop": 1916048
       },
       "transit_to_here": {
@@ -10223,6 +10490,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 212568,
         "presents_delivered_at_stop": 212568
       },
       "transit_to_here": {
@@ -10261,6 +10529,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1573452,
         "presents_delivered_at_stop": 1573452
       },
       "transit_to_here": {
@@ -10299,6 +10568,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2107594,
         "presents_delivered_at_stop": 2107594
       },
       "transit_to_here": {
@@ -10337,6 +10607,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1682989,
         "presents_delivered_at_stop": 1682989
       },
       "transit_to_here": {
@@ -10375,6 +10646,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 532059,
         "presents_delivered_at_stop": 532059
       },
       "transit_to_here": {
@@ -10413,6 +10685,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 18280876,
         "presents_delivered_at_stop": 18280876
       },
       "transit_to_here": {
@@ -10451,6 +10724,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1500584,
         "presents_delivered_at_stop": 1500584
       },
       "transit_to_here": {
@@ -10489,6 +10763,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2056896,
         "presents_delivered_at_stop": 2056896
       },
       "transit_to_here": {
@@ -10527,6 +10802,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 8360546,
         "presents_delivered_at_stop": 8360546
       },
       "transit_to_here": {
@@ -10565,6 +10841,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 10628417,
         "presents_delivered_at_stop": 10628417
       },
       "transit_to_here": {
@@ -10603,6 +10880,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 10628417,
         "presents_delivered_at_stop": 10628417
       },
       "transit_to_here": {
@@ -10641,6 +10919,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 212568,
         "presents_delivered_at_stop": 212568
       },
       "transit_to_here": {
@@ -10679,6 +10958,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 21065522,
         "presents_delivered_at_stop": 21065522
       },
       "transit_to_here": {
@@ -10717,6 +10997,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 14627550,
         "presents_delivered_at_stop": 14627550
       },
       "transit_to_here": {
@@ -10755,6 +11036,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3217328,
         "presents_delivered_at_stop": 3217328
       },
       "transit_to_here": {
@@ -10793,6 +11075,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6927900,
         "presents_delivered_at_stop": 6927900
       },
       "transit_to_here": {
@@ -10831,6 +11114,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 7484850,
         "presents_delivered_at_stop": 7484850
       },
       "transit_to_here": {
@@ -10869,6 +11153,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 212568,
         "presents_delivered_at_stop": 212568
       },
       "transit_to_here": {
@@ -10907,6 +11192,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 8467574,
         "presents_delivered_at_stop": 8467574
       },
       "transit_to_here": {
@@ -10945,6 +11231,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2371497,
         "presents_delivered_at_stop": 2371497
       },
       "transit_to_here": {
@@ -10983,6 +11270,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2148896,
         "presents_delivered_at_stop": 2148896
       },
       "transit_to_here": {
@@ -11021,6 +11309,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 23701369,
         "presents_delivered_at_stop": 23701369
       },
       "transit_to_here": {
@@ -11059,6 +11348,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 8375702,
         "presents_delivered_at_stop": 8375702
       },
       "transit_to_here": {
@@ -11097,6 +11387,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 11528984,
         "presents_delivered_at_stop": 11528984
       },
       "transit_to_here": {
@@ -11135,6 +11426,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6339872,
         "presents_delivered_at_stop": 6339872
       },
       "transit_to_here": {
@@ -11173,6 +11465,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6611810,
         "presents_delivered_at_stop": 6611810
       },
       "transit_to_here": {
@@ -11211,6 +11504,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 969971,
         "presents_delivered_at_stop": 969971
       },
       "transit_to_here": {
@@ -11249,6 +11543,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9907066,
         "presents_delivered_at_stop": 9907066
       },
       "transit_to_here": {
@@ -11287,6 +11582,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2720322,
         "presents_delivered_at_stop": 2720322
       },
       "transit_to_here": {
@@ -11325,6 +11621,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3464460,
         "presents_delivered_at_stop": 3464460
       },
       "transit_to_here": {
@@ -11363,6 +11660,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 212568,
         "presents_delivered_at_stop": 212568
       },
       "transit_to_here": {
@@ -11401,6 +11699,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 16261477,
         "presents_delivered_at_stop": 16261477
       },
       "transit_to_here": {
@@ -11439,6 +11738,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1077190,
         "presents_delivered_at_stop": 1077190
       },
       "transit_to_here": {
@@ -11477,6 +11777,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 212568,
         "presents_delivered_at_stop": 212568
       },
       "transit_to_here": {
@@ -11515,6 +11816,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 212568,
         "presents_delivered_at_stop": 212568
       },
       "transit_to_here": {
@@ -11553,6 +11855,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 212568,
         "presents_delivered_at_stop": 212568
       },
       "transit_to_here": {
@@ -11591,6 +11894,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1505560,
         "presents_delivered_at_stop": 1505560
       },
       "transit_to_here": {
@@ -11630,6 +11934,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 623538,
         "presents_delivered_at_stop": 623538
       },
       "transit_to_here": {
@@ -11668,6 +11973,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 214813,
         "presents_delivered_at_stop": 214813
       },
       "transit_to_here": {
@@ -11706,6 +12012,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 5370327,
         "presents_delivered_at_stop": 5370327
       },
       "transit_to_here": {
@@ -11744,6 +12051,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 7734216,
         "presents_delivered_at_stop": 7734216
       },
       "transit_to_here": {
@@ -11782,6 +12090,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2034667,
         "presents_delivered_at_stop": 2034667
       },
       "transit_to_here": {
@@ -11820,6 +12129,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 4968326,
         "presents_delivered_at_stop": 4968326
       },
       "transit_to_here": {
@@ -11858,6 +12168,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9992804,
         "presents_delivered_at_stop": 9992804
       },
       "transit_to_here": {
@@ -11896,6 +12207,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 10613635,
         "presents_delivered_at_stop": 10613635
       },
       "transit_to_here": {
@@ -11934,6 +12246,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1251480,
         "presents_delivered_at_stop": 1251480
       },
       "transit_to_here": {
@@ -11972,6 +12285,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 19233290,
         "presents_delivered_at_stop": 19233290
       },
       "transit_to_here": {
@@ -12010,6 +12324,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3133049,
         "presents_delivered_at_stop": 3133049
       },
       "transit_to_here": {
@@ -12048,6 +12363,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2042378,
         "presents_delivered_at_stop": 2042378
       },
       "transit_to_here": {
@@ -12086,6 +12402,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 10288752,
         "presents_delivered_at_stop": 10288752
       },
       "transit_to_here": {
@@ -12124,6 +12441,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 14966694,
         "presents_delivered_at_stop": 14966694
       },
       "transit_to_here": {
@@ -12162,6 +12480,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3492474,
         "presents_delivered_at_stop": 3492474
       },
       "transit_to_here": {
@@ -12200,6 +12519,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 14225932,
         "presents_delivered_at_stop": 14225932
       },
       "transit_to_here": {
@@ -12238,6 +12558,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 16282832,
         "presents_delivered_at_stop": 16282832
       },
       "transit_to_here": {
@@ -12276,6 +12597,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 7871869,
         "presents_delivered_at_stop": 7871869
       },
       "transit_to_here": {
@@ -12314,6 +12636,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 15896168,
         "presents_delivered_at_stop": 15896168
       },
       "transit_to_here": {
@@ -12352,6 +12675,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1126394,
         "presents_delivered_at_stop": 1126394
       },
       "transit_to_here": {
@@ -12390,6 +12714,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 214813,
         "presents_delivered_at_stop": 214813
       },
       "transit_to_here": {
@@ -12428,6 +12753,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 51555141,
         "presents_delivered_at_stop": 51555141
       },
       "transit_to_here": {
@@ -12466,6 +12792,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2453767,
         "presents_delivered_at_stop": 2453767
       },
       "transit_to_here": {
@@ -12504,6 +12831,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 15520804,
         "presents_delivered_at_stop": 15520804
       },
       "transit_to_here": {
@@ -12542,6 +12870,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6762080,
         "presents_delivered_at_stop": 6762080
       },
       "transit_to_here": {
@@ -12580,6 +12909,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 20498861,
         "presents_delivered_at_stop": 20498861
       },
       "transit_to_here": {
@@ -12618,6 +12948,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 14490045,
         "presents_delivered_at_stop": 14490045
       },
       "transit_to_here": {
@@ -12656,6 +12987,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 7910492,
         "presents_delivered_at_stop": 7910492
       },
       "transit_to_here": {
@@ -12694,6 +13026,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 635396,
         "presents_delivered_at_stop": 635396
       },
       "transit_to_here": {
@@ -12732,6 +13065,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 214813,
         "presents_delivered_at_stop": 214813
       },
       "transit_to_here": {
@@ -12770,6 +13104,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 987646,
         "presents_delivered_at_stop": 987646
       },
       "transit_to_here": {
@@ -12808,6 +13143,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 10486573,
         "presents_delivered_at_stop": 10486573
       },
       "transit_to_here": {
@@ -12846,6 +13182,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 7463874,
         "presents_delivered_at_stop": 7463874
       },
       "transit_to_here": {
@@ -12884,6 +13221,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 7711553,
         "presents_delivered_at_stop": 7711553
       },
       "transit_to_here": {
@@ -12922,6 +13260,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 15838255,
         "presents_delivered_at_stop": 15838255
       },
       "transit_to_here": {
@@ -12960,6 +13299,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 11552583,
         "presents_delivered_at_stop": 11552583
       },
       "transit_to_here": {
@@ -12998,6 +13338,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 23307220,
         "presents_delivered_at_stop": 23307220
       },
       "transit_to_here": {
@@ -13036,6 +13377,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1086095,
         "presents_delivered_at_stop": 1086095
       },
       "transit_to_here": {
@@ -13074,6 +13416,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 13265030,
         "presents_delivered_at_stop": 13265030
       },
       "transit_to_here": {
@@ -13112,6 +13455,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6501168,
         "presents_delivered_at_stop": 6501168
       },
       "transit_to_here": {
@@ -13150,6 +13494,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 11654233,
         "presents_delivered_at_stop": 11654233
       },
       "transit_to_here": {
@@ -13188,6 +13533,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 18538369,
         "presents_delivered_at_stop": 18538369
       },
       "transit_to_here": {
@@ -13226,6 +13572,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 19247252,
         "presents_delivered_at_stop": 19247252
       },
       "transit_to_here": {
@@ -13264,6 +13611,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1818328,
         "presents_delivered_at_stop": 1818328
       },
       "transit_to_here": {
@@ -13302,6 +13650,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9385162,
         "presents_delivered_at_stop": 9385162
       },
       "transit_to_here": {
@@ -13340,6 +13689,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1720653,
         "presents_delivered_at_stop": 1720653
       },
       "transit_to_here": {
@@ -13378,6 +13728,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 214813,
         "presents_delivered_at_stop": 214813
       },
       "transit_to_here": {
@@ -13416,6 +13767,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 214813,
         "presents_delivered_at_stop": 214813
       },
       "transit_to_here": {
@@ -13454,6 +13806,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 14157987,
         "presents_delivered_at_stop": 14157987
       },
       "transit_to_here": {
@@ -13492,6 +13845,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 214813,
         "presents_delivered_at_stop": 214813
       },
       "transit_to_here": {
@@ -13530,6 +13884,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 12419547,
         "presents_delivered_at_stop": 12419547
       },
       "transit_to_here": {
@@ -13568,6 +13923,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 214813,
         "presents_delivered_at_stop": 214813
       },
       "transit_to_here": {
@@ -13606,6 +13962,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1186284,
         "presents_delivered_at_stop": 1186284
       },
       "transit_to_here": {
@@ -13644,6 +14001,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1935208,
         "presents_delivered_at_stop": 1935208
       },
       "transit_to_here": {
@@ -13682,6 +14040,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9919982,
         "presents_delivered_at_stop": 9919982
       },
       "transit_to_here": {
@@ -13720,6 +14079,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 11920107,
         "presents_delivered_at_stop": 11920107
       },
       "transit_to_here": {
@@ -13758,6 +14118,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 19280763,
         "presents_delivered_at_stop": 19280763
       },
       "transit_to_here": {
@@ -13796,6 +14157,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 10740654,
         "presents_delivered_at_stop": 10740654
       },
       "transit_to_here": {
@@ -13834,6 +14196,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1576170,
         "presents_delivered_at_stop": 1576170
       },
       "transit_to_here": {
@@ -13872,6 +14235,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 17831763,
         "presents_delivered_at_stop": 17831763
       },
       "transit_to_here": {
@@ -13910,6 +14274,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6641204,
         "presents_delivered_at_stop": 6641204
       },
       "transit_to_here": {
@@ -13948,6 +14313,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 5941171,
         "presents_delivered_at_stop": 5941171
       },
       "transit_to_here": {
@@ -13986,6 +14352,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9034910,
         "presents_delivered_at_stop": 9034910
       },
       "transit_to_here": {
@@ -14024,6 +14391,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9596753,
         "presents_delivered_at_stop": 9596753
       },
       "transit_to_here": {
@@ -14062,6 +14430,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 16562089,
         "presents_delivered_at_stop": 16562089
       },
       "transit_to_here": {
@@ -14100,6 +14469,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6444393,
         "presents_delivered_at_stop": 6444393
       },
       "transit_to_here": {
@@ -14138,6 +14508,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 709979,
         "presents_delivered_at_stop": 709979
       },
       "transit_to_here": {
@@ -14176,6 +14547,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9091985,
         "presents_delivered_at_stop": 9091985
       },
       "transit_to_here": {
@@ -14214,6 +14586,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 7029844,
         "presents_delivered_at_stop": 7029844
       },
       "transit_to_here": {
@@ -14252,6 +14625,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 5707240,
         "presents_delivered_at_stop": 5707240
       },
       "transit_to_here": {
@@ -14290,6 +14664,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 7418935,
         "presents_delivered_at_stop": 7418935
       },
       "transit_to_here": {
@@ -14328,6 +14703,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 19762804,
         "presents_delivered_at_stop": 19762804
       },
       "transit_to_here": {
@@ -14366,6 +14742,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 7517534,
         "presents_delivered_at_stop": 7517534
       },
       "transit_to_here": {
@@ -14404,6 +14781,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9544919,
         "presents_delivered_at_stop": 9544919
       },
       "transit_to_here": {
@@ -14442,6 +14820,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 18194668,
         "presents_delivered_at_stop": 18194668
       },
       "transit_to_here": {
@@ -14480,6 +14859,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1159948,
         "presents_delivered_at_stop": 1159948
       },
       "transit_to_here": {
@@ -14518,6 +14898,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 13950048,
         "presents_delivered_at_stop": 13950048
       },
       "transit_to_here": {
@@ -14556,6 +14937,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 17356897,
         "presents_delivered_at_stop": 17356897
       },
       "transit_to_here": {
@@ -14594,6 +14976,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6785151,
         "presents_delivered_at_stop": 6785151
       },
       "transit_to_here": {
@@ -14632,6 +15015,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 8738747,
         "presents_delivered_at_stop": 8738747
       },
       "transit_to_here": {
@@ -14670,6 +15054,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 17142084,
         "presents_delivered_at_stop": 17142084
       },
       "transit_to_here": {
@@ -14708,6 +15093,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3035481,
         "presents_delivered_at_stop": 3035481
       },
       "transit_to_here": {
@@ -14746,6 +15132,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 4018788,
         "presents_delivered_at_stop": 4018788
       },
       "transit_to_here": {
@@ -14784,6 +15171,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6923512,
         "presents_delivered_at_stop": 6923512
       },
       "transit_to_here": {
@@ -14822,6 +15210,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3112620,
         "presents_delivered_at_stop": 3112620
       },
       "transit_to_here": {
@@ -14860,6 +15249,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 714306,
         "presents_delivered_at_stop": 714306
       },
       "transit_to_here": {
@@ -14899,6 +15289,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 714306,
         "presents_delivered_at_stop": 714306
       },
       "transit_to_here": {
@@ -14937,6 +15328,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1858126,
         "presents_delivered_at_stop": 1858126
       },
       "transit_to_here": {
@@ -14975,6 +15367,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 8415316,
         "presents_delivered_at_stop": 8415316
       },
       "transit_to_here": {
@@ -15013,6 +15406,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6646194,
         "presents_delivered_at_stop": 6646194
       },
       "transit_to_here": {
@@ -15051,6 +15445,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 4164193,
         "presents_delivered_at_stop": 4164193
       },
       "transit_to_here": {
@@ -15089,6 +15484,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 5579234,
         "presents_delivered_at_stop": 5579234
       },
       "transit_to_here": {
@@ -15127,6 +15523,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6239253,
         "presents_delivered_at_stop": 6239253
       },
       "transit_to_here": {
@@ -15165,6 +15562,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 5679023,
         "presents_delivered_at_stop": 5679023
       },
       "transit_to_here": {
@@ -15203,6 +15601,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 29243066,
         "presents_delivered_at_stop": 29243066
       },
       "transit_to_here": {
@@ -15241,6 +15640,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 714306,
         "presents_delivered_at_stop": 714306
       },
       "transit_to_here": {
@@ -15279,6 +15679,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 714306,
         "presents_delivered_at_stop": 714306
       },
       "transit_to_here": {
@@ -15317,6 +15718,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2561075,
         "presents_delivered_at_stop": 2561075
       },
       "transit_to_here": {
@@ -15355,6 +15757,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1486615,
         "presents_delivered_at_stop": 1486615
       },
       "transit_to_here": {
@@ -15393,6 +15796,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3519745,
         "presents_delivered_at_stop": 3519745
       },
       "transit_to_here": {
@@ -15431,6 +15835,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1028459,
         "presents_delivered_at_stop": 1028459
       },
       "transit_to_here": {
@@ -15469,6 +15874,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 714306,
         "presents_delivered_at_stop": 714306
       },
       "transit_to_here": {
@@ -15507,6 +15913,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 27036145,
         "presents_delivered_at_stop": 27036145
       },
       "transit_to_here": {
@@ -15545,6 +15952,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2498144,
         "presents_delivered_at_stop": 2498144
       },
       "transit_to_here": {
@@ -15583,6 +15991,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 4947787,
         "presents_delivered_at_stop": 4947787
       },
       "transit_to_here": {
@@ -15621,6 +16030,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 53011830,
         "presents_delivered_at_stop": 53011830
       },
       "transit_to_here": {
@@ -15659,6 +16069,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 14626640,
         "presents_delivered_at_stop": 14626640
       },
       "transit_to_here": {
@@ -15697,6 +16108,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 24005056,
         "presents_delivered_at_stop": 24005056
       },
       "transit_to_here": {
@@ -15735,6 +16147,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6378186,
         "presents_delivered_at_stop": 6378186
       },
       "transit_to_here": {
@@ -15773,6 +16186,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6195752,
         "presents_delivered_at_stop": 6195752
       },
       "transit_to_here": {
@@ -15811,6 +16225,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6076963,
         "presents_delivered_at_stop": 6076963
       },
       "transit_to_here": {
@@ -15849,6 +16264,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 19844292,
         "presents_delivered_at_stop": 19844292
       },
       "transit_to_here": {
@@ -15887,6 +16303,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 714306,
         "presents_delivered_at_stop": 714306
       },
       "transit_to_here": {
@@ -15925,6 +16342,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 749308,
         "presents_delivered_at_stop": 749308
       },
       "transit_to_here": {
@@ -15963,6 +16381,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 786965,
         "presents_delivered_at_stop": 786965
       },
       "transit_to_here": {
@@ -16001,6 +16420,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 112645,
         "presents_delivered_at_stop": 112645
       },
       "transit_to_here": {
@@ -16039,6 +16459,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 304293,
         "presents_delivered_at_stop": 304293
       },
       "transit_to_here": {
@@ -16077,6 +16498,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 486625,
         "presents_delivered_at_stop": 486625
       },
       "transit_to_here": {
@@ -16115,6 +16537,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 963422,
         "presents_delivered_at_stop": 963422
       },
       "transit_to_here": {
@@ -16153,6 +16576,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1798919,
         "presents_delivered_at_stop": 1798919
       },
       "transit_to_here": {
@@ -16191,6 +16615,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 15214649,
         "presents_delivered_at_stop": 15214649
       },
       "transit_to_here": {
@@ -16229,6 +16654,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 691445,
         "presents_delivered_at_stop": 691445
       },
       "transit_to_here": {
@@ -16267,6 +16693,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 21125631,
         "presents_delivered_at_stop": 21125631
       },
       "transit_to_here": {
@@ -16305,6 +16732,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 16915555,
         "presents_delivered_at_stop": 16915555
       },
       "transit_to_here": {
@@ -16343,6 +16771,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 304293,
         "presents_delivered_at_stop": 304293
       },
       "transit_to_here": {
@@ -16381,6 +16810,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 660742,
         "presents_delivered_at_stop": 660742
       },
       "transit_to_here": {
@@ -16419,6 +16849,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 641845,
         "presents_delivered_at_stop": 641845
       },
       "transit_to_here": {
@@ -16457,6 +16888,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1035722,
         "presents_delivered_at_stop": 1035722
       },
       "transit_to_here": {
@@ -16495,6 +16927,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 500197,
         "presents_delivered_at_stop": 500197
       },
       "transit_to_here": {
@@ -16533,6 +16966,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1288955,
         "presents_delivered_at_stop": 1288955
       },
       "transit_to_here": {
@@ -16571,6 +17005,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2404401,
         "presents_delivered_at_stop": 2404401
       },
       "transit_to_here": {
@@ -16609,6 +17044,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3216072,
         "presents_delivered_at_stop": 3216072
       },
       "transit_to_here": {
@@ -16647,6 +17083,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 304293,
         "presents_delivered_at_stop": 304293
       },
       "transit_to_here": {
@@ -16685,6 +17122,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 304293,
         "presents_delivered_at_stop": 304293
       },
       "transit_to_here": {
@@ -16723,6 +17161,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 917443,
         "presents_delivered_at_stop": 917443
       },
       "transit_to_here": {
@@ -16761,6 +17200,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 574536,
         "presents_delivered_at_stop": 574536
       },
       "transit_to_here": {
@@ -16799,6 +17239,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2680852,
         "presents_delivered_at_stop": 2680852
       },
       "transit_to_here": {
@@ -16837,6 +17278,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 304293,
         "presents_delivered_at_stop": 304293
       },
       "transit_to_here": {
@@ -16875,6 +17317,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 476006,
         "presents_delivered_at_stop": 476006
       },
       "transit_to_here": {
@@ -16913,6 +17356,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 865257,
         "presents_delivered_at_stop": 865257
       },
       "transit_to_here": {
@@ -16951,6 +17395,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 10371005,
         "presents_delivered_at_stop": 10371005
       },
       "transit_to_here": {
@@ -16989,6 +17434,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 708364,
         "presents_delivered_at_stop": 708364
       },
       "transit_to_here": {
@@ -17027,6 +17473,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 514894,
         "presents_delivered_at_stop": 514894
       },
       "transit_to_here": {
@@ -17065,6 +17512,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 389342868,
         "presents_delivered_at_stop": 389342868
       },
       "transit_to_here": {
@@ -17103,6 +17551,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2483396,
         "presents_delivered_at_stop": 2483396
       },
       "transit_to_here": {
@@ -17141,6 +17590,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1611201,
         "presents_delivered_at_stop": 1611201
       },
       "transit_to_here": {
@@ -17179,6 +17629,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1658823,
         "presents_delivered_at_stop": 1658823
       },
       "transit_to_here": {
@@ -17217,6 +17668,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1347135,
         "presents_delivered_at_stop": 1347135
       },
       "transit_to_here": {
@@ -17255,6 +17707,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 14895294,
         "presents_delivered_at_stop": 14895294
       },
       "transit_to_here": {
@@ -17293,6 +17746,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2491520,
         "presents_delivered_at_stop": 2491520
       },
       "transit_to_here": {
@@ -17331,6 +17785,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 304293,
         "presents_delivered_at_stop": 304293
       },
       "transit_to_here": {
@@ -17369,6 +17824,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 304293,
         "presents_delivered_at_stop": 304293
       },
       "transit_to_here": {
@@ -17407,6 +17863,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 304293,
         "presents_delivered_at_stop": 304293
       },
       "transit_to_here": {
@@ -17445,6 +17902,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 304293,
         "presents_delivered_at_stop": 304293
       },
       "transit_to_here": {
@@ -17483,6 +17941,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1850679,
         "presents_delivered_at_stop": 1850679
       },
       "transit_to_here": {
@@ -17521,6 +17980,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 304293,
         "presents_delivered_at_stop": 304293
       },
       "transit_to_here": {
@@ -17560,6 +18020,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 261292,
         "presents_delivered_at_stop": 261292
       },
       "transit_to_here": {
@@ -17600,6 +18061,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 261291,
         "presents_delivered_at_stop": 261291
       },
       "transit_to_here": {
@@ -17638,6 +18100,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 265335,
         "presents_delivered_at_stop": 265335
       },
       "transit_to_here": {
@@ -17677,6 +18140,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1036444,
         "presents_delivered_at_stop": 1036444
       },
       "transit_to_here": {
@@ -17715,6 +18179,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 4226616,
         "presents_delivered_at_stop": 4226616
       },
       "transit_to_here": {
@@ -17753,6 +18218,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6521369,
         "presents_delivered_at_stop": 6521369
       },
       "transit_to_here": {
@@ -17791,6 +18257,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 745902,
         "presents_delivered_at_stop": 745902
       },
       "transit_to_here": {
@@ -17829,6 +18296,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1094177,
         "presents_delivered_at_stop": 1094177
       },
       "transit_to_here": {
@@ -17867,6 +18335,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 839411,
         "presents_delivered_at_stop": 839411
       },
       "transit_to_here": {
@@ -17905,6 +18374,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 221113,
         "presents_delivered_at_stop": 221113
       },
       "transit_to_here": {
@@ -17943,6 +18413,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 515989,
         "presents_delivered_at_stop": 515989
       },
       "transit_to_here": {
@@ -17981,6 +18452,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 221113,
         "presents_delivered_at_stop": 221113
       },
       "transit_to_here": {
@@ -18019,6 +18491,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 221113,
         "presents_delivered_at_stop": 221113
       },
       "transit_to_here": {
@@ -18057,6 +18530,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 784928,
         "presents_delivered_at_stop": 784928
       },
       "transit_to_here": {
@@ -18095,6 +18569,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 483950,
         "presents_delivered_at_stop": 483950
       },
       "transit_to_here": {
@@ -18133,6 +18608,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 221113,
         "presents_delivered_at_stop": 221113
       },
       "transit_to_here": {
@@ -18171,6 +18647,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 221113,
         "presents_delivered_at_stop": 221113
       },
       "transit_to_here": {
@@ -18209,6 +18686,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 221113,
         "presents_delivered_at_stop": 221113
       },
       "transit_to_here": {
@@ -18247,6 +18725,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 221113,
         "presents_delivered_at_stop": 221113
       },
       "transit_to_here": {
@@ -18285,6 +18764,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 719567,
         "presents_delivered_at_stop": 719567
       },
       "transit_to_here": {
@@ -18323,6 +18803,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 54811771,
         "presents_delivered_at_stop": 54811771
       },
       "transit_to_here": {
@@ -18362,6 +18843,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 221113,
         "presents_delivered_at_stop": 221113
       },
       "transit_to_here": {
@@ -18401,6 +18883,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 221113,
         "presents_delivered_at_stop": 221113
       },
       "transit_to_here": {
@@ -18440,6 +18923,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 221113,
         "presents_delivered_at_stop": 221113
       },
       "transit_to_here": {
@@ -18478,6 +18962,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1156862,
         "presents_delivered_at_stop": 1156862
       },
       "transit_to_here": {
@@ -18516,6 +19001,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 568945,
         "presents_delivered_at_stop": 568945
       },
       "transit_to_here": {
@@ -18554,6 +19040,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2651077,
         "presents_delivered_at_stop": 2651077
       },
       "transit_to_here": {
@@ -18592,6 +19079,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3372811,
         "presents_delivered_at_stop": 3372811
       },
       "transit_to_here": {
@@ -18630,6 +19118,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3608495,
         "presents_delivered_at_stop": 3608495
       },
       "transit_to_here": {
@@ -18668,6 +19157,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1520703,
         "presents_delivered_at_stop": 1520703
       },
       "transit_to_here": {
@@ -18706,6 +19196,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 5190314,
         "presents_delivered_at_stop": 5190314
       },
       "transit_to_here": {
@@ -18744,6 +19235,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9753154,
         "presents_delivered_at_stop": 9753154
       },
       "transit_to_here": {
@@ -18782,6 +19274,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 7639205,
         "presents_delivered_at_stop": 7639205
       },
       "transit_to_here": {
@@ -18820,6 +19313,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6285995,
         "presents_delivered_at_stop": 6285995
       },
       "transit_to_here": {
@@ -18858,6 +19352,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 221113,
         "presents_delivered_at_stop": 221113
       },
       "transit_to_here": {
@@ -18896,6 +19391,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 221113,
         "presents_delivered_at_stop": 221113
       },
       "transit_to_here": {
@@ -18934,6 +19430,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 221113,
         "presents_delivered_at_stop": 221113
       },
       "transit_to_here": {
@@ -18972,6 +19469,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 221113,
         "presents_delivered_at_stop": 221113
       },
       "transit_to_here": {
@@ -19010,6 +19508,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 5769298,
         "presents_delivered_at_stop": 5769298
       },
       "transit_to_here": {
@@ -19048,6 +19547,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3246224,
         "presents_delivered_at_stop": 3246224
       },
       "transit_to_here": {
@@ -19086,6 +19586,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 221113,
         "presents_delivered_at_stop": 221113
       },
       "transit_to_here": {
@@ -19124,6 +19625,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 982559,
         "presents_delivered_at_stop": 982559
       },
       "transit_to_here": {
@@ -19162,6 +19664,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2420585,
         "presents_delivered_at_stop": 2420585
       },
       "transit_to_here": {
@@ -19200,6 +19703,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 577905,
         "presents_delivered_at_stop": 577905
       },
       "transit_to_here": {
@@ -19238,6 +19742,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 8855292,
         "presents_delivered_at_stop": 8855292
       },
       "transit_to_here": {
@@ -19276,6 +19781,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 783973,
         "presents_delivered_at_stop": 783973
       },
       "transit_to_here": {
@@ -19314,6 +19820,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2147365,
         "presents_delivered_at_stop": 2147365
       },
       "transit_to_here": {
@@ -19352,6 +19859,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 413253,
         "presents_delivered_at_stop": 413253
       },
       "transit_to_here": {
@@ -19390,6 +19898,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 360447,
         "presents_delivered_at_stop": 360447
       },
       "transit_to_here": {
@@ -19428,6 +19937,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 10146126,
         "presents_delivered_at_stop": 10146126
       },
       "transit_to_here": {
@@ -19466,6 +19976,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 670072,
         "presents_delivered_at_stop": 670072
       },
       "transit_to_here": {
@@ -19504,6 +20015,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 72017392,
         "presents_delivered_at_stop": 72017392
       },
       "transit_to_here": {
@@ -19542,6 +20054,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1209770,
         "presents_delivered_at_stop": 1209770
       },
       "transit_to_here": {
@@ -19580,6 +20093,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 26029565,
         "presents_delivered_at_stop": 26029565
       },
       "transit_to_here": {
@@ -19618,6 +20132,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 11110323,
         "presents_delivered_at_stop": 11110323
       },
       "transit_to_here": {
@@ -19656,6 +20171,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 25189939,
         "presents_delivered_at_stop": 25189939
       },
       "transit_to_here": {
@@ -19694,6 +20210,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 31971685,
         "presents_delivered_at_stop": 31971685
       },
       "transit_to_here": {
@@ -19732,6 +20249,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9414418,
         "presents_delivered_at_stop": 9414418
       },
       "transit_to_here": {
@@ -19770,6 +20288,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9919441,
         "presents_delivered_at_stop": 9919441
       },
       "transit_to_here": {
@@ -19808,6 +20327,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 360447,
         "presents_delivered_at_stop": 360447
       },
       "transit_to_here": {
@@ -19846,6 +20366,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2991714,
         "presents_delivered_at_stop": 2991714
       },
       "transit_to_here": {
@@ -19884,6 +20405,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1224764,
         "presents_delivered_at_stop": 1224764
       },
       "transit_to_here": {
@@ -19922,6 +20444,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 13777598,
         "presents_delivered_at_stop": 13777598
       },
       "transit_to_here": {
@@ -19960,6 +20483,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9326577,
         "presents_delivered_at_stop": 9326577
       },
       "transit_to_here": {
@@ -19998,6 +20522,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 81244846,
         "presents_delivered_at_stop": 81244846
       },
       "transit_to_here": {
@@ -20036,6 +20561,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9112291,
         "presents_delivered_at_stop": 9112291
       },
       "transit_to_here": {
@@ -20074,6 +20600,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 360447,
         "presents_delivered_at_stop": 360447
       },
       "transit_to_here": {
@@ -20112,6 +20639,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 4946492,
         "presents_delivered_at_stop": 4946492
       },
       "transit_to_here": {
@@ -20150,6 +20678,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 31606804,
         "presents_delivered_at_stop": 31606804
       },
       "transit_to_here": {
@@ -20188,6 +20717,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 33799154,
         "presents_delivered_at_stop": 33799154
       },
       "transit_to_here": {
@@ -20226,6 +20756,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 20036010,
         "presents_delivered_at_stop": 20036010
       },
       "transit_to_here": {
@@ -20264,6 +20795,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9833041,
         "presents_delivered_at_stop": 9833041
       },
       "transit_to_here": {
@@ -20302,6 +20834,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 11501949,
         "presents_delivered_at_stop": 11501949
       },
       "transit_to_here": {
@@ -20340,6 +20873,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6943371,
         "presents_delivered_at_stop": 6943371
       },
       "transit_to_here": {
@@ -20378,6 +20912,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 4620503,
         "presents_delivered_at_stop": 4620503
       },
       "transit_to_here": {
@@ -20416,6 +20951,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 7341737,
         "presents_delivered_at_stop": 7341737
       },
       "transit_to_here": {
@@ -20454,6 +20990,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1947209,
         "presents_delivered_at_stop": 1947209
       },
       "transit_to_here": {
@@ -20492,6 +21029,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 12527782,
         "presents_delivered_at_stop": 12527782
       },
       "transit_to_here": {
@@ -20530,6 +21068,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 8216038,
         "presents_delivered_at_stop": 8216038
       },
       "transit_to_here": {
@@ -20569,6 +21108,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3098658,
         "presents_delivered_at_stop": 3098658
       },
       "transit_to_here": {
@@ -20607,6 +21147,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9029640,
         "presents_delivered_at_stop": 9029640
       },
       "transit_to_here": {
@@ -20645,6 +21186,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 5288953,
         "presents_delivered_at_stop": 5288953
       },
       "transit_to_here": {
@@ -20683,6 +21225,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2484744,
         "presents_delivered_at_stop": 2484744
       },
       "transit_to_here": {
@@ -20721,6 +21264,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 360447,
         "presents_delivered_at_stop": 360447
       },
       "transit_to_here": {
@@ -20759,6 +21303,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 6740006,
         "presents_delivered_at_stop": 6740006
       },
       "transit_to_here": {
@@ -20797,6 +21342,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 450235,
         "presents_delivered_at_stop": 450235
       },
       "transit_to_here": {
@@ -20836,6 +21382,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 34170414,
         "presents_delivered_at_stop": 34170414
       },
       "transit_to_here": {
@@ -20875,6 +21422,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3615648,
         "presents_delivered_at_stop": 3615648
       },
       "transit_to_here": {
@@ -20914,6 +21462,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 2104364,
         "presents_delivered_at_stop": 2104364
       },
       "transit_to_here": {
@@ -20953,6 +21502,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3580468,
         "presents_delivered_at_stop": 3580468
       },
       "transit_to_here": {
@@ -20992,6 +21542,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9499541,
         "presents_delivered_at_stop": 9499541
       },
       "transit_to_here": {
@@ -21031,6 +21582,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 26199735,
         "presents_delivered_at_stop": 26199735
       },
       "transit_to_here": {
@@ -21070,6 +21622,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 154692430,
         "presents_delivered_at_stop": 154692430
       },
       "transit_to_here": {
@@ -21109,6 +21662,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 24737755,
         "presents_delivered_at_stop": 24737755
       },
       "transit_to_here": {
@@ -21148,6 +21702,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 26995796,
         "presents_delivered_at_stop": 26995796
       },
       "transit_to_here": {
@@ -21187,6 +21742,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 14412704,
         "presents_delivered_at_stop": 14412704
       },
       "transit_to_here": {
@@ -21226,6 +21782,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 59978204,
         "presents_delivered_at_stop": 59978204
       },
       "transit_to_here": {
@@ -21265,6 +21822,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 17678646,
         "presents_delivered_at_stop": 17678646
       },
       "transit_to_here": {
@@ -21304,6 +21862,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 9499541,
         "presents_delivered_at_stop": 9499541
       },
       "transit_to_here": {
@@ -21343,6 +21902,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 76029530,
         "presents_delivered_at_stop": 76029530
       },
       "transit_to_here": {
@@ -21381,6 +21941,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 525023,
         "presents_delivered_at_stop": 525023
       },
       "transit_to_here": {
@@ -21420,6 +21981,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1089422,
         "presents_delivered_at_stop": 1089422
       },
       "transit_to_here": {
@@ -21458,6 +22020,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 46464505,
         "presents_delivered_at_stop": 46464505
       },
       "transit_to_here": {
@@ -21496,6 +22059,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 81536018,
         "presents_delivered_at_stop": 81536018
       },
       "transit_to_here": {
@@ -21534,6 +22098,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 13470244,
         "presents_delivered_at_stop": 13470244
       },
       "transit_to_here": {
@@ -21572,6 +22137,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 673551,
         "presents_delivered_at_stop": 673551
       },
       "transit_to_here": {
@@ -21610,6 +22176,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 525023,
         "presents_delivered_at_stop": 525023
       },
       "transit_to_here": {
@@ -21649,6 +22216,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 525023,
         "presents_delivered_at_stop": 525023
       },
       "transit_to_here": {
@@ -21688,6 +22256,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1812063,
         "presents_delivered_at_stop": 1812063
       },
       "transit_to_here": {
@@ -21727,6 +22296,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 5232481,
         "presents_delivered_at_stop": 5232481
       },
       "transit_to_here": {
@@ -21766,6 +22336,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 525600,
         "presents_delivered_at_stop": 525600
       },
       "transit_to_here": {
@@ -21805,6 +22376,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 605561,
         "presents_delivered_at_stop": 605561
       },
       "transit_to_here": {
@@ -21843,6 +22415,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 525023,
         "presents_delivered_at_stop": 525023
       },
       "transit_to_here": {
@@ -21882,6 +22455,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 1381614,
         "presents_delivered_at_stop": 1381614
       },
       "transit_to_here": {
@@ -21921,6 +22495,7 @@
         "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 3282547,
         "presents_delivered_at_stop": 3282547
       },
       "transit_to_here": {
@@ -21959,6 +22534,7 @@
         "stop_tier": "major",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 187825,
         "presents_delivered_at_stop": 187825
       },
       "transit_to_here": {
@@ -21997,6 +22573,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 187825,
         "presents_delivered_at_stop": 187825
       },
       "transit_to_here": {
@@ -22035,6 +22612,7 @@
         "stop_tier": "hop",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 17362,
         "presents_delivered_at_stop": 17362
       },
       "transit_to_here": {
@@ -22073,6 +22651,7 @@
         "stop_tier": "town",
         "camera_zoom": 14,
         "weather_condition": "clear",
+        "presents": 21835,
         "presents_delivered_at_stop": 21835
       },
       "transit_to_here": {

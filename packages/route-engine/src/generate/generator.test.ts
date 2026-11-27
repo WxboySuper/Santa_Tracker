@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { createLocationId, SCHEMA_VERSION, type LegacyRouteNode, type Route } from '@santa-tracker/contracts';
 import { legSpeedKmh } from '../geo';
 import { generateRoute, type Candidate, DEFAULT_GENERATOR_LIMITS } from './generator';
 import { isInChristmasWindow, localClock } from './sweep';
 import { scheduledTravelMilliseconds } from './order';
 import { NORTH_POLE } from './types';
-import { PRESENTS_TOTAL } from '../stats';
+import { deriveJourneyStats, interpolatePresentsDeliveredFromRouteNodes, PRESENTS_TOTAL, type RouteStatsLocation } from '../stats';
 
 const candidates: Candidate[] = [
   { id: 'pacific-a', name: 'Pacific A', country: 'FJ', lat: 80, lng: 170, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, population: 1_200_000, category: 'hub' },
@@ -33,12 +34,70 @@ describe('generateRoute midnight sweep', () => {
     const generated = generateRoute(candidates, config);
     const deliveries = generated.document.route_nodes
       .filter((node) => (node as { type?: string }).type === 'DELIVERY')
-      .map((node) => (node as { stop_experience: { presents_delivered_at_stop: number } }).stop_experience.presents_delivered_at_stop);
+      .map((node) => (node as { stop_experience: { presents: number } }).stop_experience.presents);
 
     expect(deliveries).toHaveLength(generated.report.count);
     expect(deliveries.every((count) => Number.isSafeInteger(count) && count > 0)).toBe(true);
     expect(deliveries.reduce((sum, count) => sum + count, 0)).toBe(PRESENTS_TOTAL);
     expect(new Set(deliveries).size).toBeGreaterThan(1);
+  });
+
+  it('matches allocated route-node presents to journey stats across flight and dwell times', () => {
+    const generated = generateRoute(candidates, config);
+    const nodes = generated.document.route_nodes as LegacyRouteNode[];
+    const candidateById = new Map(candidates.map((place) => [place.id, place]));
+    const route: Route = {
+      schemaVersion: SCHEMA_VERSION,
+      season: 2026,
+      stops: nodes.map((node) => ({
+        locationId: createLocationId(node.id),
+        arrivalIso: node.schedule.arrival_utc ?? node.schedule.departure_utc!,
+        departureIso: node.schedule.departure_utc!,
+        durationSeconds: node.stop_experience.duration_seconds ?? 0,
+      })),
+    };
+    const locations: RouteStatsLocation[] = nodes.map((node) => {
+      const candidate = node.candidate_id ? candidateById.get(node.candidate_id) : undefined;
+      return {
+        id: node.id,
+        name: node.location.name,
+        country: candidate?.country ?? 'Arctic',
+        ...(candidate ? { countryCode: candidate.country, population: candidate.population } : {}),
+        timezone: candidate?.timezone ?? 'UTC',
+        coordinates: { lat: node.location.lat, lng: node.location.lng },
+        type: node.type as RouteStatsLocation['type'],
+      };
+    });
+    const deliveryNodes = nodes.filter((node) => node.type === 'DELIVERY');
+    const takeoff = Date.parse(nodes[0]!.schedule.departure_utc!);
+    const firstArrival = Date.parse(deliveryNodes[0]!.schedule.arrival_utc!);
+    const firstDeparture = Date.parse(deliveryNodes[0]!.schedule.departure_utc!);
+    const secondArrival = Date.parse(deliveryNodes[1]!.schedule.arrival_utc!);
+    const instants = [
+      takeoff - 1,
+      takeoff + Math.floor((firstArrival - takeoff) / 2),
+      firstArrival,
+      firstArrival + Math.floor((firstDeparture - firstArrival) / 2),
+      firstDeparture,
+      firstDeparture + Math.floor((secondArrival - firstDeparture) / 2),
+      secondArrival,
+      Date.parse(deliveryNodes.at(-1)!.schedule.departure_utc!),
+    ];
+
+    for (const instant of instants) {
+      expect(interpolatePresentsDeliveredFromRouteNodes(nodes, instant)).toBe(
+        deriveJourneyStats(route, instant, locations, candidates.map((place): RouteStatsLocation => ({
+          id: place.id,
+          name: place.name,
+          country: place.country,
+          countryCode: place.country,
+          timezone: place.timezone,
+          coordinates: { lat: place.lat, lng: place.lng },
+          population: place.population,
+          type: 'DELIVERY',
+        }))).presentsDelivered,
+      );
+    }
   });
 
   it('keeps every arrival inside 23:00 to 05:00 local and stores its tier dwell', () => {

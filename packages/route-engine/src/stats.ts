@@ -273,6 +273,59 @@ export function interpolateStopPresentProgress({ nowMs, inboundStartMs, arrivalM
   return hasInboundFlight ? 0.3 + 0.7 * dwellProgress : dwellProgress;
 }
 
+export type PresentAllocationRouteNode = {
+  type?: string;
+  schedule?: { arrival_utc?: string | null; departure_utc?: string | null };
+  stop_experience?: { presents?: number | null };
+};
+
+/** Interpolate the allocated present total from generated route nodes without loading the candidate pool. */
+export function interpolatePresentsDeliveredFromRouteNodes(routeNodes: readonly PresentAllocationRouteNode[], now: Date | number): number {
+  const nowMs = timestampMs({ value: now });
+  const deliveries = routeNodes.flatMap((node, index) => node.type === 'DELIVERY' ? [{ node, index }] : []);
+  if (deliveries.length === 0) return 0;
+
+  const allocations = deliveries.map(({ node }) => node.stop_experience?.presents);
+  if (allocations.some((value) => typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0)
+    || allocations.reduce<number>((sum, value) => sum + (typeof value === 'number' ? value : 0), 0) !== PRESENTS_TOTAL) {
+    throw new RangeError('route delivery present allocations must be non-negative integers summing to PRESENTS_TOTAL');
+  }
+
+  const delivered = deliveries.reduce((sum, { node, index }, allocationIndex) => {
+    const arrivalMs = routeNodeTimestamp(node, 'arrival_utc');
+    const departureMs = routeNodeTimestamp(node, 'departure_utc');
+    if (departureMs < arrivalMs) throw new RangeError('route departure must not precede arrival');
+    const previous = previousRouteNode(routeNodes, index);
+    const inboundStartMs = previous ? routeNodeTimestamp(previous, 'departure_utc') : arrivalMs;
+    const progress = interpolateStopPresentProgress({
+      nowMs,
+      inboundStartMs,
+      arrivalMs,
+      departureMs,
+      hasInboundFlight: previous !== undefined && arrivalMs > inboundStartMs,
+    });
+    return sum + allocations[allocationIndex]! * progress;
+  }, 0);
+
+  if (deliveries.every(({ node }) => nowMs >= routeNodeTimestamp(node, 'departure_utc'))) return PRESENTS_TOTAL;
+  const roundingTolerance = Number.EPSILON * PRESENTS_TOTAL * 2;
+  return Math.min(PRESENTS_TOTAL, Math.floor(delivered + roundingTolerance));
+}
+
+function routeNodeTimestamp(node: PresentAllocationRouteNode, field: 'arrival_utc' | 'departure_utc'): number {
+  const value = node.schedule?.[field];
+  if (typeof value !== 'string') throw new RangeError(`route delivery is missing ${field}`);
+  return routeTimestampMs(value);
+}
+
+function previousRouteNode(routeNodes: readonly PresentAllocationRouteNode[], index: number): PresentAllocationRouteNode | undefined {
+  for (let candidate = index - 1; candidate >= 0; candidate--) {
+    const node = routeNodes[candidate]!;
+    if (node.type !== 'END') return node;
+  }
+  return undefined;
+}
+
 function allocatePresents(
   deliveryIndexes: number[],
   routeLocations: RouteStatsLocation[],

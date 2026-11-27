@@ -11,7 +11,7 @@ function routeFixture(points: { id: string; name: string; lng: number; country?:
     id: point.id, type: 'DELIVERY', candidate_id: point.id,
     location: { name: point.name, region: 'Test', country_code: point.country ?? 'US', timezone: point.timezone ?? 'Etc/UTC', timezone_offset: (point.offset ?? 0) / 60, lat: 0, lng: point.lng },
     schedule: { arrival_utc: point.arrivalUtc ?? `2026-12-24T23:${String(20 + index * 10).padStart(2, '0')}:00.000Z`, departure_utc: point.arrivalUtc ? new Date(Date.parse(point.arrivalUtc) + 30_000).toISOString() : `2026-12-24T23:${String(20 + index * 10).padStart(2, '0')}:30.000Z` },
-    stop_experience: { presents_delivered_at_stop: 1, camera_zoom: 1, weather_condition: 'clear', stop_tier: point.tier ?? 'town', duration_seconds: point.duration ?? 10 },
+    stop_experience: { presents: 1, presents_delivered_at_stop: 1, camera_zoom: 1, weather_condition: 'clear', stop_tier: point.tier ?? 'town', duration_seconds: point.duration ?? 10 },
     transit_to_here: { duration_seconds: point.transitSeconds ?? 0, distance_km: 1, speed_kmh: 100, ...(point.reason ? { eastward_reason: point.reason } : {}) },
     notes: 'https://www.wikidata.org/wiki/Q1',
   }));

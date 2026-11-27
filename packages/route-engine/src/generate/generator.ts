@@ -255,7 +255,7 @@ function buildDeliveryNode({ place, displayName, presents, index, config, tables
       local_arrival_time: localTimeLabel(place, stopArrival),
       time_window_status: 'GREEN',
     },
-    stop_experience: { duration_seconds: durationSeconds, stop_tier: tier, camera_zoom: 14, weather_condition: 'clear', presents_delivered_at_stop: presents },
+    stop_experience: { duration_seconds: durationSeconds, stop_tier: tier, camera_zoom: 14, weather_condition: 'clear', presents, presents_delivered_at_stop: presents },
     transit_to_here: transit({
       from: priorLocation,
       to: place,
