@@ -28,8 +28,6 @@ ADVENT_ENABLED = "true"
 ADVENT_FALLBACKS_ENABLED = "true"
 SANTA_STORAGE_BACKEND = "r2"
 WEATHER_ENABLED = "true"
-ADMIN_WEBAUTHN_RP_ID = "santa.weatherboysuper.com"
-ADMIN_WEBAUTHN_ORIGIN = "https://santa.weatherboysuper.com"
 # Set via `wrangler secret put`:
 # - SECRET_KEY
 # - ADMIN_PASSWORD

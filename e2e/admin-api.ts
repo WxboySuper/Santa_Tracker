@@ -10,7 +10,7 @@ export async function adminMutation(
     const response = await fetch(path, {
       method,
       credentials: "include",
-      headers: { "Content-Type": "application/json", "X-CSRF-Token": decodeURIComponent(csrf), ...headers },
+      headers: { ...headers, "X-CSRF-Token": decodeURIComponent(csrf), ...(data === undefined ? {} : { "Content-Type": "application/json" }) },
       ...(data === undefined ? {} : { body: JSON.stringify(data) }),
     });
     return { status: response.status, body: await response.text() };

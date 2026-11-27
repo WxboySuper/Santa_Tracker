@@ -30,8 +30,13 @@ export default defineConfig({
       ADVENT_ENABLED: bindings.text("true"),
       WEATHER_ENABLED: bindings.text("true"),
       ADVENT_FALLBACKS_ENABLED: bindings.text("true"),
-      ADMIN_WEBAUTHN_RP_ID: bindings.text("santa.weatherboysuper.com"),
-      ADMIN_WEBAUTHN_ORIGIN: bindings.text("https://santa.weatherboysuper.com"),
+      // Production only: the deploy job sets these. Elsewhere passkeys fall back to the request host.
+      ...(process.env.ADMIN_WEBAUTHN_RP_ID && process.env.ADMIN_WEBAUTHN_ORIGIN
+        ? {
+            ADMIN_WEBAUTHN_RP_ID: bindings.text(process.env.ADMIN_WEBAUTHN_RP_ID),
+            ADMIN_WEBAUTHN_ORIGIN: bindings.text(process.env.ADMIN_WEBAUTHN_ORIGIN),
+          }
+        : {}),
     },
   }),
 });
