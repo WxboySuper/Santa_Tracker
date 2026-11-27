@@ -47,6 +47,7 @@ interface StoreOptions {
 interface Runtime {
   store: ThrottleStore;
   clock: () => number;
+  maxAttempts: number;
 }
 
 // Workers isolates are ephemeral. This per-IP memory limit is deliberate for a single-owner site.
@@ -127,10 +128,11 @@ export class InMemoryThrottleStore implements ThrottleStore {
   }
 }
 
-export function createLoginThrottle(input: { store?: ThrottleStore; clock?: () => number } = {}): LoginThrottle {
+export function createLoginThrottle(input: { store?: ThrottleStore; clock?: () => number; maxAttempts?: number } = {}): LoginThrottle {
   const store = input.store ?? new InMemoryThrottleStore();
   const clock = input.clock ?? Date.now;
-  const runtime = { store, clock };
+  const runtime = { store, clock, maxAttempts: input.maxAttempts ?? ATTEMPT_LIMIT };
+  if (runtime.maxAttempts < 1) throw new Error("Throttle attempt limit must be positive");
   return {
     check({ ip }) { return checkIp({ runtime, ip }); },
     checkNow({ ip }) { return checkInMemoryIp({ runtime, ip }); },
@@ -180,13 +182,13 @@ async function recordIpFailure(input: { runtime: Runtime; ip: string }): Promise
   const { store, clock } = runtime;
   const key = ipKey({ ip });
   const now = clock();
-  return recordFailureWithStore({ store, key, now });
+  return recordFailureWithStore({ store, key, now, maxAttempts: runtime.maxAttempts });
 }
 
-async function recordFailureWithStore(input: { store: ThrottleStore; key: string; now: number }): Promise<ThrottleDecision | null> {
-  const { store, key, now } = input;
+async function recordFailureWithStore(input: { store: ThrottleStore; key: string; now: number; maxAttempts: number }): Promise<ThrottleDecision | null> {
+  const { store, key, now, maxAttempts } = input;
   try {
-    const next = await store.update({ key, transform: (current) => advanceFailure({ current: current ?? emptyState(), now }) });
+    const next = await store.update({ key, transform: current => advanceFailure({ current: current ?? emptyState(), now, maxAttempts }) });
     if (next.lockoutUntil > now) return lockoutDecision({ until: next.lockoutUntil, now });
     return null;
   } catch (error) {
@@ -195,19 +197,19 @@ async function recordFailureWithStore(input: { store: ThrottleStore; key: string
   }
 }
 
-function advanceFailure(input: { current: ThrottleState; now: number }): ThrottleState {
-  const { current, now } = input;
+function advanceFailure(input: { current: ThrottleState; now: number; maxAttempts: number }): ThrottleState {
+  const { current, now, maxAttempts } = input;
   if (current.lockoutUntil > now) return current;
   const attempts = current.attempts.filter((timestamp) => now - timestamp < IP_WINDOW_MS);
   attempts.push(now);
-  return nextFailureState({ current, attempts, now });
+  return nextFailureState({ current, attempts, now, maxAttempts });
 }
 
-function nextFailureState(input: { current: ThrottleState; attempts: number[]; now: number }): ThrottleState {
-  const { current, attempts, now } = input;
+function nextFailureState(input: { current: ThrottleState; attempts: number[]; now: number; maxAttempts: number }): ThrottleState {
+  const { current, attempts, now, maxAttempts } = input;
   const lockoutWasReset = isLockoutReset({ state: current, now });
   const lockoutLevel = lockoutWasReset ? 0 : current.lockoutLevel;
-  if (attempts.length < ATTEMPT_LIMIT) {
+  if (attempts.length < maxAttempts) {
     return { ...current, attempts, lockoutLevel, lastLockoutAt: lockoutWasReset ? -1 : current.lastLockoutAt };
   }
   const nextLevel = lockoutLevel + 1;

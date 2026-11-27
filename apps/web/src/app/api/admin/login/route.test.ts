@@ -31,6 +31,20 @@ describe("admin login route", () => {
     expect(getClientIp(new Request("http://example.test", { headers: { "cf-connecting-ip": "x".repeat(46) } }))).toBeNull();
   });
 
+  it("reports missing trusted IP as an ingress configuration error", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const checkThrottle = vi.spyOn(adminLogin, "checkLoginRateLimit");
+    const response = await POST(new Request("https://example.test/api/admin/login", {
+      method: "POST",
+      headers: { "x-real-ip": "198.51.100.1", "content-type": "application/json" },
+      body: JSON.stringify({ password: "correct horse" }),
+    }));
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: "Admin authentication is unavailable: trusted Cloudflare client IP is missing" });
+    expect(checkThrottle).not.toHaveBeenCalled();
+  });
+
   it("locks after five failures, ignores spoofed forwarded-for, and hides password correctness", async () => {
     const commonHeaders = { "cf-connecting-ip": "198.51.100.50", "content-type": "application/json" };
     for (let index = 0; index < 4; index += 1) {
@@ -86,7 +100,7 @@ describe("admin login route", () => {
     expect(response.status).toBe(413);
   });
 
-  it("does not count malformed JSON as a failed password attempt", async () => {
+  it("counts malformed JSON toward the per-IP authentication limit", async () => {
     const headers = { "cf-connecting-ip": "198.51.100.54", "content-type": "application/json" };
     for (let index = 0; index < 4; index += 1) {
       const response = await POST(new Request("http://example.test/api/admin/login", {
@@ -97,7 +111,8 @@ describe("admin login route", () => {
     const malformed = await POST(new Request("http://example.test/api/admin/login", {
       method: "POST", headers, body: "{",
     }));
-    expect(malformed.status).toBe(400);
+    expect(malformed.status).toBe(429);
+    expect(malformed.headers.get("Retry-After")).toBe("900");
 
     const fifthFailure = await POST(new Request("http://example.test/api/admin/login", {
       method: "POST", headers, body: JSON.stringify({ password: "wrong" }),
@@ -110,7 +125,7 @@ describe("admin login route", () => {
     const verifyPassword = vi.spyOn(auth, "verifyAdminPassword");
     const requests = Array.from({ length: 20 }, () => POST(new Request("http://example.test/api/admin/login", {
       method: "POST",
-      headers: { "cf-connecting-ip": "198.51.100.53", "content-type": "application/json" },
+      headers: { "cf-connecting-ip": "198.51.100.55", "content-type": "application/json" },
       body: JSON.stringify({ password: "wrong" }),
     })));
     const responses = await Promise.all(requests);
@@ -145,6 +160,27 @@ describe("admin login route", () => {
     const response = await pendingLogin;
     expect(response.status).toBe(429);
     expect(response.headers.get("Retry-After")).toBe("900");
+  });
+
+  it("returns storage unavailable if revoking a late-throttled login fails", async () => {
+    let finishSigning: ((token: string) => void) | undefined;
+    vi.spyOn(auth, "createAdminToken").mockImplementation(() => new Promise((resolve) => {
+      finishSigning = resolve;
+    }));
+    vi.spyOn(auth, "revokeAdminToken").mockRejectedValue(new Error("storage unavailable"));
+    vi.spyOn(adminLogin, "checkLoginRateLimit").mockResolvedValueOnce(null).mockResolvedValueOnce({ retryAfterSeconds: 60 });
+    const pendingLogin = POST(new Request("https://example.test/api/admin/login", {
+      method: "POST",
+      headers: { "cf-connecting-ip": "198.51.100.68", "content-type": "application/json" },
+      body: JSON.stringify({ password: "correct horse" }),
+    }));
+    await vi.waitFor(() => expect(finishSigning).toBeTypeOf("function"));
+    finishSigning!("late-token");
+
+    const response = await pendingLogin;
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: "Admin authentication storage is unavailable" });
+    expect(response.headers.get("set-cookie")).toBeNull();
   });
 
   it("counts an asynchronous password failure toward the per-IP lockout", async () => {
@@ -211,7 +247,7 @@ describe("admin login route", () => {
     expect(loginCookie).toContain("Secure");
     expect(loginCookie).toContain("Path=/");
 
-    const clear = logout(new Request("http://internal.example.test/api/admin/logout", {
+    const clear = await logout(new Request("http://internal.example.test/api/admin/logout", {
       method: "POST", headers: { "x-forwarded-proto": "https" },
     }));
     const logoutCookie = clear.headers.get("set-cookie") ?? "";
@@ -228,7 +264,7 @@ describe("admin login route", () => {
       headers: { "cf-connecting-ip": "198.51.100.63", "content-type": "application/json", "x-forwarded-proto": "https" },
       body: JSON.stringify({ password: "correct horse" }),
     }));
-    const logoutResponse = logout(new Request("http://internal.example.test/api/admin/logout", { method: "POST" }));
+    const logoutResponse = await logout(new Request("http://internal.example.test/api/admin/logout", { method: "POST" }));
 
     expect(login.headers.get("set-cookie")).toContain("Secure");
     expect(logoutResponse.headers.get("set-cookie")).toContain("Secure");
@@ -265,7 +301,7 @@ describe("admin login route", () => {
     expect(refreshed.headers.get("set-cookie")).toContain(`Max-Age=${ADMIN_SESSION_TTL_SECONDS}`);
   });
 
-  it("returns a server error when token signing fails", async () => {
+  it("returns storage unavailable when a password session cannot be created", async () => {
     vi.spyOn(auth, "createAdminToken").mockRejectedValue(new Error("signing failed"));
     const response = await POST(new Request("https://example.test/api/admin/login", {
       method: "POST",
@@ -273,7 +309,7 @@ describe("admin login route", () => {
       body: JSON.stringify({ password: "correct horse" }),
     }));
 
-    expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({ error: "Failed to create session" });
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: "Admin authentication storage is unavailable" });
   });
 });

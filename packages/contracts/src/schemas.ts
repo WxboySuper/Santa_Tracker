@@ -174,6 +174,56 @@ export type Activity = z.infer<typeof ActivitySchema>;
 // Snapshot (immutable published artifact)
 // ---------------------------------------------------------------------------
 
+export const FEATURE_FLAG_REGISTRY = {
+  adventEnabled: {
+    owner: 'foundation',
+    default: false,
+    exposure: 'season-config' as const,
+    status: 'active' as const,
+    description: 'Enables Advent content inside its scheduled public window',
+  },
+  mapEnabled: {
+    owner: 'foundation',
+    default: true,
+    exposure: 'season-config' as const,
+    status: 'active' as const,
+    description: 'Enables the map; a disabled map uses the no-map tracker presentation',
+  },
+  weatherEnabled: {
+    owner: 'foundation',
+    default: false,
+    exposure: 'optional' as const,
+    status: 'active' as const,
+    description: 'Enables the optional live-weather overlay',
+  },
+  soundscapeEnabled: {
+    owner: 'foundation',
+    default: false,
+    exposure: 'optional' as const,
+    status: 'active' as const,
+    description: 'Enables the optional soundscape after visitor opt-in',
+  },
+} as const;
+
+export type FeatureFlagKey = keyof typeof FEATURE_FLAG_REGISTRY;
+
+export const FeatureFlagsSchema = z.object({
+  adventEnabled: z.boolean().default(FEATURE_FLAG_REGISTRY.adventEnabled.default),
+  mapEnabled: z.boolean().default(FEATURE_FLAG_REGISTRY.mapEnabled.default),
+  weatherEnabled: z.boolean().default(FEATURE_FLAG_REGISTRY.weatherEnabled.default),
+  soundscapeEnabled: z.boolean().default(FEATURE_FLAG_REGISTRY.soundscapeEnabled.default),
+}).strict();
+
+export type FeatureFlags = z.infer<typeof FeatureFlagsSchema>;
+
+export const SeasonalConfigSchema = z.object({
+  mode: z.enum(SeasonModeValues),
+  flags: FeatureFlagsSchema,
+  activeSnapshotId: z.string().nullable(),
+}).strict();
+
+export type SeasonalConfig = z.infer<typeof SeasonalConfigSchema>;
+
 export const SnapshotSchema = z.object({
   schemaVersion: SchemaVersionSchema,
   publicationId: PublicationIdSchema,
@@ -187,76 +237,11 @@ export const SnapshotSchema = z.object({
   }),
   createdAtIso: z.iso.datetime({ offset: true }),
   checksum: z.string().min(8),
+  seasonalConfig: SeasonalConfigSchema,
   route: RouteSchema,
 });
 
 export type Snapshot = z.infer<typeof SnapshotSchema>;
-
-// ---------------------------------------------------------------------------
-// Feature flags / Seasonal config (typed, validated at publication)
-// ---------------------------------------------------------------------------
-
-/**
- * Governance registry for scaffold feature flags.
- * Each entry records owner, default, exposure, and publication impact.
- * These four flags are **scaffold-only in #213** — they are typed and
- * publication-validated but **not yet wired** in `apps/web` (see
- * `apps/web/src/app/page.tsx:1`); no visitor toggle exists yet.
- * Follow-up issues (#214 advent, #252 map, #253 weather) will wire them
- * and add exposure. Changes require an ADR.
- *
- * @see CHANGELOG.md for disclosure and rollout notes
- * @see docs/planning/christmas-2026-reinvention.md for seasonal modes
- */
-export const FEATURE_FLAG_REGISTRY = {
-  adventEnabled: {
-    owner: 'foundation',
-    default: false,
-    exposure: 'scaffold-only' as const,
-    status: 'scaffold-only' as const,
-    description: 'Enables 24-day Advent unlocks (Dec 1-24); gated behind seasonal mode — not yet wired',
-  },
-  mapEnabled: {
-    owner: 'foundation',
-    default: true,
-    exposure: 'scaffold-only' as const,
-    status: 'scaffold-only' as const,
-    description: 'Enables map adapter; when false, will fall back to no-map mode — not yet wired',
-  },
-  weatherEnabled: {
-    owner: 'foundation',
-    default: false,
-    exposure: 'scaffold-only' as const,
-    status: 'scaffold-only' as const,
-    description: 'Enables live-weather overlay (stretch, flagged; OFF by default) — not yet wired',
-  },
-  soundscapeEnabled: {
-    owner: 'foundation',
-    default: false,
-    exposure: 'scaffold-only' as const,
-    status: 'scaffold-only' as const,
-    description: 'Enables optional soundscape with explicit opt-in — not yet wired',
-  },
-} as const;
-
-export type FeatureFlagKey = keyof typeof FEATURE_FLAG_REGISTRY;
-
-export const FeatureFlagsSchema = z.object({
-  adventEnabled: z.boolean().default(FEATURE_FLAG_REGISTRY.adventEnabled.default),
-  mapEnabled: z.boolean().default(FEATURE_FLAG_REGISTRY.mapEnabled.default),
-  weatherEnabled: z.boolean().default(FEATURE_FLAG_REGISTRY.weatherEnabled.default),
-  soundscapeEnabled: z.boolean().default(FEATURE_FLAG_REGISTRY.soundscapeEnabled.default),
-});
-
-export type FeatureFlags = z.infer<typeof FeatureFlagsSchema>;
-
-export const SeasonalConfigSchema = z.object({
-  mode: z.enum(SeasonModeValues),
-  flags: FeatureFlagsSchema,
-  activeSnapshotId: z.string().nullable(),
-});
-
-export type SeasonalConfig = z.infer<typeof SeasonalConfigSchema>;
 
 // ---------------------------------------------------------------------------
 // Helpers

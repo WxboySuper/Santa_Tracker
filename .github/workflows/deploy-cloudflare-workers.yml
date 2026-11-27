@@ -40,6 +40,10 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # The passkey relying party for the live site. Local and preview runs fall back to their own request host.
+    env:
+      ADMIN_WEBAUTHN_RP_ID: santa.weatherboysuper.com
+      ADMIN_WEBAUTHN_ORIGIN: https://santa.weatherboysuper.com
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.3.1
@@ -63,6 +67,9 @@ jobs:
         run: node tools/configure-weather-kv.mjs
         env:
           WEATHER_CACHE_NAMESPACE_ID: ${{ vars.WEATHER_CACHE_NAMESPACE_ID }}
+
+      - name: Configure passkey relying party
+        run: node tools/configure-webauthn.mjs
 
       - name: Publish route and Advent snapshots to R2
         run: pnpm santa:publish:remote

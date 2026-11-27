@@ -12,6 +12,17 @@
 - **Weather:** The globe's Here panel shows current conditions where Santa is, from `/api/weather`, with the Open-Meteo credit its CC BY 4.0 licence requires. Fahrenheit for US-style browser regions, Celsius elsewhere. Requests wait 1.5 seconds on a stop and prefetch the next stop, so fast replays don't spend the provider's rate limit.
 - **First leg:** On the leg out of the North Pole, the globe panels now say Santa just left the North Pole, instead of showing the finished-journey card.
 
+## [Unreleased] - Admin passkeys and recovery (#295)
+
+- **WebAuthn owner authentication:** Adds passkey registration and login ceremonies, one-time recovery codes stored as hashes, and disables existing password sessions after a passkey is registered.
+- **Session safety:** Makes signed admin sessions persisted, expiring, and revocable; adds session listing/revocation, double-submit CSRF checks for cookie mutations, shared login throttling, and bounded auth audit records. Recovery sessions need a second code before passkey or session management; logout remains available to revoke a valid session and clear cookies.
+- **Authentication edge cases:** Revokes legacy and current password sessions atomically during first passkey setup, writes successful-login audit events with session creation in one state update, rejects signature-counter regressions including a reset to zero, returns accurate recovery, registration conflict, session-storage, and missing trusted-IP statuses, preserves retryable cookies if logout revocation fails, handles failed revocation after a late login lockout, applies a separate 30-request/15-minute challenge-issuance limit, and keeps throttle initialization and post-login checks safe for production builds and simpler to review.
+- **Failure handling:** Keeps CSRF rejection at 403 if audit storage fails, treats only `EEXIST` as local lock contention so permission errors surface immediately, and splits the recovery error handler to keep the route reviewable.
+- **API and E2E contracts:** Groups throttle inputs into named objects and updates Playwright API writes to send the double-submit token with the configured public test origin.
+- **Documentation and tests:** Documents API and origin/RP-ID configuration; tests registration, authentication, one-time recovery, recovery step-up, session revocation, CSRF, and throttling.
+- **Admin screens:** The emergency switches and route simulator send the `X-CSRF-Token` header (read from the `admin_csrf` cookie) on their changes, through a shared `adminCsrfHeaders()` helper.
+- **Production config:** The deploy job sets `ADMIN_WEBAUTHN_RP_ID` and `ADMIN_WEBAUTHN_ORIGIN` for santa.weatherboysuper.com and `tools/configure-webauthn.mjs` adds them to the Worker vars for that deploy only, so passkeys work in production while local and preview runs keep using their own request host.
+
 ## [Unreleased] - Version IDs sort in creation order
 
 - **Snapshots:** Version IDs created in the same millisecond now carry a zero-padded sequence after the timestamp, so they always sort in creation order. Before this, the random suffix decided which one counted as newer: rollback could select the wrong previous version, and a #539 test failed intermittently on `main`.
@@ -90,6 +101,15 @@
 - **Weather endpoint:** Adds `GET /api/weather?lat={latitude}&lon={longitude}` with Celsius and Fahrenheit temperatures, the provider's numeric weather code, and a short label.
 - **Caching and failure handling:** Rounds coordinates to a 0.25 degree grid, caches at the edge for 12 minutes, times out provider calls, and returns `null` when weather is unavailable.
 - **Provider terms:** Uses Open-Meteo. Its no-key free endpoint permits non-commercial use within published rate limits; weather data is CC BY 4.0 and requires attribution. Commercial use needs a paid plan. See https://open-meteo.com/en/terms.
+
+## [Unreleased] - Environment-aware seasonal configuration (#301)
+
+- **Corruption handling:** Flags invalid JSON, schema-invalid data, and environment mismatches in admin reads and previews; runtime reads use safe defaults, normal writes refuse corrupt data, and an explicit ETag-guarded repair preserves the original bytes under a backup key.
+- **Bounded request bodies:** Caps streamed preview and update bodies at 8 KiB regardless of `Content-Length`.
+- **Typed flags:** Promotes the feature registry from scaffold-only metadata to strict, typed configuration and includes the effective seasonal config in canonical immutable snapshots.
+- **Environment controls:** Adds separate development, preview, and production flag overrides with compare-and-set writes, operator reasons, audit history, and per-flag expiry. Unknown persisted flags fall back to registry defaults; expired flags stop applying.
+- **Preview API:** Adds a non-mutating preview for a chosen UTC time and candidate overrides, including derived mode, effective flags, and the active route snapshot ID.
+- **Docs and tests:** Documents the configuration API and adds tests for environment isolation, unknown keys, expiration, audit records, and stale writes.
 
 ## [Unreleased] - Launch-day emergency controls API (#303)
 

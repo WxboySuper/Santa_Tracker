@@ -1,16 +1,18 @@
 import { expect, test, getRuntimeConfig } from "./fixtures";
 import type { Page } from "@playwright/test";
+import { adminMutation } from "./admin-api";
 import { generateMaze, solveMaze, type MazeDirection } from "../apps/web/src/lib/maze";
 import { getOrderedCityIds, INITIAL_TIMEZONE_ORDER, REFERENCE_START_UTC } from "../apps/web/src/lib/timezones";
 
 const overriddenUnlockDays = new Set<number>();
-
 test.afterEach(async ({ page }) => {
   for (const day of overriddenUnlockDays) {
-    const reset = await page.request.post(`/api/admin/advent/day/${day}/toggle-unlock`);
-    expect(reset.status()).toBe(200);
-    const body: unknown = await reset.json();
-    expect(body).toMatchObject({ is_unlocked_override: false });
+    const reset = await adminMutation(page, {
+      path: `/api/admin/advent/day/${day}/toggle-unlock`,
+      method: "POST",
+    });
+    expect(reset.status, reset.body).toBe(200);
+    expect(JSON.parse(reset.body)).toMatchObject({ is_unlocked_override: false });
   }
   overriddenUnlockDays.clear();
 });
@@ -21,8 +23,13 @@ async function openUnlockedAdventDay(page: Page, day: number) {
   const { adminPassword } = await getRuntimeConfig(runtimeFile);
   const login = await page.request.post("/api/admin/login", { data: { password: adminPassword } });
   expect(login.status()).toBe(200);
-  const unlock = await page.request.put(`/api/admin/advent/day/${day}`, { data: { is_unlocked_override: true } });
-  expect(unlock.status()).toBe(200);
+  await page.goto("/");
+  const unlock = await adminMutation(page, {
+    path: `/api/admin/advent/day/${day}`,
+    method: "PUT",
+    data: { is_unlocked_override: true },
+  });
+  expect(unlock.status, unlock.body).toBe(200);
   overriddenUnlockDays.add(day);
   await page.goto(`/advent/${day}`);
 }

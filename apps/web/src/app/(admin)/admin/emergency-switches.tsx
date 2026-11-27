@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createTranslator, type MessageKey } from "@santa-tracker/localization";
 import type { SeasonFeature } from "@/lib/season";
+import { adminCsrfHeaders } from "@/lib/admin-csrf";
 
 const t = createTranslator().t;
 type HiddenFeatures = Record<SeasonFeature, boolean>;
@@ -98,7 +99,7 @@ function useEmergencyFlags() {
       const response = await fetch("/api/admin/feature-flags", {
         method: "PUT",
         credentials: "include",
-        headers: { "Content-Type": "application/json", "If-Match": flags?.etag ?? "" },
+        headers: { "Content-Type": "application/json", "If-Match": flags?.etag ?? "", ...adminCsrfHeaders() },
         body: JSON.stringify({ version: 1, hidden }),
       });
       if (response.status === 412 || response.status === 428) {
