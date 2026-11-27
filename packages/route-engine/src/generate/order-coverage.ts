@@ -273,6 +273,23 @@ function tryCountryRepresentative(state: InsertionState, place: Candidate, pass:
   return addAtFeasiblePosition(state, place, positions, pass);
 }
 
+function replaceStopForCoverage(state: InsertionState, place: Candidate, pass: InsertionPass,
+  scope: 'same-country' | 'other-country', isCovered: (attempt: InsertionState) => boolean): boolean {
+  const offset = requiredSnapshotOffset(place);
+  const replaceable = state.route.filter((existing) => existing.id !== state.route[0]?.id
+    && requiredSnapshotOffset(existing) === offset
+    && (scope === 'same-country' ? existing.country === place.country : existing.country !== place.country)
+    && (state.counts.get(existing.country) ?? 0) > 1)
+    .sort((left, right) => haversineKm(left, place) - haversineKm(right, place));
+  for (const existing of replaceable) {
+    const attempt = stateWithoutStop(state, existing, pass);
+    if (!attempt || !tryCountryRepresentative(attempt, place, pass) || !isCovered(attempt)) continue;
+    Object.assign(state, attempt);
+    return true;
+  }
+  return false;
+}
+
 function stateWithoutStop(state: InsertionState, place: TimedCandidate, pass: InsertionPass): InsertionState | undefined {
   // Keep the launch and every country's last stop. Replacement must preserve
   // existing mandatory coverage while adding new countries.
@@ -348,8 +365,9 @@ function insertCountryGroup(state: InsertionState, group: CountryCoverageGroup, 
   if (state.counts.has(group.country)) return;
   // Keep alternatives so a representative whose best nearby splice is blocked
   // by timing or detours does not hide another feasible place in that country.
-  for (const candidate of group.candidates) {
+  for (const candidate of group.candidates.slice(0, 12)) {
     if (tryCountryRepresentative(state, candidate.place, pass)) return;
+    if (replaceStopForCoverage(state, candidate.place, pass, 'other-country', (attempt) => attempt.counts.has(group.country))) return;
   }
 }
 
@@ -394,9 +412,10 @@ function rankAdmin1CoverageGroups(state: InsertionState, pool: Candidate[], pass
 
 function insertAdmin1Group(state: InsertionState, group: Admin1CoverageGroup, pass: InsertionPass): void {
   if (state.admin1Counts.has(group.unit)) return;
-  for (const candidate of group.candidates) {
+  for (const candidate of group.candidates.slice(0, 12)) {
     if (!state.separation.allows(candidate.place)) continue;
     if (tryCountryRepresentative(state, candidate.place, pass)) break;
+    if (replaceStopForCoverage(state, candidate.place, pass, 'same-country', (attempt) => attempt.admin1Counts.has(group.unit))) break;
   }
 }
 

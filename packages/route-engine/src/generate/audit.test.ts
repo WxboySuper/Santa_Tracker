@@ -102,7 +102,7 @@ describe('auditRouteDocument', () => {
     expect(check?.detail).toContain('ZZ');
   });
 
-  it('fails an unexplained eastward leg and passes an offset anomaly only when destination midnight is earlier', () => {
+  it('fails unexplained eastward legs and accepts real date-line crossings or valid offset anomalies', () => {
     const unexplained = auditFixture(routeFixture([
     { id: 'a', name: 'A', lng: -100 }, { id: 'b', name: 'B', lng: -90 },
     ]));
@@ -121,9 +121,9 @@ describe('auditRouteDocument', () => {
     ]));
     expect(dateline.find((check) => check.name === 'Eastward legs')?.pass).toBe(true);
     const lateDateline = auditFixture(routeFixture([
-      { id: 'a', name: 'A', lng: 170, offset: 720 }, { id: 'b', name: 'B', lng: -170, offset: 780, reason: 'dateline' },
+      { id: 'a', name: 'A', lng: 170, offset: 720 }, { id: 'b', name: 'B', lng: -170, offset: 720, reason: 'dateline' },
     ]));
-    expect(lateDateline.find((check) => check.name === 'Eastward legs')?.pass).toBe(false);
+    expect(lateDateline.find((check) => check.name === 'Eastward legs')?.pass).toBe(true);
   });
 
   it('fails geometric detours while treating the only stop for a country as a warning', () => {

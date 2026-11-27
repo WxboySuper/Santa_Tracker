@@ -145,7 +145,7 @@ export function eastwardLegReason(options: {
   destinationIndex: number;
   arrivalUtc?: number;
 }): EastwardReason | undefined {
-  const { from, to, destinationIndex, arrivalUtc } = options;
+  const { from, to, arrivalUtc } = options;
   const eastward = longitudeDelta(from, to);
   if (!isEastwardDelta(eastward)) return undefined;
   const fromOffset = offsetFor(from);
@@ -155,10 +155,9 @@ export function eastwardLegReason(options: {
   const fromLongitude = ((from.lng + 180) % 360 + 360) % 360 - 180;
   const toLongitude = ((to.lng + 180) % 360 + 360) % 360 - 180;
   const crossesDateline = Math.abs(toLongitude - fromLongitude) > 180;
-  const stillBeforeWestwardSweep = fromOffset !== undefined && fromOffset > 12 * 60;
-  const openingDatelineSweep = destinationIndex < 5 && stillBeforeWestwardSweep && nearDateline && crossesDateline
-    && toOffset !== undefined && toOffset >= 13 * 60;
-  if (openingDatelineSweep) {
+  // A genuine eastward crossing of the International Date Line remains a
+  // dateline crossing wherever it occurs in the westward sweep.
+  if (nearDateline && crossesDateline) {
     return 'dateline';
   }
 
@@ -170,7 +169,7 @@ export function eastwardLegReason(options: {
   const window = christmasWindow(toOffset);
   const destinationInWindow = arrivalUtc !== undefined && arrivalUtc >= window.startUtc && arrivalUtc <= window.endUtc;
   const offsetAdvancesTheClock = offsetJump > longitudeClockChange + 10 && destinationIdealUtc < sourceIdealUtc;
-  const smallOffsetReset = offsetJump < -longitudeClockChange - 10 && offsetJump >= -120
+  const smallOffsetReset = offsetJump < 0 && offsetJump >= -120
     && destinationIdealUtc > sourceIdealUtc;
   if ((offsetAdvancesTheClock || smallOffsetReset) && destinationInWindow) return 'offset-anomaly';
   return undefined;

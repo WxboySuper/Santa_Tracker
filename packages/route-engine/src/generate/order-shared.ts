@@ -63,7 +63,7 @@ function planningSpeed(from: Candidate | LatLng, to: Candidate | LatLng, distanc
     return Math.min(config.targetLegSpeedKmh, config.maxLegSpeedKmh);
   }
   const target = oceanCrossing ? config.targetLegSpeedKmh : config.localLegSpeedKmh;
-  return Math.min(target, config.maxLegSpeedKmh, config.p90LegSpeedMaxKmh * 0.95);
+  return Math.min(target, config.maxLegSpeedKmh, config.p90LegSpeedMaxKmh);
 }
 
 export function scheduledTravelMilliseconds(from: Candidate | LatLng, to: Candidate | LatLng, config: GeneratorConfig): number {

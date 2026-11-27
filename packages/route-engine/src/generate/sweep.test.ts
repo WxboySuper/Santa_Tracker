@@ -77,6 +77,32 @@ describe('christmasArrival', () => {
     })).toBeUndefined();
   });
 
+  it('allows a bounded westward offset reset at an eastbound civil-time boundary', () => {
+    const brisbane: Candidate = {
+      id: 'brisbane', name: 'Brisbane', country: 'AU', lat: -27.47, lng: 153.03,
+      timezone: 'Australia/Brisbane', utcOffsetMinutes: 600, category: 'populated',
+    };
+    expect(eastwardLegReason({
+      from: { lat: -34.93, lng: 138.6, utcOffsetMinutes: 630 },
+      to: brisbane,
+      destinationIndex: 25,
+      arrivalUtc: Date.parse('2026-12-24T13:00:00.000Z'),
+    })).toBe('offset-anomaly');
+  });
+
+  it('labels real eastward date-line crossings after the opening bands', () => {
+    const destination: Candidate = {
+      id: 'mata-utu', name: 'Mata-Utu', country: 'WF', lat: -13.28, lng: -176.18,
+      timezone: 'Pacific/Wallis', utcOffsetMinutes: 720, category: 'populated',
+    };
+    expect(eastwardLegReason({
+      from: { lat: -0.55, lng: 166.93, utcOffsetMinutes: 720 },
+      to: destination,
+      destinationIndex: 10,
+      arrivalUtc: Date.parse('2026-12-24T11:40:00.000Z'),
+    })).toBe('dateline');
+  });
+
   it('does not annotate a polar launch because longitude is undefined at the pole', () => {
     const destination: Candidate = {
       id: 'tabuaeran', name: 'Tabuaeran', country: 'KI', lat: 3.87727, lng: -159.33746,

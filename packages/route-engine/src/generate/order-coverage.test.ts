@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allocateBandFill, bandMaximumStops, insertCountryCoverage, insertFeasibleCandidates, mandatoryLaunch } from './order-coverage';
+import { allocateBandFill, bandMaximumStops, insertAdmin1Coverage, insertCountryCoverage, insertFeasibleCandidates, mandatoryLaunch } from './order-coverage';
 import { planTiming } from './order-shared';
 import { DEFAULT_GENERATOR_LIMITS, type Candidate } from './types';
 
@@ -134,6 +134,32 @@ describe('band fill allocation', () => {
     });
 
     expect(expanded.map((place) => place.id)).toContain('unlisted-band');
+  });
+
+  it('replaces a redundant same-band stop when a required admin-1 unit is missing at the route ceiling', () => {
+    const config = { ...DEFAULT_GENERATOR_LIMITS, localLegSpeedKmh: 20_000 };
+    const place = ({ id, lng, admin1Code = 'US-CA' }: { id: string; lng: number; admin1Code?: string }): Candidate => ({
+      id,
+      name: id,
+      country: 'US',
+      lat: 0,
+      lng,
+      timezone: 'Etc/GMT',
+      utcOffsetMinutes: 0,
+      admin1Code,
+      category: 'populated',
+      population: 10_000,
+    });
+    const route = Array.from({ length: 700 }, (_, index) => place({ id: `route-${index}`, lng: 179.5 - index * 0.5 }));
+    const requiredState = place({ id: 'texas-candidate', lng: 0.25, admin1Code: 'US-TX' });
+    const planned = planTiming(route, config);
+    expect(planned).toBeDefined();
+    if (!planned) throw new Error('Expected a feasible route at the stop ceiling');
+
+    const covered = insertAdmin1Coverage(planned.places, [...route, requiredState], config);
+
+    expect(covered).toHaveLength(route.length);
+    expect(covered.some((stop) => stop.admin1Code === 'US-TX')).toBe(true);
   });
 
   it('preserves every existing country when replacing one stop with two near the route ceiling', () => {

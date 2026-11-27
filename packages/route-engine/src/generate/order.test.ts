@@ -4,6 +4,7 @@ import { eastwardLegReason, isInChristmasWindow, localClock, longitudeDelta } fr
 import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, TAKEOFF_UTC, type Candidate } from './types';
 import { candidateTiming, categoryPreference, hasFeasibleTiming, longitudeDelta as orderLongitudeDelta, planTiming, scheduledTravelMilliseconds, sweepOrder } from './order';
 import { timingAndDetourAllows } from './order';
+import { acceptRouteProposal } from './order-path';
 
 const testPlaces: Candidate[] = [
   { id: 'ki', name: 'Kiritimati', country: 'KI', lat: 1.87, lng: -157.4, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, category: 'populated', population: 7_380 },
@@ -164,13 +165,12 @@ describe('midnight sweep ordering', () => {
     })).toBe('offset-anomaly');
   });
 
-  it('does not allow a dateline exception after the route enters UTC+12', () => {
+  it('keeps the UTC offset sweep westward after entering UTC+12', () => {
     const source: Candidate = { id: 'utc12-source', name: 'Tarawa', country: 'KI', lat: 1.45, lng: 173,
       timezone: 'Pacific/Tarawa', utcOffsetMinutes: 720, category: 'populated', population: 50_000 };
     const destination: Candidate = { id: 'utc14-destination', name: 'Kiritimati', country: 'KI', lat: 1.87, lng: -157.4,
       timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, category: 'populated', population: 7_380 };
-    expect(candidateTiming({ place: destination, prior: source,
-      priorDeparture: Date.parse('2026-12-24T14:00:00.000Z'), index: 2, config: DEFAULT_GENERATOR_LIMITS })).toBeUndefined();
+    expect(acceptRouteProposal([source, destination], DEFAULT_GENERATOR_LIMITS)).toBeUndefined();
   });
 
   it('rejects a candidate whose snapshot offset disagrees with IANA at its arrival', () => {

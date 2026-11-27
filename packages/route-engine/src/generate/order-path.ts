@@ -424,8 +424,12 @@ type BandProposalOptions = { proposal: Candidate[]; current: BandPathScore; sear
 function considerBandProposal({ proposal, current, search, config }: BandProposalOptions): void {
   if (!antarcticStopsAtOffsetBandEdge(proposal)) return;
   const score = bandPathScore(proposal, config);
-  if (score.hardDetours > current.hardDetours || score.eastward > current.eastward) return;
-  if (score.hardDetours === current.hardDetours && score.detours > current.detours) return;
+  const improvesFeasiblePrefix = score.prefix > current.prefix;
+  if (score.eastward > current.eastward) return;
+  if (!improvesFeasiblePrefix && score.hardDetours > current.hardDetours) return;
+  // A feasible prefix takes priority while the mandatory path is being built.
+  // The final shared acceptance pass still repairs or rejects any detours.
+  if (!improvesFeasiblePrefix && score.hardDetours === current.hardDetours && score.detours > current.detours) return;
   if (!betterBandProposal(score, search.bestScore)) return;
   search.best = proposal;
   search.bestScore = score;
