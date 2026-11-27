@@ -186,25 +186,26 @@ function scoreFeasibleCandidate(state: SweepState, place: Candidate, ranking: Sw
   return { stop, score };
 }
 
+function nextRankedStop(state: SweepState, candidates: Candidate[], ranking: SweepRanking, rejectedIds: Set<string>): RankedStop | undefined {
+  let best: RankedStop | undefined;
+  for (const place of candidates) {
+    if (rejectedIds.has(place.id)) continue;
+    const candidate = scoreFeasibleCandidate(state, place, ranking);
+    if (candidate && betterPlannedStop(candidate.stop, candidate.score, best?.stop, best?.score ?? Number.NEGATIVE_INFINITY)) best = candidate;
+  }
+  return best;
+}
+
 function bestFeasibleStop(state: SweepState, candidates: Candidate[], ranking: SweepRanking): PlannedStop | undefined {
   const rejectedIds = new Set<string>();
-  while (true) {
-    let best: RankedStop | undefined;
-    for (const place of candidates) {
-      if (rejectedIds.has(place.id)) continue;
-      const candidate = scoreFeasibleCandidate(state, place, ranking);
-      if (!candidate) continue;
-      if (best && !betterPlannedStop(candidate.stop, candidate.score, best.stop, best.score)) continue;
-      best = candidate;
-    }
-    if (!best) return undefined;
-    if (extensionPassesAcceptance(state.route, best.stop.place, ranking.config, isCoverageTradeoff(state, best.stop.place))) {
-      return best.stop;
-    }
-    // Full-route acceptance is expensive; run it only for the best-ranked
-    // incrementally feasible candidate, then try the next score if rejected.
-    rejectedIds.add(best.stop.place.id);
+  let best = nextRankedStop(state, candidates, ranking, rejectedIds);
+  while (best) {
+    const place = best.stop.place;
+    if (extensionPassesAcceptance(state.route, place, ranking.config, isCoverageTradeoff(state, place))) return best.stop;
+    rejectedIds.add(place.id);
+    best = nextRankedStop(state, candidates, ranking, rejectedIds);
   }
+  return undefined;
 }
 
 function advanceSweep(state: SweepState, stop: PlannedStop): void {
