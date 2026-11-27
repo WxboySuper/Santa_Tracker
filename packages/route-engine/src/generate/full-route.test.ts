@@ -12,11 +12,15 @@ type LegacyNode = {
   location?: { name?: string; country_code?: string; timezone?: string; timezone_offset?: number; lat?: number; lng?: number };
 };
 
-function candidatesFromLegacyNodes(nodes: LegacyNode[]): Candidate[] {
-  return nodes.flatMap((node) => {
+function candidateFromLegacyNode(node: LegacyNode): Candidate[] {
+    if (node.type !== 'DELIVERY') return [];
+    if (!node.candidate_id) return [];
     const place = node.location;
-    if (node.type !== 'DELIVERY' || !node.candidate_id || !place?.country_code || !place.timezone
-      || place.lat === undefined || place.lng === undefined) return [];
+    if (!place) return [];
+    if (!place.country_code) return [];
+    if (!place.timezone) return [];
+    if (place.lat === undefined) return [];
+    if (place.lng === undefined) return [];
     return [{
       id: node.candidate_id,
       name: place.name ?? node.candidate_id,
@@ -28,7 +32,10 @@ function candidatesFromLegacyNodes(nodes: LegacyNode[]): Candidate[] {
       lat: place.lat,
       lng: place.lng,
     }];
-  });
+}
+
+function candidatesFromLegacyNodes(nodes: LegacyNode[]): Candidate[] {
+  return nodes.flatMap(candidateFromLegacyNode);
 }
 
 describe('superseded 2026 route draft', () => {
