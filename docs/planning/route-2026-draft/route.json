@@ -527,46 +527,7 @@
       "priority": 2
     },
     {
-      "id": "stop_13foj7x_013",
-      "type": "DELIVERY",
-      "comment": "populated",
-      "candidate_id": "ne-1159151737",
-      "location": {
-        "name": "Waitangi",
-        "region": "New Zealand",
-        "country_code": "NZ",
-        "timezone": "Pacific/Chatham",
-        "lat": -44.03266464895095,
-        "lng": -176.35075368252146,
-        "timezone_offset": 13.75
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T12:15:07.000Z",
-        "departure_utc": "2026-12-24T12:15:10.000Z",
-        "local_arrival_time": "02:00",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 3,
-        "stop_tier": "hop",
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Waitangi",
-        "duration_seconds": 412,
-        "distance_km": 2171.4,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 18973,
-        "camera_zoom": 9,
-        "eastward_reason": "offset-anomaly"
-      },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
-      "priority": 2
-    },
-    {
-      "id": "stop_18k8onx_014",
+      "id": "stop_18k8onx_013",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159151171",
@@ -581,9 +542,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T12:26:06.000Z",
-        "departure_utc": "2026-12-24T12:26:16.000Z",
-        "local_arrival_time": "23:26",
+        "arrival_utc": "2026-12-24T12:15:50.000Z",
+        "departure_utc": "2026-12-24T12:16:00.000Z",
+        "local_arrival_time": "23:15",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -595,11 +556,50 @@
       },
       "transit_to_here": {
         "description": "Flight to Hobart",
+        "duration_seconds": 455,
+        "distance_km": 2400.34,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 18992,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 2
+    },
+    {
+      "id": "stop_13foj7x_014",
+      "type": "DELIVERY",
+      "comment": "populated",
+      "candidate_id": "ne-1159151737",
+      "location": {
+        "name": "Waitangi",
+        "region": "New Zealand",
+        "country_code": "NZ",
+        "timezone": "Pacific/Chatham",
+        "lat": -44.03266464895095,
+        "lng": -176.35075368252146,
+        "timezone_offset": 13.75
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T12:26:56.000Z",
+        "departure_utc": "2026-12-24T12:26:59.000Z",
+        "local_arrival_time": "02:11",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 3,
+        "stop_tier": "hop",
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Waitangi",
         "duration_seconds": 656,
         "distance_km": 2914.16,
         "speed_curve": "HYPERSONIC",
         "speed_kmh": 15992,
-        "camera_zoom": 9
+        "camera_zoom": 9,
+        "eastward_reason": "offset-anomaly"
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
       "priority": 2
@@ -619,9 +619,9 @@
         "timezone_offset": 13
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T12:37:45.000Z",
-        "departure_utc": "2026-12-24T12:37:48.000Z",
-        "local_arrival_time": "01:37",
+        "arrival_utc": "2026-12-24T12:38:09.000Z",
+        "departure_utc": "2026-12-24T12:38:12.000Z",
+        "local_arrival_time": "01:38",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -633,12 +633,11 @@
       },
       "transit_to_here": {
         "description": "Flight to Zucchelli Station",
-        "duration_seconds": 689,
-        "distance_km": 3633.2,
+        "duration_seconds": 670,
+        "distance_km": 3534.69,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 18983,
-        "camera_zoom": 9,
-        "eastward_reason": "offset-anomaly"
+        "speed_kmh": 18992,
+        "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
       "priority": 2
@@ -658,9 +657,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:00:43.000Z",
-        "departure_utc": "2026-12-24T13:00:53.000Z",
-        "local_arrival_time": "00:00",
+        "arrival_utc": "2026-12-24T13:01:07.000Z",
+        "departure_utc": "2026-12-24T13:01:17.000Z",
+        "local_arrival_time": "00:01",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -696,9 +695,9 @@
         "timezone_offset": 12
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:07:57.000Z",
-        "departure_utc": "2026-12-24T13:08:07.000Z",
-        "local_arrival_time": "01:07",
+        "arrival_utc": "2026-12-24T13:08:21.000Z",
+        "departure_utc": "2026-12-24T13:08:31.000Z",
+        "local_arrival_time": "01:08",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -735,9 +734,9 @@
         "timezone_offset": 12
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:11:49.000Z",
-        "departure_utc": "2026-12-24T13:12:49.000Z",
-        "local_arrival_time": "01:11",
+        "arrival_utc": "2026-12-24T13:12:13.000Z",
+        "departure_utc": "2026-12-24T13:13:13.000Z",
+        "local_arrival_time": "01:12",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -773,9 +772,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:17:37.000Z",
-        "departure_utc": "2026-12-24T13:17:40.000Z",
-        "local_arrival_time": "00:17",
+        "arrival_utc": "2026-12-24T13:18:01.000Z",
+        "departure_utc": "2026-12-24T13:18:04.000Z",
+        "local_arrival_time": "00:18",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -811,8 +810,8 @@
         "timezone_offset": 12
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:33:03.000Z",
-        "departure_utc": "2026-12-24T13:33:06.000Z",
+        "arrival_utc": "2026-12-24T13:33:27.000Z",
+        "departure_utc": "2026-12-24T13:33:30.000Z",
         "local_arrival_time": "01:33",
         "time_window_status": "GREEN"
       },
@@ -849,9 +848,9 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:45:54.000Z",
-        "departure_utc": "2026-12-24T13:45:57.000Z",
-        "local_arrival_time": "23:45",
+        "arrival_utc": "2026-12-24T13:46:18.000Z",
+        "departure_utc": "2026-12-24T13:46:21.000Z",
+        "local_arrival_time": "23:46",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -887,9 +886,9 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:46:47.000Z",
-        "departure_utc": "2026-12-24T13:47:17.000Z",
-        "local_arrival_time": "23:46",
+        "arrival_utc": "2026-12-24T13:47:11.000Z",
+        "departure_utc": "2026-12-24T13:47:41.000Z",
+        "local_arrival_time": "23:47",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -925,8 +924,8 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:54:05.000Z",
-        "departure_utc": "2026-12-24T13:54:15.000Z",
+        "arrival_utc": "2026-12-24T13:54:29.000Z",
+        "departure_utc": "2026-12-24T13:54:39.000Z",
         "local_arrival_time": "23:54",
         "time_window_status": "GREEN"
       },
@@ -963,8 +962,8 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:54:34.000Z",
-        "departure_utc": "2026-12-24T13:54:44.000Z",
+        "arrival_utc": "2026-12-24T13:54:58.000Z",
+        "departure_utc": "2026-12-24T13:55:08.000Z",
         "local_arrival_time": "23:54",
         "time_window_status": "GREEN"
       },
@@ -1001,9 +1000,9 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:54:55.000Z",
-        "departure_utc": "2026-12-24T13:55:05.000Z",
-        "local_arrival_time": "23:54",
+        "arrival_utc": "2026-12-24T13:55:19.000Z",
+        "departure_utc": "2026-12-24T13:55:29.000Z",
+        "local_arrival_time": "23:55",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1039,9 +1038,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:59:54.000Z",
-        "departure_utc": "2026-12-24T14:00:04.000Z",
-        "local_arrival_time": "00:59",
+        "arrival_utc": "2026-12-24T14:00:18.000Z",
+        "departure_utc": "2026-12-24T14:00:28.000Z",
+        "local_arrival_time": "01:00",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1078,8 +1077,8 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T14:01:30.000Z",
-        "departure_utc": "2026-12-24T14:01:33.000Z",
+        "arrival_utc": "2026-12-24T14:01:54.000Z",
+        "departure_utc": "2026-12-24T14:01:57.000Z",
         "local_arrival_time": "01:01",
         "time_window_status": "GREEN"
       },
@@ -1116,8 +1115,8 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T14:02:03.000Z",
-        "departure_utc": "2026-12-24T14:02:13.000Z",
+        "arrival_utc": "2026-12-24T14:02:27.000Z",
+        "departure_utc": "2026-12-24T14:02:37.000Z",
         "local_arrival_time": "01:02",
         "time_window_status": "GREEN"
       },
@@ -1154,9 +1153,9 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T14:03:53.000Z",
-        "departure_utc": "2026-12-24T14:04:03.000Z",
-        "local_arrival_time": "00:03",
+        "arrival_utc": "2026-12-24T14:04:17.000Z",
+        "departure_utc": "2026-12-24T14:04:27.000Z",
+        "local_arrival_time": "00:04",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1193,8 +1192,8 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T14:12:14.000Z",
-        "departure_utc": "2026-12-24T14:13:14.000Z",
+        "arrival_utc": "2026-12-24T14:12:38.000Z",
+        "departure_utc": "2026-12-24T14:13:38.000Z",
         "local_arrival_time": "00:12",
         "time_window_status": "GREEN"
       },
@@ -1232,9 +1231,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T14:13:36.000Z",
-        "departure_utc": "2026-12-24T14:13:46.000Z",
-        "local_arrival_time": "01:13",
+        "arrival_utc": "2026-12-24T14:14:00.000Z",
+        "departure_utc": "2026-12-24T14:14:10.000Z",
+        "local_arrival_time": "01:14",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1271,8 +1270,8 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T14:16:17.000Z",
-        "departure_utc": "2026-12-24T14:17:17.000Z",
+        "arrival_utc": "2026-12-24T14:16:41.000Z",
+        "departure_utc": "2026-12-24T14:17:41.000Z",
         "local_arrival_time": "01:16",
         "time_window_status": "GREEN"
       },
@@ -1310,8 +1309,8 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T14:17:33.000Z",
-        "departure_utc": "2026-12-24T14:18:03.000Z",
+        "arrival_utc": "2026-12-24T14:17:57.000Z",
+        "departure_utc": "2026-12-24T14:18:27.000Z",
         "local_arrival_time": "01:17",
         "time_window_status": "GREEN"
       },
@@ -1349,9 +1348,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T14:18:45.000Z",
-        "departure_utc": "2026-12-24T14:18:55.000Z",
-        "local_arrival_time": "01:18",
+        "arrival_utc": "2026-12-24T14:19:09.000Z",
+        "departure_utc": "2026-12-24T14:19:19.000Z",
+        "local_arrival_time": "01:19",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1388,8 +1387,8 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T14:20:00.000Z",
-        "departure_utc": "2026-12-24T14:20:10.000Z",
+        "arrival_utc": "2026-12-24T14:20:24.000Z",
+        "departure_utc": "2026-12-24T14:20:34.000Z",
         "local_arrival_time": "01:20",
         "time_window_status": "GREEN"
       },
@@ -1427,8 +1426,8 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T14:22:02.000Z",
-        "departure_utc": "2026-12-24T14:22:05.000Z",
+        "arrival_utc": "2026-12-24T14:22:26.000Z",
+        "departure_utc": "2026-12-24T14:22:29.000Z",
         "local_arrival_time": "01:22",
         "time_window_status": "GREEN"
       },
@@ -1466,8 +1465,8 @@
         "timezone_offset": 10.5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T14:22:28.000Z",
-        "departure_utc": "2026-12-24T14:22:31.000Z",
+        "arrival_utc": "2026-12-24T14:22:52.000Z",
+        "departure_utc": "2026-12-24T14:22:55.000Z",
         "local_arrival_time": "00:52",
         "time_window_status": "GREEN"
       },
@@ -1505,8 +1504,8 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T14:27:05.000Z",
-        "departure_utc": "2026-12-24T14:27:08.000Z",
+        "arrival_utc": "2026-12-24T14:27:29.000Z",
+        "departure_utc": "2026-12-24T14:27:32.000Z",
         "local_arrival_time": "00:27",
         "time_window_status": "GREEN"
       },
@@ -1544,8 +1543,8 @@
         "timezone_offset": 9.5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T14:29:25.000Z",
-        "departure_utc": "2026-12-24T14:29:35.000Z",
+        "arrival_utc": "2026-12-24T14:29:49.000Z",
+        "departure_utc": "2026-12-24T14:29:59.000Z",
         "local_arrival_time": "23:59",
         "time_window_status": "GREEN"
       },

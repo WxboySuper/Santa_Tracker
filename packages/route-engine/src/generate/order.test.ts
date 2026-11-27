@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { haversineKm } from '../geo';
 import { eastwardLegReason, isInChristmasWindow, localClock, longitudeDelta } from './sweep';
 import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, type Candidate } from './types';
-import { candidateTiming, categoryPreference, hasFeasibleTiming, longitudeDelta as orderLongitudeDelta, scheduledTravelMilliseconds, sweepOrder } from './order';
+import { candidateTiming, categoryPreference, hasFeasibleTiming, longitudeDelta as orderLongitudeDelta, moveAntarcticaToOffsetBandEdge, planTiming, scheduledTravelMilliseconds, sweepOrder } from './order';
 
 const testPlaces: Candidate[] = [
   { id: 'ki', name: 'Kiritimati', country: 'KI', lat: 1.87, lng: -157.4, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, category: 'populated', population: 7_380 },
@@ -93,6 +93,25 @@ describe('midnight sweep ordering', () => {
 
     expect(antarcticIndex).toBeGreaterThanOrEqual(0);
     expect(antarcticBandIndex === 0 || antarcticBandIndex === sameBand.length - 1).toBe(true);
+  });
+
+  it('keeps the Antarctic transition after the southern approach when that avoids an extra turn', () => {
+    const places: Candidate[] = [
+      { id: 'waitangi', name: 'Waitangi', country: 'NZ', lat: -44.03, lng: -176.35,
+        timezone: 'Pacific/Chatham', utcOffsetMinutes: 825, category: 'populated', population: 300 },
+      { id: 'hobart', name: 'Hobart', country: 'AU', lat: -42.85, lng: 147.3,
+        timezone: 'Australia/Hobart', utcOffsetMinutes: 660, category: 'populated', population: 247_000 },
+      { id: 'zucchelli', name: 'Zucchelli Station', country: 'AQ', lat: -74.62, lng: 164.22,
+        timezone: 'Antarctica/McMurdo', utcOffsetMinutes: 780, category: 'special', population: 0 },
+      { id: 'honiara', name: 'Honiara', country: 'SB', lat: -9.44, lng: 159.95,
+        timezone: 'Pacific/Guadalcanal', utcOffsetMinutes: 660, category: 'populated', population: 56_000 },
+    ];
+
+    const initial = planTiming(places, DEFAULT_GENERATOR_LIMITS);
+    expect(initial).toBeDefined();
+    const ordered = moveAntarcticaToOffsetBandEdge(initial!.places, DEFAULT_GENERATOR_LIMITS).map((place) => place.name);
+
+    expect(ordered).toEqual(['Hobart', 'Waitangi', 'Zucchelli Station', 'Honiara']);
   });
 
   it('keeps an eastward move when the destination offset justifies it', () => {

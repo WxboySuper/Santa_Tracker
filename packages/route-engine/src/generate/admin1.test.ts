@@ -30,6 +30,13 @@ describe('admin-1 coverage', () => {
     expect(admin1UnitFor(candidate('AU', null))).toBeUndefined();
   });
 
+  it('normalizes the country and admin-1 code before counting coverage', () => {
+    const lowerCaseCode = candidate('us', ' us-ca ');
+
+    expect(admin1UnitFor(lowerCaseCode)).toBe('US-CA');
+    expect(admin1Coverage([lowerCaseCode]).US.coveredCodes).toEqual(['US-CA']);
+  });
+
   it('recognizes preserved external codes without counting them as required coverage', () => {
     const puertoRico = candidate('US', 'US-PR');
 

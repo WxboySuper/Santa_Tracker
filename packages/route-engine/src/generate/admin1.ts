@@ -34,10 +34,10 @@ export function admin1Coverage(places: Candidate[]): Admin1Coverage {
 }
 
 export function admin1UnitFor(place: Candidate): string | undefined {
-  const country = place.country as RequiredAdmin1Country;
+  const country = place.country.trim().toUpperCase() as RequiredAdmin1Country;
   const units: readonly string[] | undefined = REQUIRED_ADMIN1_UNITS[country];
   if (!units) return undefined;
-  const code = place.admin1Code;
+  const code = place.admin1Code?.trim().toUpperCase();
   if (!code) return undefined;
   if (!code.startsWith(`${country}-`)) return undefined;
   return units.includes(code) || OPTIONAL_EXTERNAL_ADMIN1_CODES[country]?.includes(code) ? code : undefined;
