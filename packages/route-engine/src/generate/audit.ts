@@ -431,7 +431,11 @@ function hasMissingSource(node: RouteNode): boolean {
 
 function hasIncompleteExperience(node: RouteNode): boolean {
   const experience = node.stop_experience;
-  if (experience?.presents_delivered_at_stop !== 1) return true;
+  if (!experience) return true;
+  const presents = experience.presents_delivered_at_stop;
+  if (typeof presents !== 'number') return true;
+  if (!Number.isSafeInteger(presents)) return true;
+  if (presents < 0) return true;
   if (experience.camera_zoom == null) return true;
   return !experience.weather_condition;
 }

@@ -4,6 +4,7 @@ import { generateRoute, type Candidate, DEFAULT_GENERATOR_LIMITS } from './gener
 import { isInChristmasWindow, localClock } from './sweep';
 import { scheduledTravelMilliseconds } from './order';
 import { NORTH_POLE } from './types';
+import { PRESENTS_TOTAL } from '../stats';
 
 const candidates: Candidate[] = [
   { id: 'pacific-a', name: 'Pacific A', country: 'FJ', lat: 80, lng: 170, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, population: 1_200_000, category: 'hub' },
@@ -26,6 +27,18 @@ describe('generateRoute midnight sweep', () => {
       if (!from || !to) throw new Error('Expected adjacent route stops');
       expect(((to.lng - from.lng + 540) % 360) - 180).toBeLessThanOrEqual(1);
     }
+  });
+
+  it('allocates the full presents estimate across delivery stops', () => {
+    const generated = generateRoute(candidates, config);
+    const deliveries = generated.document.route_nodes
+      .filter((node) => (node as { type?: string }).type === 'DELIVERY')
+      .map((node) => (node as { stop_experience: { presents_delivered_at_stop: number } }).stop_experience.presents_delivered_at_stop);
+
+    expect(deliveries).toHaveLength(generated.report.count);
+    expect(deliveries.every((count) => Number.isSafeInteger(count) && count > 0)).toBe(true);
+    expect(deliveries.reduce((sum, count) => sum + count, 0)).toBe(PRESENTS_TOTAL);
+    expect(new Set(deliveries).size).toBeGreaterThan(1);
   });
 
   it('keeps every arrival inside 23:00 to 05:00 local and stores its tier dwell', () => {

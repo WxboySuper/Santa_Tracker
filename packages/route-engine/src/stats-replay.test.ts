@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createLocationId, SCHEMA_VERSION, type Route } from '@santa-tracker/contracts';
-import { deriveJourneyStats, formatStat, PRESENTS_TOTAL, type RouteStatsLocation } from './stats';
+import { deriveJourneyStats, formatStat, interpolateStopPresentProgress, PRESENTS_TOTAL, type RouteStatsLocation } from './stats';
 import { createReplay } from './replay';
 import { deriveJourneyState } from './state';
 import { validateRoute } from './validate';
@@ -23,6 +23,16 @@ const locations: RouteStatsLocation[] = [
 const landing = start + 3_600_000;
 
 describe('journey stats', () => {
+  it('interpolates each stop allocation across its inbound flight and dwell', () => {
+    const interval = { inboundStartMs: 0, arrivalMs: 100, departureMs: 200, hasInboundFlight: true };
+
+    expect(interpolateStopPresentProgress({ ...interval, nowMs: 50 })).toBeCloseTo(0.15);
+    expect(interpolateStopPresentProgress({ ...interval, nowMs: 100 })).toBeCloseTo(0.3);
+    expect(interpolateStopPresentProgress({ ...interval, nowMs: 150 })).toBeCloseTo(0.65);
+    expect(interpolateStopPresentProgress({ ...interval, nowMs: 200 })).toBe(1);
+    expect(interpolateStopPresentProgress({ ...interval, hasInboundFlight: false, nowMs: 150 })).toBeCloseTo(0.5);
+  });
+
   it('supports schema-valid zero-dwell stops in validation, stats, and replay', () => {
     const zeroDwellRoute: Route = {
       ...route,

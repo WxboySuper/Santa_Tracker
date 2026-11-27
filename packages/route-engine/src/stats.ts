@@ -254,6 +254,18 @@ function stopDeliveryProgress({ stops, routeLocations, routeIndex, nowMs }: {
   const previousIndex = findPreviousRouteStop({ locations: routeLocations, index: routeIndex });
   const inboundStartMs = previousIndex === undefined ? arrivalMs : routeTimestampMs(stops[previousIndex]!.departureIso);
   const hasInboundFlight = previousIndex !== undefined && arrivalMs > inboundStartMs;
+  return interpolateStopPresentProgress({ nowMs, inboundStartMs, arrivalMs, departureMs, hasInboundFlight });
+}
+
+/** Interpolate one stop's delivery progress across its inbound leg and dwell. */
+export function interpolateStopPresentProgress({ nowMs, inboundStartMs, arrivalMs, departureMs, hasInboundFlight }: {
+  nowMs: number;
+  inboundStartMs: number;
+  arrivalMs: number;
+  departureMs: number;
+  hasInboundFlight: boolean;
+}): number {
+  if (nowMs >= departureMs) return 1;
   if (nowMs < arrivalMs) {
     return hasInboundFlight ? 0.3 * linearProgress({ nowMs, startMs: inboundStartMs, endMs: arrivalMs }) : 0;
   }
@@ -284,6 +296,17 @@ function allocatePresents(
     for (const [index, stopNumber] of stopNumbers.entries()) result[stopNumber] = allocations[index] ?? 0;
   }
   return result;
+}
+
+/** Split the present estimate across delivery stops using the live-statistics weights. */
+export function allocatePresentsForStops(
+  deliveryStops: readonly RouteStatsLocation[],
+  candidatePool: readonly RouteStatsLocation[],
+  season: number,
+): number[] {
+  const routeLocations = [...deliveryStops];
+  const deliveryIndexes = routeLocations.map((_, index) => index);
+  return allocatePresents(deliveryIndexes, routeLocations, candidatePool, season);
 }
 
 function sumPopulationByBand({ locations, season }: { locations: readonly RouteStatsLocation[]; season: number }): Map<number, number> {
