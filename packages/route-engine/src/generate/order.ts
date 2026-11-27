@@ -142,8 +142,7 @@ function candidateCanExtendRoute(state: SweepState, place: Candidate, config: Ge
   if (!state.remaining.has(place.id)) return false;
   if (!state.separation.allows(place)) return false;
   if (!candidateHasCapacityOrCoverage(state, place, config)) return false;
-  const coverageTradeoff = isCoverageTradeoff(state, place);
-  return extensionPassesAcceptance(state.route, place, config, coverageTradeoff);
+  return true;
 }
 
 function candidateHasCapacityOrCoverage(state: SweepState, place: Candidate, config: GeneratorConfig): boolean {
@@ -188,14 +187,24 @@ function scoreFeasibleCandidate(state: SweepState, place: Candidate, ranking: Sw
 }
 
 function bestFeasibleStop(state: SweepState, candidates: Candidate[], ranking: SweepRanking): PlannedStop | undefined {
-  let best: RankedStop | undefined;
-  for (const place of candidates) {
-    const candidate = scoreFeasibleCandidate(state, place, ranking);
-    if (!candidate) continue;
-    if (best && !betterPlannedStop(candidate.stop, candidate.score, best.stop, best.score)) continue;
-    best = candidate;
+  const rejectedIds = new Set<string>();
+  while (true) {
+    let best: RankedStop | undefined;
+    for (const place of candidates) {
+      if (rejectedIds.has(place.id)) continue;
+      const candidate = scoreFeasibleCandidate(state, place, ranking);
+      if (!candidate) continue;
+      if (best && !betterPlannedStop(candidate.stop, candidate.score, best.stop, best.score)) continue;
+      best = candidate;
+    }
+    if (!best) return undefined;
+    if (extensionPassesAcceptance(state.route, best.stop.place, ranking.config, isCoverageTradeoff(state, best.stop.place))) {
+      return best.stop;
+    }
+    // Full-route acceptance is expensive; run it only for the best-ranked
+    // incrementally feasible candidate, then try the next score if rejected.
+    rejectedIds.add(best.stop.place.id);
   }
-  return best?.stop;
 }
 
 function advanceSweep(state: SweepState, stop: PlannedStop): void {
