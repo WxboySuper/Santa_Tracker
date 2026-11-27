@@ -54,27 +54,24 @@ describe('christmasArrival', () => {
     expect(detourRatio({ lat: 0, lng: 0 }, { lat: 1, lng: 1 }, { lat: 0, lng: 0 })).toBe(Number.MAX_SAFE_INTEGER);
   });
 
-  it('labels eastward moves whose destination offset advances local midnight', () => {
-    const destination: Candidate = {
+  it('labels plausible eastward timezone anomalies only', () => {
+    const advancingOffset: Candidate = {
       id: 'western-china', name: 'Western China', country: 'CN', lat: 35, lng: 2,
       timezone: 'Asia/Shanghai', utcOffsetMinutes: 480, category: 'populated',
     };
     expect(eastwardLegReason({
       from: { lat: 35, lng: 0, utcOffsetMinutes: 300 },
-      to: destination,
+      to: advancingOffset,
       destinationIndex: 4,
       arrivalUtc: Date.parse('2026-12-24T18:30:00.000Z'),
     })).toBe('offset-anomaly');
-  });
-
-  it('does not justify an eastward move when the destination offset moves backward', () => {
-    const destination: Candidate = {
+    const implausibleReset: Candidate = {
       id: 'backward-offset', name: 'Western destination', country: 'US', lat: 35, lng: 2,
       timezone: 'America/Chicago', utcOffsetMinutes: -300, category: 'populated',
     };
     expect(eastwardLegReason({
       from: { lat: 35, lng: 0, utcOffsetMinutes: 300 },
-      to: destination,
+      to: implausibleReset,
       destinationIndex: 4,
       arrivalUtc: Date.parse('2026-12-25T04:00:00.000Z'),
     })).toBeUndefined();
