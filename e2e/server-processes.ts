@@ -60,12 +60,13 @@ async function findFreePort(): Promise<number> {
   return port;
 }
 
-function serverEnvironment({ name, dataRoot, password, secret }: ServerLaunchOptions): NodeJS.ProcessEnv {
+function serverEnvironment({ name, dataRoot, password, secret, port }: ServerLaunchOptions): NodeJS.ProcessEnv {
   return {
     ...process.env,
     ADVENT_ENABLED: "true",
     ADMIN_PASSWORD: password,
     SECRET_KEY: secret,
+    ADMIN_CSRF_ORIGIN: `http://127.0.0.1:${port}`,
     SANTA_DATA_ROOT: dataRoot,
     NEXT_DIST_DIR: `.next-e2e-${name}`,
     ...(name === "open" ? { SEASON_OVERRIDE: "open" } : { SEASON_OVERRIDE: "" }),

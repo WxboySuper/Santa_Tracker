@@ -1,5 +1,6 @@
 import { expect, test, getRuntimeConfig } from "./fixtures";
 import { expectNoSeriousAxeIssues } from "./axe-check";
+import { adminMutation } from "./admin-api";
 import type { Page } from "@playwright/test";
 
 test.describe.configure({ mode: "serial" });
@@ -33,8 +34,9 @@ test("the admin emergency switch hides and restores the tracker for visitors", a
   const loginPassword = (await getRuntimeConfig(runtimeFile)).adminPassword;
   const login = await page.request.post("/api/admin/login", { data: { password: loginPassword } });
   expect(login.status()).toBe(200);
+  await page.goto("/");
   const hide = await replaceFlags(page, { tracker: true, advent: false });
-  expect(hide.status()).toBe(200);
+  expect(hide.status, hide.body).toBe(200);
 
   const visitorContext = await browser.newContext();
   try {
@@ -45,7 +47,7 @@ test("the admin emergency switch hides and restores the tracker for visitors", a
     expect(hiddenApi.headers()["cache-control"]).toBe("private, no-store");
 
     const show = await replaceFlags(page, { tracker: false, advent: false });
-    expect(show.status()).toBe(200);
+    expect(show.status).toBe(200);
     await expect.poll(async () => (await visitor.request.get("/tracker")).status(), { timeout: 8_000 }).toBe(200);
   } finally {
     await visitorContext.close();
@@ -57,7 +59,9 @@ async function replaceFlags(page: Page, hidden: { tracker: boolean; advent: bool
   expect(current.status()).toBe(200);
   const etag = current.headers().etag;
   if (!etag) throw new Error("Feature flags response omitted its ETag");
-  return page.request.put("/api/admin/feature-flags", {
+  return adminMutation(page, {
+    path: "/api/admin/feature-flags",
+    method: "PUT",
     headers: { "If-Match": etag },
     data: { version: 1, hidden },
   });

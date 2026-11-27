@@ -112,14 +112,14 @@ describe("Auth parity - Flask password fallback removed", () => {
   });
   it("creates and verifies JWT", async () => {
     const token = await createAdminToken();
-    expect(await verifyAdminToken(token)).toBe(true);
+    expect(await verifyAdminToken({ token })).toBe(true);
   });
   it("does NOT accept raw password as bearer", async () => {
-    expect(await verifyAdminToken("supersecret")).toBe(false);
+    expect(await verifyAdminToken({ token: "supersecret" })).toBe(false);
   });
   it("verifyAdminPassword timing-safe", async () => {
-    expect(await verifyAdminPassword("supersecret")).toBe(true);
-    expect(await verifyAdminPassword("wrong")).toBe(false);
+    expect(await verifyAdminPassword({ password: "supersecret" })).toBe(true);
+    expect(await verifyAdminPassword({ password: "wrong" })).toBe(false);
   });
 });
 

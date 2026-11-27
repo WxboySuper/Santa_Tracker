@@ -1,5 +1,16 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Admin passkeys and recovery (#295)
+
+- **WebAuthn owner authentication:** Adds passkey registration and login ceremonies, one-time recovery codes stored as hashes, and disables existing password sessions after a passkey is registered.
+- **Session safety:** Makes signed admin sessions persisted, expiring, and revocable; adds session listing/revocation, double-submit CSRF checks for cookie mutations, shared login throttling, and bounded auth audit records. Recovery sessions need a second code before passkey or session management; logout remains available to revoke a valid session and clear cookies.
+- **Authentication edge cases:** Revokes legacy and current password sessions atomically during first passkey setup, writes successful-login audit events with session creation in one state update, rejects signature-counter regressions including a reset to zero, returns accurate recovery, registration conflict, session-storage, and missing trusted-IP statuses, preserves retryable cookies if logout revocation fails, handles failed revocation after a late login lockout, applies a separate 30-request/15-minute challenge-issuance limit, and keeps throttle initialization and post-login checks safe for production builds and simpler to review.
+- **Failure handling:** Keeps CSRF rejection at 403 if audit storage fails, treats only `EEXIST` as local lock contention so permission errors surface immediately, and splits the recovery error handler to keep the route reviewable.
+- **API and E2E contracts:** Groups throttle inputs into named objects and updates Playwright API writes to send the double-submit token with the configured public test origin.
+- **Documentation and tests:** Documents API and origin/RP-ID configuration; tests registration, authentication, one-time recovery, recovery step-up, session revocation, CSRF, and throttling.
+- **Admin screens:** The emergency switches and route simulator send the `X-CSRF-Token` header (read from the `admin_csrf` cookie) on their changes, through a shared `adminCsrfHeaders()` helper.
+- **Production config:** The deploy job sets `ADMIN_WEBAUTHN_RP_ID` and `ADMIN_WEBAUTHN_ORIGIN` for santa.weatherboysuper.com and `tools/configure-webauthn.mjs` adds them to the Worker vars for that deploy only, so passkeys work in production while local and preview runs keep using their own request host.
+
 ## [Unreleased] - Version IDs sort in creation order
 
 - **Snapshots:** Version IDs created in the same millisecond now carry a zero-padded sequence after the timestamp, so they always sort in creation order. Before this, the random suffix decided which one counted as newer: rollback could select the wrong previous version, and a #539 test failed intermittently on `main`.
