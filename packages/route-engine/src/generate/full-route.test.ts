@@ -44,7 +44,7 @@ describe('superseded 2026 route draft', () => {
     const fixture = new URL('./fixtures/route-2026-legacy.json', import.meta.url);
     const document = JSON.parse(await readFile(fixture, 'utf8')) as { route_nodes: LegacyNode[] };
     const result = auditRouteDocument(document, {
-      config: inputs.config,
+      config: { ...inputs.config, useOrienteering: false },
       pool: inputs.pool,
       selected: candidatesFromLegacyNodes(document.route_nodes),
       zonesByCountry: inputs.tables.zonesByCountry,

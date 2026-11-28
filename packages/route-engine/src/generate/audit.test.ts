@@ -4,7 +4,11 @@ import { localWindowStatus } from './sweep';
 import { DEFAULT_GENERATOR_LIMITS } from './types';
 import type { Candidate, GeneratorConfig } from './types';
 
-type AuditTestConfig = GeneratorConfig & { useOrienteering: boolean };
+type AuditTestConfig = GeneratorConfig & {
+  requiredStopIds: string[];
+  requiredCountries: string[];
+  useOrienteering: boolean;
+};
 
 function routeFixture(points: { id: string; name: string; lng: number; country?: string; offset?: number; reason?: string; routeReason?: string; population?: number; category?: string; arrivalUtc?: string; status?: string; tier?: string; duration?: number; transitSeconds?: number }[]): { document: unknown; selected: Candidate[] } {
   const selected = points.map((point) => ({ id: point.id, name: point.name, country: point.country ?? 'US', timezone: 'Etc/UTC', utcOffsetMinutes: point.offset ?? 0,
@@ -33,7 +37,7 @@ function routeFixture(points: { id: string; name: string; lng: number; country?:
 
 function auditFixture(fixture: ReturnType<typeof routeFixture>, useOrienteering = false) {
   const result = auditRouteDocument(fixture.document, {
-    config: { ...DEFAULT_GENERATOR_LIMITS, useOrienteering, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as GeneratorConfig & { useOrienteering: boolean },
+    config: { ...DEFAULT_GENERATOR_LIMITS, useOrienteering, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as AuditTestConfig,
     pool: fixture.selected, selected: fixture.selected, zonesByCountry: { US: ['Etc/UTC'] }, utcOffsetsByTimezone: { 'Etc/UTC': 0 },
     countryBoundsByCode: { US: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 }, CA: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 } }, report: { continentBalance: {}, subregionBalance: {} }, vetoIds: [],
   });
@@ -48,7 +52,7 @@ describe('auditRouteDocument', () => {
         weights: { hub: 100 },
         requiredStopIds: ['required-stop'],
         requiredCountries: ['US'],
-      },
+      } as AuditTestConfig,
       pool: [],
       selected: [],
       zonesByCountry: {},
@@ -98,7 +102,7 @@ describe('auditRouteDocument', () => {
         schedule: { arrival_utc: '2026-12-24T23:50:00.000Z', departure_utc: '2026-12-24T23:51:00.000Z' },
       },
     ] }, {
-      config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 }, requiredStopIds: ['required-stop'], requiredCountries: ['US'] },
+      config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 }, requiredStopIds: ['required-stop'], requiredCountries: ['US'] } as AuditTestConfig,
       pool: [],
       selected: [],
       zonesByCountry: {},
@@ -206,7 +210,7 @@ describe('auditRouteDocument', () => {
     const fixture = routeFixture([{ id: 'us-stop', name: 'US stop', country: 'US', lng: -100 }]);
     const pitcairn = { ...fixture.selected[0]!, id: 'pn-stop', name: 'Adamstown', country: 'PN' };
     const result = auditRouteDocument(fixture.document, {
-      config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] },
+      config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as AuditTestConfig,
       pool: [...fixture.selected, pitcairn], selected: fixture.selected,
       zonesByCountry: { US: ['Etc/UTC'], PN: ['Pacific/Pitcairn'] }, utcOffsetsByTimezone: { 'Etc/UTC': 0, 'Pacific/Pitcairn': -480 },
       countryBoundsByCode: { US: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 }, PN: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 } },
@@ -272,7 +276,7 @@ describe('auditRouteDocument', () => {
     nodes[5]!.location.lat = 0;
     fixture.selected.forEach((place, index) => { place.lat = index % 2 === 0 ? 0 : 40; });
     const result = auditRouteDocument(fixture.document, {
-      config: { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: true, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as GeneratorConfig & { useOrienteering: boolean },
+      config: { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: true, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as AuditTestConfig,
       pool: fixture.selected, selected: fixture.selected, zonesByCountry: { US: ['Etc/UTC'] }, utcOffsetsByTimezone: { 'Etc/UTC': 0 },
       countryBoundsByCode: { US: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 } }, report: { continentBalance: {}, subregionBalance: {} }, vetoIds: [],
     });
@@ -327,6 +331,38 @@ describe('auditRouteDocument', () => {
     expect(result.find((check) => check.name === 'Eastward legs')?.pass).toBe(false);
   });
 
+  it('rejects generic long-leg reasons and accepts a specific checked reason', () => {
+    const generic = routeFixture([
+      { id: 'origin', name: 'Origin', lng: 0, country: 'US', routeReason: 'ocean-crossing' },
+      { id: 'destination', name: 'Destination', lng: 50, country: 'CA', routeReason: 'cross-border-coverage' },
+    ]);
+    const genericResult = auditFixture(generic, true);
+    expect(genericResult.find((check) => check.name === 'Reasons for legs over 4,000 km')?.pass).toBe(false);
+
+    const specific = routeFixture([
+      { id: 'origin', name: 'Origin', lng: 0, country: 'US', routeReason: 'polar launch to US; best feasible insertion checked' },
+      { id: 'destination', name: 'Destination', lng: 50, country: 'CA',
+        routeReason: 'ocean crossing US to CA for mandatory sovereign-state coverage (CA); best feasible insertion checked' },
+    ]);
+    specific.selected[1]!.mandatoryCoverageStop = true;
+    const nodes = (specific.document as { route_nodes: { transit_to_here?: { route_reason?: string } }[] }).route_nodes;
+    nodes.at(-1)!.transit_to_here = { route_reason: 'polar return from CA' };
+    const specificResult = auditFixture(specific, true);
+    expect(specificResult.find((check) => check.name === 'Reasons for legs over 4,000 km')?.pass).toBe(true);
+  });
+
+  it('accepts an ocean-crossing reason between stops in the same sovereign state', () => {
+    const fixture = routeFixture([
+      { id: 'mainland', name: 'Mainland', lng: 0, country: 'US', routeReason: 'polar launch to US; best feasible insertion checked' },
+      { id: 'hawaii', name: 'Hawaii', lng: 50, country: 'US',
+        routeReason: 'ocean crossing US to US for mandatory sovereign-state coverage (US); best feasible insertion checked' },
+    ]);
+    fixture.selected[1]!.mandatoryCoverageStop = true;
+    const nodes = (fixture.document as { route_nodes: { transit_to_here?: { route_reason?: string } }[] }).route_nodes;
+    nodes.at(-1)!.transit_to_here = { route_reason: 'polar return from US' };
+    const result = auditFixture(fixture, true);
+    expect(result.find((check) => check.name === 'Reasons for legs over 4,000 km')?.pass).toBe(true);
+  });
   it('fails repeated-country detours in hard-rule mode', () => {
     const fixture = routeFixture([
       { id: 'a', name: 'Origin', lng: 0 },

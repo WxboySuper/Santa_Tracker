@@ -1,8 +1,10 @@
-﻿import { LegacyRouteFixtureSchema } from '@santa-tracker/contracts';
+import { LegacyRouteFixtureSchema } from '@santa-tracker/contracts';
 import { haversineKm, legSpeedKmh } from '../geo';
 import { classifyRegion } from './regions';
+import { admin1UnitFor } from './admin1';
 import { isRemoteOptionalTerritory, isSovereignState } from './coverage';
 import { localWindowStatus } from './sweep';
+import { hasSpecificLongLegReason } from './route-reasons';
 import { NORTH_POLE, TAKEOFF_UTC, type Candidate, type GeneratorConfig, type RouteReport } from './types';
 
 export type AuditCheck = { name: string; pass: boolean; detail: string };
@@ -294,7 +296,7 @@ function localArrivalFailures(node: RouteNode, place: Candidate): string[] {
   const offset = place.utcOffsetMinutes;
   if (offset === undefined) return [`${node.location.name}: missing snapshot UTC offset`];
   const status = localWindowStatus({ instant: Date.parse(arrival), offsetMinutes: offset });
-  return status === 'RED' ? [`${node.location.name}: local arrival is outside 22:30–05:30`] : [];
+  return status === 'RED' ? [`${node.location.name}: local arrival is outside 22:30�05:30`] : [];
 }
 
 function displayOffsetFailures(node: RouteNode, place: Candidate): string[] {
@@ -326,7 +328,7 @@ function addTimezoneChecks(context: RouteAuditContext, view: AuditView, checks: 
   });
   addCheck(checks, 'Timezone and local arrival window', failures.length === 0,
     failures.length ? failures.slice(0, 6).join('; ')
-      : `${view.delivery.length} stops match country zones; ${outsideWindow} arrivals fall outside 22:30–05:30 local.`);
+      : `${view.delivery.length} stops match country zones; ${outsideWindow} arrivals fall outside 22:30�05:30 local.`);
 }
 
 type LocalArrivalAssessment = { node: RouteNode; place?: Candidate; status?: string };
@@ -809,12 +811,58 @@ function addCombCheck(view: AuditView, checks: AuditCheck[]): void {
     `${reversals} reversals in the longest consecutive run of legs over 1,500 km and 20 degrees latitude; three or more indicates a comb route.`);
 }
 
-function addLongLegReasonCheck(legs: AuditLeg[], checks: AuditCheck[]): void {
-  const long = legs.filter((leg) => leg.km > 4_000);
-  const missing = long.filter((leg) => !leg.toNode?.transit_to_here?.route_reason);
-  const details = long.map((leg) => `${leg.fromName} -> ${leg.toName} ${human(leg.km)} km (${leg.toNode?.transit_to_here?.route_reason ?? 'no reason'})`);
-  addCheck(checks, 'Reasons for legs over 4,000 km', missing.length === 0,
-    long.length ? details.join('; ') : 'No legs exceed 4,000 km.');
+function expectedCountryPair(view: AuditView, leg: AuditLeg, reason: string): string | undefined {
+  const index = deliveryIndex(view, leg);
+  const destination = view.places[index];
+  if (!destination) return undefined;
+  const origin = view.places[index - 1];
+  if (!origin) return undefined;
+  if (origin.country !== destination.country) return origin.country + ' to ' + destination.country;
+  if (reason.startsWith('ocean crossing ')) return origin.country + ' to ' + destination.country;
+  return 'within ' + destination.country;
+}
+
+function hasInsertionProof(leg: AuditLeg, reason: string): boolean {
+  if (leg.kind === 'return') return true;
+  return reason.includes('best feasible insertion checked');
+}
+
+function mandatoryCoverageLabel(place: Candidate): string {
+  const admin1Unit = admin1UnitFor(place);
+  return admin1Unit
+    ? `mandatory admin-1 coverage (${admin1Unit})`
+    : `mandatory sovereign-state coverage (${place.country})`;
+}
+
+function legServesMandatoryCoverage(view: AuditView, leg: AuditLeg, reason: string): boolean {
+  const index = deliveryIndex(view, leg);
+  const endpoints = [view.places[index], view.places[index - 1]];
+  return endpoints.some((place) => place?.mandatoryCoverageStop === true
+    && reason.includes(mandatoryCoverageLabel(place)));
+}
+
+function isLongLegWithoutReason(leg: AuditLeg, reason: string): boolean {
+  if (!hasSpecificLongLegReason(reason)) return true;
+  return !hasInsertionProof(leg, reason);
+}
+
+function hasReasonForRouteContext(view: AuditView, leg: AuditLeg, reason: string | undefined): boolean {
+  if (!reason) return false;
+  if (isLongLegWithoutReason(leg, reason)) return false;
+  if (leg.kind === 'return') return reason.startsWith('polar return from ');
+  if (leg.kind === 'launch') return reason.startsWith('polar launch to ');
+  const expected = expectedCountryPair(view, leg, reason);
+  return expected !== undefined && reason.includes(expected) && legServesMandatoryCoverage(view, leg, reason);
+}
+
+function addLongLegReasonCheck(view: AuditView, legs: AuditLeg[], checks: AuditCheck[]): void {
+  const long = legs.filter((leg) => leg.km > 4_000 && leg.kind === 'delivery');
+  const missing = long.filter((leg) => !hasReasonForRouteContext(view, leg, leg.toNode?.transit_to_here?.route_reason ?? undefined));
+  const details = long.map((leg) => leg.fromName + ' -> ' + leg.toName + ' ' + human(leg.km) + ' km ('
+    + (leg.toNode?.transit_to_here?.route_reason ?? 'no reason') + ')');
+  const detail = long.length ? details.join('; ') + (missing.length ? '; ' + String(missing.length) + ' generic or unexplained reasons' : '')
+    : 'No legs exceed 4,000 km.';
+  addCheck(checks, 'Reasons for legs over 4,000 km', missing.length === 0, detail);
 }
 
 function deliveryIndex(view: AuditView, leg: AuditLeg): number {
@@ -875,7 +923,7 @@ function addEastwardCheck(context: RouteAuditContext, view: AuditView, legs: Aud
   const eastward = legs.filter((leg) => leg.eastward > 1 && leg.kind !== 'launch');
   const failures = eastward.filter((leg) => !plausibleEastwardReason(view, leg, context))
     .map((leg) => `${leg.fromName} -> ${leg.toName}: missing or implausible reason over ${human(leg.km)} km`);
-  const details = eastward.map((leg) => `${leg.fromName} -> ${leg.toName} (${Math.round(leg.eastward)}° east, ${human(leg.km)} km, reason ${leg.toNode?.transit_to_here?.eastward_reason ?? 'none'})`);
+  const details = eastward.map((leg) => `${leg.fromName} -> ${leg.toName} (${Math.round(leg.eastward)}� east, ${human(leg.km)} km, reason ${leg.toNode?.transit_to_here?.eastward_reason ?? 'none'})`);
   addCheck(checks, 'Eastward legs', failures.length === 0,
     `${eastward.length ? details.join('; ') : 'no eastward legs'}${failures.length ? `. Failures: ${failures.join('; ')}` : ''}.`);
 }
@@ -983,7 +1031,7 @@ function addPacingChecks(context: RouteAuditContext, view: AuditView, checks: Au
   addSpeedCheck(legs, checks);
   addEastwardCheck(context, view, legs, checks);
   addCombCheck(view, checks);
-  addLongLegReasonCheck(legs, checks);
+  addLongLegReasonCheck(view, legs, checks);
   addDetourCheck(context, view, checks);
 }
 

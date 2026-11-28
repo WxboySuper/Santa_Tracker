@@ -1,0 +1,254 @@
+import { haversineKm, type LatLng } from '../geo';
+import {
+  christmasArrival,
+  christmasWindow,
+  detourRatio,
+  eastwardLegReason,
+  isEastwardDelta,
+  longitudeDelta,
+  stopDurationSeconds,
+  stopTier,
+} from './sweep';
+import { classifyRegion } from './regions';
+import { REQUIRED_ADMIN1_UNITS } from './admin1';
+import { InvalidCandidateTimezoneError, isInvalidCandidateTimezoneError } from './timezone-error';
+import { ianaOffsetMinutesAt } from './timezone';
+import { NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type GeneratorConfig } from './types';
+
+const EARTH_RADIUS_KM = 6_371;
+const FAST_CROSSING_KM = 1_500;
+const FAST_OCEAN_CROSSING_KM = 3_500;
+const MAX_SPEED_CROSSING_KM = 4_000;
+const SLOW_REGIONAL_HOP_KM = 400;
+const OCEAN_ISLAND_COUNTRIES = new Set([
+  'AS', 'AW', 'AX', 'BB', 'BL', 'BM', 'BQ', 'BS', 'CC', 'CK', 'CX', 'CW', 'DM', 'FO', 'GD', 'GG', 'GL',
+  'GP', 'GU', 'HM', 'IM', 'IO', 'IS', 'JE', 'JM', 'KN', 'KY', 'LC', 'MF', 'MH', 'MP', 'MQ', 'MS',
+  'NF', 'NR', 'NU', 'PF', 'PN', 'PR', 'PW', 'RE', 'SC', 'SX', 'TC', 'TK', 'TO', 'TT', 'TV', 'VG', 'VI',
+  'WF', 'YT',
+]);
+
+export const MAX_ROUTE_STOPS = 700;
+export const REQUIRED_ADMIN1_CODES = new Set<string>(Object.values(REQUIRED_ADMIN1_UNITS).flatMap((codes) => [...codes]));
+
+export type TimedCandidate = Candidate & {
+  plannedArrivalUtc: string;
+  plannedStopTier: NonNullable<Candidate['plannedStopTier']>;
+  plannedStopDurationSeconds: number;
+};
+export type PlannedStop = { place: TimedCandidate; arrival: number; departure: number; eastwardDegrees: number };
+export type RoutePlan = { places: TimedCandidate[]; arrivalTimes: number[]; departures: number[] };
+type CandidateTimingOptions = { place: Candidate; prior: Candidate | LatLng; priorDeparture: number; index: number; config: GeneratorConfig };
+type PlanningSpeedOptions = { from: Candidate | LatLng; to: Candidate | LatLng; distanceKm: number; config: GeneratorConfig };
+type OrienteeringSpeedOptions = { distanceKm: number; oceanCrossing: boolean; config: GeneratorConfig };
+type CrossingDistanceOptions = { distanceKm: number; oceanCrossing: boolean };
+type SeparationIndexOptions = { minimumKm: number };
+type SeparationCellOptions = { place: LatLng; cellSize: number };
+type CellCoordinateOptions = { key: string };
+type AdjacentCellOptions = { x: number; y: number; z: number };
+type DeliveryLongitudeOptions = { prior: Candidate | LatLng; place: Candidate; index: number; arrival: number };
+type AppendPlannedStopOptions = { builder: RoutePlanBuilder; place: Candidate; index: number; config: GeneratorConfig };
+
+export function seededRandom(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state += 0x6d2b79f5;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4_294_967_296;
+  };
+}
+
+function isOceanCrossing(from: Candidate | LatLng, to: Candidate | LatLng, distanceKm: number): boolean {
+  if (distanceKm < FAST_CROSSING_KM) return false;
+  if (!('country' in from) || !('country' in to)) return true;
+  if (OCEAN_ISLAND_COUNTRIES.has(from.country) || OCEAN_ISLAND_COUNTRIES.has(to.country)) return true;
+  const fromRegion = classifyRegion(from);
+  const toRegion = classifyRegion(to);
+  return fromRegion.pacificIsland || toRegion.pacificIsland || fromRegion.continent !== toRegion.continent;
+}
+
+function planningSpeed({ from, to, distanceKm, config }: PlanningSpeedOptions): number {
+  const oceanCrossing = isOceanCrossing(from, to, distanceKm);
+  if (config.useOrienteering) {
+    return orienteeringPlanningSpeed({ distanceKm, oceanCrossing, config });
+  }
+  if (oceanCrossing && distanceKm >= FAST_OCEAN_CROSSING_KM) return Math.min(config.targetLegSpeedKmh, config.maxLegSpeedKmh);
+  const target = oceanCrossing ? config.targetLegSpeedKmh : config.localLegSpeedKmh;
+  return Math.min(target, config.maxLegSpeedKmh, config.p90LegSpeedMaxKmh);
+}
+
+function orienteeringPlanningSpeed({ distanceKm, oceanCrossing, config }: OrienteeringSpeedOptions): number {
+  if (requiresMaximumCrossingSpeed({ distanceKm, oceanCrossing })) {
+    return Math.min(config.targetLegSpeedKmh, config.maxLegSpeedKmh);
+  }
+  if (requiresP90CrossingSpeed({ distanceKm })) {
+    return Math.min(config.p90LegSpeedMaxKmh, config.maxLegSpeedKmh);
+  }
+  return Math.min(config.localLegSpeedKmh, config.maxLegSpeedKmh);
+}
+
+function requiresMaximumCrossingSpeed({ distanceKm, oceanCrossing }: CrossingDistanceOptions): boolean {
+  if (distanceKm >= MAX_SPEED_CROSSING_KM) return true;
+  return oceanCrossing;
+}
+
+function requiresP90CrossingSpeed({ distanceKm }: Pick<CrossingDistanceOptions, 'distanceKm'>): boolean {
+  return distanceKm >= SLOW_REGIONAL_HOP_KM;
+}
+
+export function scheduledTravelMilliseconds(from: Candidate | LatLng, to: Candidate | LatLng, config: GeneratorConfig): number {
+  const distance = haversineKm(from, to);
+  const travelSeconds = Math.ceil(distance / planningSpeed({ from, to, distanceKm: distance, config }) * 3_600);
+  return travelSeconds * 1000;
+}
+
+export function countryCapacity(place: Candidate, counts: Map<string, number>, config: GeneratorConfig): boolean {
+  // Bound dense fill so a few large countries cannot consume the route budget; mandatory country/admin-1 coverage bypasses this cap.
+  return (counts.get(place.country) ?? 0) < config.maxStopsPerCountry;
+}
+
+function separationCell({ place, cellSize }: SeparationCellOptions): string {
+  const latitude = place.lat * Math.PI / 180;
+  const longitude = place.lng * Math.PI / 180;
+  const x = Math.cos(latitude) * Math.cos(longitude);
+  const y = Math.cos(latitude) * Math.sin(longitude);
+  const z = Math.sin(latitude);
+  return `${Math.floor(x / cellSize)},${Math.floor(y / cellSize)},${Math.floor(z / cellSize)}`;
+}
+
+function cellCoordinates({ key }: CellCoordinateOptions): [number, number, number] {
+  return key.split(',').map(Number) as [number, number, number];
+}
+
+function adjacentCellKeys({ x, y, z }: AdjacentCellOptions): string[] {
+  return Array.from({ length: 27 }, (_, index) => {
+    const dx = index % 3 - 1;
+    const dy = Math.floor(index / 3) % 3 - 1;
+    const dz = Math.floor(index / 9) - 1;
+    return `${x + dx},${y + dy},${z + dz}`;
+  });
+}
+
+export class SeparationIndex {
+  private readonly cells = new Map<string, Candidate[]>();
+  private readonly cellSize: number;
+
+  constructor(private readonly options: SeparationIndexOptions) {
+    this.cellSize = Math.max(options.minimumKm / EARTH_RADIUS_KM, 0.00001);
+  }
+
+  add(place: Candidate): void {
+    const key = separationCell({ place, cellSize: this.cellSize });
+    const members = this.cells.get(key) ?? [];
+    members.push(place);
+    this.cells.set(key, members);
+  }
+
+  allows(place: Candidate): boolean {
+    if (this.options.minimumKm <= 0) return true;
+    const [x, y, z] = cellCoordinates({ key: separationCell({ place, cellSize: this.cellSize }) });
+    const nearby = adjacentCellKeys({ x, y, z }).flatMap((key) => this.cells.get(key) ?? []);
+    return nearby.every((candidate) => haversineKm(candidate, place) >= this.options.minimumKm);
+  }
+}
+
+function latestLocalArrival(place: Candidate, window: ReturnType<typeof christmasWindow>): number {
+  if (place.lat >= -35) return window.endUtc;
+  const southernLimit = Date.parse(christmasArrival({ timezoneOrOffset: requiredSnapshotOffset(place), minutesAfterMidnight: 150 }));
+  return Math.min(window.endUtc, southernLimit);
+}
+
+export function requiredSnapshotOffset(place: Candidate): number {
+  if (!Number.isInteger(place.utcOffsetMinutes)) throw new InvalidCandidateTimezoneError(`Missing snapshot UTC offset for ${place.name}`);
+  return place.utcOffsetMinutes!;
+}
+
+function deliveryLongitudeIsAllowed({ prior, place, index, arrival }: DeliveryLongitudeOptions): boolean {
+  const degrees = longitudeDelta(prior, place);
+  if (!isEastwardDelta(degrees)) return true;
+  const reason = eastwardLegReason({ from: prior, to: place, destinationIndex: index, arrivalUtc: arrival });
+  return reason === 'dateline' || reason === 'offset-anomaly';
+}
+
+export function candidateTiming({ place, prior, priorDeparture, index, config }: CandidateTimingOptions): PlannedStop | undefined {
+  const snapshotOffset = requiredSnapshotOffset(place);
+  const window = christmasWindow(snapshotOffset);
+  const arrival = Math.max(window.startUtc, priorDeparture + scheduledTravelMilliseconds(prior, place, config));
+  if (ianaOffsetMinutesAt({ timezone: place.timezone, instant: arrival }) !== snapshotOffset) return undefined;
+  if (arrival > latestLocalArrival(place, window)) return undefined;
+  if (!deliveryLongitudeIsAllowed({ prior, place, index, arrival })) return undefined;
+  const eastwardDegrees = longitudeDelta(prior, place);
+  const tier = stopTier(place);
+  const durationSeconds = stopDurationSeconds(tier);
+  const departure = arrival + durationSeconds * 1000;
+  return {
+    place: { ...place, plannedArrivalUtc: new Date(arrival).toISOString(), plannedStopTier: tier, plannedStopDurationSeconds: durationSeconds },
+    arrival,
+    departure,
+    eastwardDegrees,
+  };
+}
+
+export function categoryPreference(place: Candidate, config: GeneratorConfig): number {
+  const category = place.category === 'capital' ? 'hub' : place.category;
+  const weight = config.weights[category];
+  if (weight === undefined) throw new Error(`Missing category tie-break weight for ${category}`);
+  return weight;
+}
+
+export function canStartFromNorthPole(place: Candidate, config: GeneratorConfig): boolean {
+  return Boolean(candidateTiming({ place, prior: NORTH_POLE, priorDeparture: Date.parse(TAKEOFF_UTC), index: 0, config }));
+}
+
+type RoutePlanBuilder = { places: TimedCandidate[]; arrivalTimes: number[]; departures: number[];
+  prior: Candidate | LatLng; priorDeparture: number };
+
+function appendPlannedStop({ builder, place, index, config }: AppendPlannedStopOptions): boolean {
+  let stop: PlannedStop | undefined;
+  try {
+    stop = candidateTiming({ place, prior: builder.prior, priorDeparture: builder.priorDeparture, index, config });
+  } catch (error) {
+    if (isInvalidCandidateTimezoneError(error)) return false;
+    throw error;
+  }
+  if (!stop) return false;
+  builder.places.push(stop.place);
+  builder.arrivalTimes.push(stop.arrival);
+  builder.departures.push(stop.departure);
+  builder.prior = stop.place;
+  builder.priorDeparture = stop.departure;
+  return true;
+}
+
+function returnsByDeadline(builder: RoutePlanBuilder, config: GeneratorConfig): boolean {
+  const final = builder.places.at(-1);
+  if (!final) return false;
+  const finalDeparture = builder.departures.at(-1);
+  if (finalDeparture === undefined) return false;
+  return finalDeparture + scheduledTravelMilliseconds(final, NORTH_POLE, config) <= Date.parse(RETURN_DEADLINE_UTC);
+}
+
+export function planTiming(order: Candidate[], config: GeneratorConfig): RoutePlan | undefined {
+  const builder: RoutePlanBuilder = { places: [], arrivalTimes: [], departures: [],
+    prior: NORTH_POLE, priorDeparture: Date.parse(TAKEOFF_UTC) };
+  for (const [index, place] of order.entries()) {
+    if (!appendPlannedStop({ builder, place, index, config })) return undefined;
+  }
+  if (builder.places.length === 0) return undefined;
+  if (!returnsByDeadline(builder, config)) return undefined;
+  return { places: builder.places, arrivalTimes: builder.arrivalTimes, departures: builder.departures };
+}
+
+export function hardDetourCount(order: Candidate[]): number {
+  // Singleton-country visits are mandatory coverage; only repeated-country
+  // detours are hard violations during coverage insertion and route planning.
+  const countryCounts = new Map<string, number>();
+  for (const place of order) countryCounts.set(place.country, (countryCounts.get(place.country) ?? 0) + 1);
+  return order.reduce((count, via, index) => {
+    const before = order[index - 1];
+    const after = order[index + 1];
+    return before && after && (countryCounts.get(via.country) ?? 0) > 1 && detourRatio(before, via, after) > 2.5
+      ? count + 1 : count;
+  }, 0);
+}

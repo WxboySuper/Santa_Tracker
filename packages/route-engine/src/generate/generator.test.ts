@@ -1,99 +1,270 @@
 import { describe, expect, it } from 'vitest';
+import { haversineKm, legSpeedKmh } from '../geo';
 import { generateRoute, type Candidate, DEFAULT_GENERATOR_LIMITS } from './generator';
+import { reinsertLongLegStops } from './orienteering';
+import { isInChristmasWindow, localClock } from './sweep';
+import { scheduledTravelMilliseconds } from './order';
+import { NORTH_POLE } from './types';
 
-const testCountries = ['US', 'CA', 'MX', 'BZ', 'GT', 'HN', 'PA', 'SV', 'AR', 'BO', 'BR', 'CL', 'CO', 'EC', 'PE', 'PY', 'SR', 'VE', 'AU', 'NZ', 'FJ', 'WS', 'GB', 'FR', 'JP'];
-const candidates: Candidate[] = Array.from({ length: 25 }, (_, index) => ({
-  id: `candidate-${index}`, name: `Place ${index}`, country: testCountries[index] ?? 'US',
-  lat: 80, lng: index * 2, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840,
-  population: index % 5 === 0 ? 2_000_000 : index % 5 === 2 ? 0 : 500_000,
-  category: ['hub', 'cultural', 'underserved', 'nature', 'special'][index % 5] ?? 'hub',
-}));
+const candidates: Candidate[] = [
+  { id: 'pacific-a', name: 'Pacific A', country: 'FJ', lat: 80, lng: 170, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, population: 1_200_000, category: 'hub' },
+  { id: 'pacific-b', name: 'Pacific B', country: 'WS', lat: 80, lng: 150, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, population: 200_000, category: 'hub' },
+  { id: 'pacific-c', name: 'Pacific C', country: 'TO', lat: 80, lng: 130, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, population: 20_000, category: 'hub' },
+  { id: 'pacific-d', name: 'Pacific D', country: 'NZ', lat: 80, lng: 110, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, population: 100, category: 'hub' },
+];
 
-describe('generateRoute', () => {
-  it('creates repeatable output that passes route and geometry validation', () => {
-    const config = { ...DEFAULT_GENERATOR_LIMITS, seed: 2026, total: 20, endStopId: candidates[0]!.id, openingStopIds: [candidates[1]!.id], maxStopsPerUtcOffset: 40, minStopSeparationKm: 0, underservedCountries: [testCountries[2]!, testCountries[7]!, testCountries[12]!, testCountries[17]!, testCountries[22]!], weights: { hub: 20, cultural: 20, underserved: 20, nature: 20, special: 20 }, maxLegSpeedKmh: 40000 };
-    const inputIds = candidates.map((place) => place.id);
+const config = { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: false, maxStopsPerCountry: 6, minStopSeparationKm: 20 };
+
+describe('long-leg reinsertion', () => {
+  it('moves a stop across the route when every insertion position is cheaper', () => {
+    const west: Candidate = { id: 'west', name: 'West', country: 'US', lat: 0, lng: 0,
+      timezone: 'Etc/GMT+11', utcOffsetMinutes: -660, category: 'hub' };
+    const eastern: Candidate = { id: 'eastern', name: 'Eastern', country: 'US', lat: 0, lng: 60,
+      timezone: 'Etc/GMT+11', utcOffsetMinutes: -660, category: 'hub', mandatoryCoverageStop: true };
+    const nearWest: Candidate = { id: 'near-west', name: 'Near West', country: 'US', lat: 0, lng: 5,
+      timezone: 'Etc/GMT+11', utcOffsetMinutes: -660, category: 'hub' };
+
+    const original = [west, eastern, nearWest];
+    const result = reinsertLongLegStops(original, config);
+    const pathDistance = (order: Candidate[]) => order.slice(1).reduce((total, place, index) =>
+      total + haversineKm(order[index]!, place), 0);
+
+    expect(new Set(result.map((place) => place.id))).toEqual(new Set(original.map((place) => place.id)));
+    expect(pathDistance(result)).toBeLessThan(pathDistance(original));
+    expect(result.every((place) => place.longLegReinsertionChecked)).toBe(true);
+  });
+});
+
+describe('generateRoute midnight sweep', () => {
+  it('creates reproducible route output with westward ordering', () => {
     const first = generateRoute(candidates, config);
     const second = generateRoute(candidates, config);
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
-    expect(first.route.stops).toHaveLength(20);
-    expect(first.report.count).toBe(20);
-    expect(first.locations.some((place) => place.id.includes('~'))).toBe(false);
-    expect(candidates.map((place) => place.id)).toContain(first.locations[0]?.id);
-    expect(candidates.map((place) => place.id)).toEqual(inputIds);
-    expect(first.locations.every((place, index) => {
-      const stop = first.route.stops[index];
-      if (!stop) return false;
-      const local = new Intl.DateTimeFormat('en-GB', { timeZone: place.timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(stop.arrivalIso));
-      const [hour, minute] = local.split(':').map(Number);
-      const arrivalMinute = (hour ?? 0) * 60 + (minute ?? 0);
-      return arrivalMinute >= config.arrivalStartMinute && arrivalMinute <= config.arrivalEndMinute;
-    })).toBe(true);
-    let longestCountryRun = 0;
-    let currentCountryRun = 0;
-    first.locations.forEach((place, index) => {
-      currentCountryRun = index > 0 && place.country === first.locations[index - 1]?.country
-        ? currentCountryRun + 1
-        : 1;
-      longestCountryRun = Math.max(longestCountryRun, currentCountryRun);
-    });
-    expect(longestCountryRun).toBeLessThanOrEqual(config.maxCountryRun);
-  }, 30_000);
-
-  it('rejects an impossible quota instead of fabricating candidates', () => {
-    expect(() => generateRoute(candidates.slice(0, 2), { ...DEFAULT_GENERATOR_LIMITS, total: 5, weights: { hub: 100 } })).toThrow();
+    expect(new Set(first.locations.map((place) => place.id))).toEqual(new Set(candidates.map((place) => place.id)));
+    for (let index = 1; index < first.locations.length; index++) {
+      const from = first.locations[index - 1];
+      const to = first.locations[index];
+      if (!from || !to) throw new Error('Expected adjacent route stops');
+      expect(((to.lng - from.lng + 540) % 360) - 180).toBeLessThanOrEqual(1);
+    }
   });
 
-  it('rejects a zero-stop route before creating an empty report', () => {
-    expect(() => generateRoute(candidates, { ...DEFAULT_GENERATOR_LIMITS, total: 0, weights: { hub: 1 } })).toThrow(/Invalid stop total/);
+  it('keeps every arrival inside 23:00 to 05:00 local and stores its tier dwell', () => {
+    const generated = generateRoute(candidates, config);
+    for (const [index, place] of generated.locations.entries()) {
+      const stop = generated.route.stops[index];
+      if (!stop) throw new Error('Expected a route stop');
+      expect(isInChristmasWindow({ iso: stop.arrivalIso, timezoneOrOffset: place.utcOffsetMinutes ?? 0 })).toBe(true);
+      expect(stop.departureIso).toBe(new Date(Date.parse(stop.arrivalIso) + (place.plannedStopDurationSeconds ?? 0) * 1000).toISOString());
+      const node = generated.document.route_nodes[index + 1] as { stop_experience: { stop_tier: string; duration_seconds: number } };
+      expect(node.stop_experience.stop_tier).toBe(place.plannedStopTier);
+      expect(node.stop_experience.duration_seconds).toBe(place.plannedStopDurationSeconds);
+    }
+    const firstLocal = localClock({ iso: generated.route.stops[0]!.arrivalIso, timezoneOrOffset: 840 });
+    expect(firstLocal.hour).toBeGreaterThanOrEqual(0);
+    expect(firstLocal.hour).toBeLessThanOrEqual(5);
   });
 
-  it('rejects invalid schedule and travel limits before generating stops', () => {
-    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 1, endStopId: candidates[0]!.id, weights: { hub: 1 } };
-    expect(() => generateRoute(candidates, { ...config, arrivalStartMinute: 181, arrivalEndMinute: 180 })).toThrow(/arrival window/);
-    expect(() => generateRoute(candidates, { ...config, durationSeconds: 0 })).toThrow(/stop duration/);
-    expect(() => generateRoute(candidates, { ...config, maxLegSpeedKmh: -1 })).toThrow(/Invalid maximum leg speed/);
-    expect(() => generateRoute(candidates, { ...config, maxCountryRun: 0 })).toThrow(/country run limit/);
-    expect(() => generateRoute(candidates, { ...config, minArrivalGapMinutes: 0 })).toThrow(/minimum arrival gap/);
+  it('keeps the p90 below 20,000 km/h and every leg under 25,000 km/h', () => {
+    const generated = generateRoute(candidates, config);
+    expect(generated.report.p90LegSpeedKmh).toBeLessThanOrEqual(20_000);
+    expect(generated.report.maxLegSpeedKmh).toBeLessThanOrEqual(25_000);
   });
 
-  it('rejects a route that exceeds the configured speed ceiling', () => {
-    const farApart = [
-      { ...candidates[0]!, id: 'far-a', name: 'Far A', timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, population: 2_000_000, lat: 0, lng: 0, category: 'hub' },
-      { ...candidates[1]!, id: 'far-b', name: 'Far B', timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, population: 2_000_000, lat: 0, lng: 180, category: 'hub' },
+  it('stops when a leg cannot meet the speed limit', () => {
+    expect(() => generateRoute(candidates, { ...config, maxLegSpeedKmh: 1, p90LegSpeedMaxKmh: 1 }))
+      .toThrow(/No candidate can be reached|No route ordering satisfies/);
+  });
+
+  it('rejects invalid category weights before planning the sweep', () => {
+    const invalidWeights: Record<string, number>[] = [
+      {},
+      { hub: -1 },
+      { hub: Number.NaN },
+      { hub: Number.POSITIVE_INFINITY },
+      { hub: 0, cultural: 0 },
+      { hub: Number.MAX_VALUE, cultural: Number.MAX_VALUE },
     ];
-    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 2, endStopId: 'far-b', openingStopIds: ['far-a'], maxStopsPerUtcOffset: 40, minStopSeparationKm: 0, weights: { hub: 1 }, arrivalEndMinute: 180, maxArrivalGapMinutes: 80, targetLegSpeedKmh: 20000, maxLegSpeedKmh: 1000 };
-    expect(() => generateRoute(farApart, config)).toThrow(/No route ordering satisfies/);
+    for (const weights of invalidWeights) {
+      expect(() => generateRoute(candidates, { ...config, weights })).toThrow(/Category weights/);
+    }
   });
 
-  it('reorders a sparse same-window pool and retimes its long jump under the ceiling', () => {
-    const pool = [
-      { ...candidates[0]!, id: 'balcarce', name: 'Balcarce', country: 'AR', timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, population: 2_000_000, category: 'hub', lat: 50, lng: -58.25 },
-      { ...candidates[1]!, id: 'churchill-falls', name: 'Churchill Falls', country: 'CA', timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, population: 2_000_000, category: 'hub', lat: 53.52, lng: -64.01 },
-      { ...candidates[2]!, id: 'st-johns', name: 'St Johns', country: 'CA', timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, population: 2_000_000, category: 'hub', lat: 47.56, lng: -52.71 },
-    ];
-    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 3, endStopId: 'st-johns', openingStopIds: ['balcarce'], maxStopsPerUtcOffset: 40, weights: { hub: 1 }, minStopSeparationKm: 0 };
-    const generated = generateRoute(pool, config);
-
-    expect(generated.report.maxLegSpeedKmh).toBeLessThanOrEqual(config.maxLegSpeedKmh);
-    expect(generated.report.mix.hub).toEqual({ count: 3, target: 3 });
-    expect(generated.report.legs).toHaveLength(4);
-    expect(generateRoute(pool, config).route).toEqual(generated.route);
+  it('treats the candidate pool as options and respects the country stop ceiling', () => {
+    const sameCountry = candidates.slice(0, 2).map((place) => ({ ...place, country: 'FJ' }));
+    const generated = generateRoute(sameCountry, { ...config, maxStopsPerCountry: 1 });
+    expect(generated.locations).toHaveLength(1);
+    expect(generated.report.count).toBe(1);
+    expect(generated.report.countriesCovered).toBe(1);
   });
 
-  it('starts the next arrival after travel from the prior departure without adding dwell twice', () => {
-    const firstCandidate = candidates[0];
-    const secondCandidate = candidates[1];
-    if (!firstCandidate || !secondCandidate) throw new Error('Expected test candidates');
-    const colocated = [
-      { ...firstCandidate, id: 'close-a', timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, population: 2_000_000, category: 'hub', lat: 80, lng: 0 },
-      { ...secondCandidate, id: 'close-b', timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, population: 2_000_000, category: 'hub', lat: 80, lng: 0.01 },
-    ];
-    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 2, endStopId: 'close-b', openingStopIds: ['close-a'], maxStopsPerUtcOffset: 40, weights: { hub: 1 }, arrivalStartMinute: 20, arrivalEndMinute: 80, minStopSeparationKm: 0 };
-    const generated = generateRoute(colocated, config);
-    const prior = generated.route.stops[0];
-    const next = generated.route.stops[1];
-    if (!prior || !next) throw new Error('Expected two generated stops');
-    expect(Date.parse(next.arrivalIso) - Date.parse(prior.arrivalIso)).toBeGreaterThanOrEqual(config.minArrivalGapMinutes * 60_000);
+  it('skips and reports a malformed raw candidate while generating the valid route', () => {
+    const generated = generateRoute([candidates[0]!, null as unknown as Candidate], config);
+    expect(generated.report.count).toBe(1);
+    expect(generated.report.invalidCandidateIds).toEqual(['row-2']);
+    expect(generated.report.issues).toContain('Invalid candidate row skipped: row-2');
+  });
+
+  it('collects invalid timezone offsets in the no-tables candidate path', () => {
+    const invalidOffset = { ...candidates[1]!, id: 'bad-offset', country: 'FJ', utcOffsetMinutes: 900 };
+    const generated = generateRoute([candidates[0]!, invalidOffset], config);
+    expect(generated.report.count).toBe(1);
+    expect(generated.report.invalidCandidateIds).toContain('bad-offset');
+  });
+
+  it('records flight time and speed separately from a local-window wait', () => {
+    const lateWindowStop: Candidate = {
+      id: 'late-window-stop', name: 'Late Window Stop', country: 'US', lat: 70, lng: 170,
+      timezone: 'Etc/GMT+12', utcOffsetMinutes: -720, category: 'populated', population: 5_000,
+    };
+    const generated = generateRoute([lateWindowStop], config);
+    const node = generated.document.route_nodes[1] as { transit_to_here: { duration_seconds: number; speed_kmh: number } };
+    const expectedTravelSeconds = scheduledTravelMilliseconds(NORTH_POLE, lateWindowStop, config) / 1000;
+    const scheduleGapSeconds = (Date.parse(generated.route.stops[0]!.arrivalIso) - Date.parse('2026-12-24T10:00:00.000Z')) / 1000;
+    expect(scheduleGapSeconds).toBeGreaterThan(expectedTravelSeconds);
+    expect(node.transit_to_here.duration_seconds).toBe(expectedTravelSeconds);
+    expect(node.transit_to_here.speed_kmh).toBe(Math.round(legSpeedKmh(NORTH_POLE, lateWindowStop, expectedTravelSeconds) ?? 0));
+    expect(generated.report.legs[0]?.kmh).toBe(legSpeedKmh(NORTH_POLE, lateWindowStop, scheduleGapSeconds));
+    expect(node.transit_to_here.speed_kmh).toBeGreaterThan(Math.round(generated.report.legs[0]!.kmh));
+  });
+
+  it('reports an invalid candidate IANA timezone without aborting remaining valid places', () => {
+    const invalidTimezoneCandidate = { ...candidates[0]!, id: 'bad-timezone', country: 'WS', timezone: 'Not/A_Zone' };
+    const tables = {
+      zonesByCountry: { FJ: ['Pacific/Kiritimati'] },
+      zonePointsByCountry: { FJ: [{ timezone: 'Pacific/Kiritimati', lat: 80, lng: 170 }] },
+      utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840 },
+      countryNames: { FJ: 'Fiji' },
+    };
+    const generated = generateRoute([candidates[0]!, invalidTimezoneCandidate], config, {}, tables);
+    expect(generated.report.count).toBe(1);
+    expect(generated.report.invalidCandidateIds).toEqual(['bad-timezone']);
+    expect(generated.report.candidateCount).toBe(2);
+    expect(generated.report.unselectedCandidateCount).toBe(1);
+    expect(generated.report.uncoveredCountryCodes).toContain('WS');
+  });
+
+  it('reports a timezone mismatch when the country table has no recovery point', () => {
+    const unrecoverable = { ...candidates[0]!, id: 'unrecoverable-zone', timezone: 'America/New_York' };
+    const tables = {
+      zonesByCountry: { FJ: ['Pacific/Kiritimati'] },
+      zonePointsByCountry: { FJ: [] },
+      utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840 },
+      countryNames: { FJ: 'Fiji' },
+    };
+    const generated = generateRoute([candidates[0]!, unrecoverable], config, {}, tables);
+    expect(generated.report.count).toBe(1);
+    expect(generated.report.invalidCandidateIds).toEqual(['unrecoverable-zone']);
+  });
+
+  it('fails fast for an invalid timezone override', () => {
+    const tables = {
+      zonesByCountry: { FJ: ['Pacific/Kiritimati'], WS: ['Pacific/Kiritimati'] },
+      utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840 },
+    };
+    expect(() => generateRoute(candidates.slice(0, 2), config, { timezone: { 'pacific-a': 'Not/A_Zone' } }, tables))
+      .toThrow('Invalid IANA timezone override for Pacific A: Not/A_Zone');
+  });
+
+  it('fails fast when a timezone override does not match its country', () => {
+    const tables = {
+      zonesByCountry: { FJ: ['Pacific/Kiritimati'], WS: ['Pacific/Apia'] },
+      utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840, 'Pacific/Apia': 780 },
+    };
+    expect(() => generateRoute(candidates.slice(0, 2), config, { timezone: { 'pacific-a': 'America/New_York' } }, tables))
+      .toThrow('Timezone override America/New_York for Pacific A does not belong to country FJ');
+  });
+
+  it('recovers a missing UTC offset before candidate validation when timezone tables can resolve it', () => {
+    const { utcOffsetMinutes: _offset, ...candidateWithoutOffset } = candidates[0]!;
+    const recoverable = { ...candidateWithoutOffset, id: 'recoverable-offset', timezone: 'Etc/UTC' };
+    const tables = {
+      zonesByCountry: { FJ: ['Pacific/Kiritimati'] },
+      zonePointsByCountry: { FJ: [{ timezone: 'Pacific/Kiritimati', lat: 80, lng: 170 }] },
+      utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840 },
+      countryNames: { FJ: 'Fiji' },
+    };
+    const generated = generateRoute([recoverable], config, {}, tables);
+    expect(generated.locations[0]?.utcOffsetMinutes).toBe(840);
+    expect(generated.report.invalidCandidateIds).toEqual([]);
+  });
+
+  it('normalizes stale source offsets from the committed timezone snapshot', () => {
+    const staleOffset = { ...candidates[0]!, id: 'stale-source-offset', utcOffsetMinutes: 780 };
+    const tables = {
+      zonesByCountry: { FJ: ['Pacific/Kiritimati'] },
+      zonePointsByCountry: { FJ: [{ timezone: 'Pacific/Kiritimati', lat: 80, lng: 170 }] },
+      utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840 },
+      countryNames: { FJ: 'Fiji' },
+    };
+    const generated = generateRoute([staleOffset], config, {}, tables);
+    expect(generated.locations[0]?.utcOffsetMinutes).toBe(840);
+    expect(generated.report.invalidCandidateIds).toEqual([]);
+  });
+
+  it('accepts an explicit offset override that matches IANA at the arrival time', () => {
+    const candidate = { ...candidates[0]!, id: 'iana-validated-override', utcOffsetMinutes: 780 };
+    const tables = {
+      zonesByCountry: { FJ: ['Pacific/Kiritimati'] },
+      zonePointsByCountry: { FJ: [{ timezone: 'Pacific/Kiritimati', lat: 80, lng: 170 }] },
+      utcOffsetsByTimezone: { 'Pacific/Kiritimati': 780 },
+      countryNames: { FJ: 'Fiji' },
+    };
+    const generated = generateRoute([candidate], config,
+      { utcOffsetMinutes: { 'iana-validated-override': 840 } }, tables);
+
+    expect(generated.locations[0]?.utcOffsetMinutes).toBe(840);
+    expect(generated.report.invalidCandidateIds).toEqual([]);
+  });
+
+  it('rejects an explicit UTC offset override that disagrees with the resolved timezone', () => {
+    const mismatched = { ...candidates[0]!, id: 'mismatched-offset-override', timezone: 'America/New_York' };
+    const tables = {
+      zonesByCountry: { FJ: ['Pacific/Kiritimati'] },
+      zonePointsByCountry: { FJ: [{ timezone: 'Pacific/Kiritimati', lat: 80, lng: 170 }] },
+      utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840 },
+      countryNames: { FJ: 'Fiji' },
+    };
+    const generated = generateRoute([candidates[0]!, mismatched], config,
+      { utcOffsetMinutes: { 'mismatched-offset-override': 720 } }, tables);
+    expect(generated.locations.map((place) => place.id)).toEqual(['pacific-a']);
+    expect(generated.report.invalidCandidateIds).toEqual(['mismatched-offset-override']);
+    expect(generated.report.issues).toContain('Invalid candidate row skipped: mismatched-offset-override');
+  });
+
+  it.each([720.5, -721, 841])('reports an invalid UTC offset override %s as a malformed candidate', (offset) => {
+    const mismatched = { ...candidates[0]!, id: 'invalid-offset-override', timezone: 'America/New_York' };
+    const tables = {
+      zonesByCountry: { FJ: ['Pacific/Kiritimati'] },
+      zonePointsByCountry: { FJ: [{ timezone: 'Pacific/Kiritimati', lat: 80, lng: 170 }] },
+      utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840 },
+      countryNames: { FJ: 'Fiji' },
+    };
+    const generated = generateRoute([candidates[0]!, mismatched], config,
+      { utcOffsetMinutes: { 'invalid-offset-override': offset } }, tables);
+    expect(generated.report.invalidCandidateIds).toContain('invalid-offset-override');
+    expect(generated.locations.map((place) => place.id)).not.toContain('invalid-offset-override');
+  });
+
+  it('recovers a missing snapshot offset from the committed offset table', () => {
+    const { utcOffsetMinutes: _offset, ...candidateWithoutOffset } = candidates[0]!;
+    const missingOffset = { ...candidateWithoutOffset, id: 'missing-snapshot-offset' };
+    const tables = {
+      zonesByCountry: { FJ: ['Pacific/Kiritimati'] },
+      zonePointsByCountry: { FJ: [{ timezone: 'Pacific/Kiritimati', lat: 80, lng: 170 }] },
+      utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840 },
+      countryNames: { FJ: 'Fiji' },
+    };
+    const generated = generateRoute([candidates[0]!, missingOffset], config, {}, tables);
+    expect(generated.locations.map((place) => place.id)).toContain('missing-snapshot-offset');
+    expect(generated.locations.find((place) => place.id === 'missing-snapshot-offset')?.utcOffsetMinutes).toBe(840);
+    expect(generated.report.invalidCandidateIds).toEqual([]);
+  });
+
+  it('keeps duplicate IDs raw in the report and describes the duplicate separately', () => {
+    const duplicate = { ...candidates[0]!, name: 'Duplicate Pacific A' };
+    const generated = generateRoute([candidates[0]!, duplicate], config);
+    expect(generated.report.invalidCandidateIds).toEqual([]);
+    expect(generated.report.issues).toContain('Duplicate candidate ID skipped: pacific-a');
   });
 });

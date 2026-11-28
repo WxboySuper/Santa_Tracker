@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { christmasArrival, localWindowDeadline, localWindowPenaltyMinutes, localWindowStatus } from './sweep';
-import { christmasOffset, parseUtcOffset } from './timezone';
+import { christmasArrival, christmasWindow, detourRatio, eastwardLegReason, isInChristmasWindow, isInSouthernChristmasWindow,
+  localClock, localWindowDeadline, localWindowPenaltyMinutes, localWindowStatus, stopDurationSeconds, stopTier } from './sweep';
+import { christmasOffset, ianaOffsetMinutesAt, parseUtcOffset } from './timezone';
+import type { Candidate } from './types';
 
 describe('christmasArrival', () => {
   it('places the date-line extremes on their respective Christmas days', () => {
@@ -17,6 +19,10 @@ describe('christmasArrival', () => {
     expect(christmasArrival({ timezoneOrOffset: 'Asia/Kathmandu', minutesAfterMidnight: 20 })).toBe('2026-12-24T18:35:00.000Z');
   });
 
+  it('normalizes an IANA midnight hour to zero', () => {
+    expect(localClock({ iso: '2026-12-25T00:00:00.000Z', timezoneOrOffset: 'Europe/London' }).hour).toBe(0);
+  });
+
   it('rejects invalid offsets and time zones', () => {
     expect(() => christmasArrival({ timezoneOrOffset: 'Pacific/Kiritimati', minutesAfterMidnight: 1440 })).toThrow();
     expect(() => christmasArrival({ timezoneOrOffset: 'Invalid/Zone', minutesAfterMidnight: 20 })).toThrow(/Invalid IANA time zone/);
@@ -26,6 +32,100 @@ describe('christmasArrival', () => {
   it('handles valid zero-offset time zones', () => {
     expect(christmasOffset({ timezone: 'UTC' })).toBe(0);
     expect(christmasOffset({ timezone: 'Africa/Abidjan' })).toBe(0);
+  });
+
+  it('builds the overnight 23:00 to 05:00 local window', () => {
+    expect(christmasWindow(840)).toEqual({
+      startUtc: Date.parse('2026-12-24T09:00:00.000Z'),
+      idealUtc: Date.parse('2026-12-24T11:00:00.000Z'),
+      endUtc: Date.parse('2026-12-24T15:00:00.000Z'),
+    });
+    expect(isInChristmasWindow({ iso: '2026-12-24T09:00:00.000Z', timezoneOrOffset: 840 })).toBe(true);
+    expect(isInChristmasWindow({ iso: '2026-12-24T15:00:00.000Z', timezoneOrOffset: 840 })).toBe(true);
+    expect(isInChristmasWindow({ iso: '2026-12-24T15:01:00.000Z', timezoneOrOffset: 840 })).toBe(false);
+  });
+
+  it('enforces the 02:30 southern arrival limit', () => {
+    expect(isInSouthernChristmasWindow({ iso: '2026-12-25T02:30:00.000Z', timezoneOrOffset: 0 })).toBe(true);
+    expect(isInSouthernChristmasWindow({ iso: '2026-12-25T02:31:00.000Z', timezoneOrOffset: 0 })).toBe(false);
+    expect(isInSouthernChristmasWindow({ iso: '2026-12-24T23:00:00.000Z', timezoneOrOffset: 0 })).toBe(true);
+  });
+
+  it('keeps a zero-length direct span finite in detour reports', () => {
+    expect(detourRatio({ lat: 0, lng: 0 }, { lat: 1, lng: 1 }, { lat: 0, lng: 0 })).toBe(Number.MAX_SAFE_INTEGER);
+  });
+
+  it('labels plausible eastward timezone anomalies only', () => {
+    const advancingOffset: Candidate = {
+      id: 'western-china', name: 'Western China', country: 'CN', lat: 35, lng: 2,
+      timezone: 'Asia/Shanghai', utcOffsetMinutes: 480, category: 'populated',
+    };
+    expect(eastwardLegReason({
+      from: { lat: 35, lng: 0, utcOffsetMinutes: 300 },
+      to: advancingOffset,
+      destinationIndex: 4,
+      arrivalUtc: Date.parse('2026-12-24T18:30:00.000Z'),
+    })).toBe('offset-anomaly');
+    const implausibleReset: Candidate = {
+      id: 'backward-offset', name: 'Western destination', country: 'US', lat: 35, lng: 2,
+      timezone: 'America/Chicago', utcOffsetMinutes: -300, category: 'populated',
+    };
+    expect(eastwardLegReason({
+      from: { lat: 35, lng: 0, utcOffsetMinutes: 300 },
+      to: implausibleReset,
+      destinationIndex: 4,
+      arrivalUtc: Date.parse('2026-12-25T04:00:00.000Z'),
+    })).toBeUndefined();
+  });
+
+  it('allows a bounded westward offset reset at an eastbound civil-time boundary', () => {
+    const brisbane: Candidate = {
+      id: 'brisbane', name: 'Brisbane', country: 'AU', lat: -27.47, lng: 153.03,
+      timezone: 'Australia/Brisbane', utcOffsetMinutes: 600, category: 'populated',
+    };
+    expect(eastwardLegReason({
+      from: { lat: -34.93, lng: 138.6, utcOffsetMinutes: 630 },
+      to: brisbane,
+      destinationIndex: 25,
+      arrivalUtc: Date.parse('2026-12-24T13:00:00.000Z'),
+    })).toBe('offset-anomaly');
+  });
+
+  it('labels real eastward date-line crossings after the opening bands', () => {
+    const destination: Candidate = {
+      id: 'mata-utu', name: 'Mata-Utu', country: 'WF', lat: -13.28, lng: -176.18,
+      timezone: 'Pacific/Wallis', utcOffsetMinutes: 720, category: 'populated',
+    };
+    expect(eastwardLegReason({
+      from: { lat: -0.55, lng: 166.93, utcOffsetMinutes: 720 },
+      to: destination,
+      destinationIndex: 10,
+      arrivalUtc: Date.parse('2026-12-24T11:40:00.000Z'),
+    })).toBe('dateline');
+  });
+
+  it('does not annotate a polar launch because longitude is undefined at the pole', () => {
+    const destination: Candidate = {
+      id: 'tabuaeran', name: 'Tabuaeran', country: 'KI', lat: 3.87727, lng: -159.33746,
+      timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, category: 'populated',
+    };
+    expect(eastwardLegReason({ from: { lat: 90, lng: 180 }, to: destination, destinationIndex: 0 })).toBeUndefined();
+  });
+
+  it('assigns dwell from population, capital and curated landmark tier', () => {
+    const candidate = (overrides: Partial<Candidate>): Candidate => ({
+      id: 'place', name: 'Place', country: 'AA', lat: 0, lng: 0, timezone: 'UTC', category: 'populated', ...overrides,
+    });
+    expect(stopTier(candidate({ population: 1_000_000 }))).toBe('major');
+    expect(stopTier(candidate({ population: 250_000, capital: true }))).toBe('major');
+    expect(stopTier(candidate({ population: 250_000, isNationalCapital: true }))).toBe('major');
+    expect(stopTier(candidate({ population: 30_000, capital: true }))).toBe('city');
+    expect(stopTier(candidate({ id: 'Q1', category: 'cultural' }))).toBe('major');
+    expect(stopTier(candidate({ id: 'Q2', category: 'nature' }))).toBe('city');
+    expect(stopTier(candidate({ population: 5_000 }))).toBe('town');
+    expect(stopTier(candidate({ population: 0 }))).toBe('hop');
+    expect(['major', 'city', 'town', 'hop'].map((tier) => stopDurationSeconds(tier as 'major' | 'city' | 'town' | 'hop')))
+      .toEqual([30, 20, 5, 3]);
   });
 
   it('reads standard ICU long-offset forms', () => {
@@ -40,6 +140,11 @@ describe('christmasArrival', () => {
     expect(parseUtcOffset({ rawOffset: 'GMT-4', timezone: 'test' })).toBe(-240);
     expect(parseUtcOffset({ rawOffset: 'GMT+05:30:00', timezone: 'test' })).toBe(330);
     expect(parseUtcOffset({ rawOffset: 'GMT', timezone: 'test' })).toBe(0);
+  });
+
+  it('resolves an IANA offset at the supplied arrival instant', () => {
+    expect(ianaOffsetMinutesAt({ timezone: 'America/Denver', instant: Date.parse('2026-12-25T08:00:00Z') })).toBe(-420);
+    expect(ianaOffsetMinutesAt({ timezone: 'America/Denver', instant: Date.parse('2026-07-25T08:00:00Z') })).toBe(-360);
   });
 });
 

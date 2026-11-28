@@ -2,13 +2,18 @@ import { createLocationId, LegacyRouteFixtureSchema, SCHEMA_VERSION, type Route 
 import { validateRouteGeometry } from '../geometry-validate';
 import { haversineKm, legSpeedKmh, type LatLng } from '../geo';
 import { validateRoute } from '../validate';
-import { applyCandidateOverrides, type RouteOverrides } from './overrides';
-import { chooseCandidates } from './candidates';
-import { sweepOrder } from './order';
+import type { RouteOverrides } from './overrides';
+import { chooseCandidates, normalizeCandidateCodes } from './candidates';
+import { scheduledTravelMilliseconds, sweepOrder } from './order';
+import { orienteeringOrder } from './orienteering';
+import { longLegReason } from './route-reasons';
 import { buildReport } from './report';
-import { christmasArrival } from './sweep';
-import { localMinute } from './timezone';
-import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, TAKEOFF_UTC, type Candidate, type GeneratedRoute, type GeneratorConfig, type RouteReport } from './types';
+import { christmasArrival, eastwardLegReason, isEastwardDelta, isInChristmasWindow, isInSouthernChristmasWindow,
+  localClock, localWindowStatus, longitudeDelta, stopDurationSeconds } from './sweep';
+import { InvalidCandidateTimezoneError, isInvalidCandidateTimezoneError } from './timezone-error';
+import { ianaOffsetMinutesAt } from './timezone';
+import type { TimedCandidate } from './order-shared';
+import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type GeneratedRoute, type GeneratorConfig, type RouteReport } from './types';
 
 type TimezoneTables = {
   zonesByCountry: Record<string, string[]>;
@@ -26,41 +31,109 @@ function stableHash(value: string, seed: number): number {
   return hash;
 }
 
-function normalizeCandidateTimezones(pool: Candidate[], overrides: RouteOverrides, tables?: TimezoneTables): Candidate[] {
-  const applied = applyCandidateOverrides(pool, overrides);
-  if (!tables) return applied;
-  return applied.map((place) => normalizeCandidateTimezone(place, overrides, tables));
+function normalizeCandidateTimezones(pool: Candidate[], overrides: RouteOverrides): { candidates: Candidate[]; invalidCandidateIds: string[] } {
+  const candidates: Candidate[] = [];
+  const invalidCandidateIds: string[] = [];
+  for (const place of pool) {
+    try {
+      candidates.push(validateCandidateIanaTimezone(place, overrides));
+    } catch (error) {
+      if (!isInvalidCandidateTimezoneError(error)) throw error;
+      invalidCandidateIds.push(place.id);
+    }
+  }
+  return { candidates, invalidCandidateIds };
+}
+
+function isSupportedIanaTimezone(timezone: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: timezone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function validateCandidateIanaTimezone(place: Candidate, overrides: RouteOverrides): Candidate {
+  if (isSupportedIanaTimezone(place.timezone)) return place;
+  if (overrides.timezone?.[place.id]) {
+    throw new InvalidCandidateTimezoneError(`Invalid IANA timezone override for ${place.name}: ${place.timezone}`);
+  }
+  throw new InvalidCandidateTimezoneError(`Invalid candidate IANA time zone: ${place.name} (${place.timezone})`);
 }
 
 function normalizeCandidateTimezone(place: Candidate, overrides: RouteOverrides, tables: TimezoneTables): Candidate {
+  validateCandidateIanaTimezone(place, overrides);
   const allowed = tables.zonesByCountry[place.country];
-  if (!allowed) throw new Error(`No IANA timezone table for country ${place.country} (${place.name})`);
-  if (allowed.includes(place.timezone)) return requireSnapshotOffset(place);
+  if (!allowed) throw new InvalidCandidateTimezoneError(`No IANA timezone table for country ${place.country} (${place.name})`);
+  if (allowed.includes(place.timezone)) {
+    return candidateWithCommittedTimezone(place, place.timezone, tables, overrides.utcOffsetMinutes?.[place.id]);
+  }
   return timezoneForMismatch(place, overrides, tables);
 }
 
-function requireSnapshotOffset(place: Candidate): Candidate {
-  if (place.utcOffsetMinutes === undefined) throw new Error(`Missing snapshot UTC offset for ${place.name}`);
-  return place;
+function candidateWithCommittedTimezone(place: Candidate, timezone: string, tables: TimezoneTables,
+  override?: number): Candidate {
+  return { ...place, timezone, utcOffsetMinutes: resolvedTimezoneOffset(place, timezone, tables, override) };
 }
 
 function timezoneForMismatch(place: Candidate, overrides: RouteOverrides, tables: TimezoneTables): Candidate {
-  if (overrides.timezone?.[place.id]) throw timezoneCountryError(place);
-  return nearestCountryTimezone(place, tables);
+  if (overrides.timezone?.[place.id]) {
+    throw new InvalidCandidateTimezoneError(`Timezone override ${place.timezone} for ${place.name} does not belong to country ${place.country}`);
+  }
+  return nearestCountryTimezone(place, tables, overrides.utcOffsetMinutes?.[place.id]);
 }
 
-function timezoneCountryError(place: Candidate): Error {
-  return new Error(`Timezone ${place.timezone} for ${place.name} does not belong to country ${place.country}`);
+function timezoneCountryError(place: Candidate): InvalidCandidateTimezoneError {
+  return new InvalidCandidateTimezoneError(`Timezone ${place.timezone} for ${place.name} does not belong to country ${place.country}`);
 }
 
-function nearestCountryTimezone(place: Candidate, tables: TimezoneTables): Candidate {
+function nearestCountryTimezone(place: Candidate, tables: TimezoneTables, offsetOverride?: number): Candidate {
+  const nearest = nearestZonePoint(place, tables);
+  const utcOffsetMinutes = resolvedTimezoneOffset(place, nearest.timezone, tables, offsetOverride);
+  return { ...place, timezone: nearest.timezone, utcOffsetMinutes };
+}
+
+function nearestZonePoint(place: Candidate, tables: TimezoneTables): NonNullable<TimezoneTables['zonePointsByCountry']>[string][number] {
   const points = tables.zonePointsByCountry?.[place.country] ?? [];
   const first = points[0];
   if (!first) throw timezoneCountryError(place);
-  const nearest = points.reduce((best, point) => haversineKm(place, point) < haversineKm(place, best) ? point : best, first);
-  const utcOffsetMinutes = tables.utcOffsetsByTimezone?.[nearest.timezone];
-  if (utcOffsetMinutes === undefined) throw new Error(`Missing committed UTC offset for ${nearest.timezone}`);
-  return { ...place, timezone: nearest.timezone, utcOffsetMinutes };
+  return points.reduce((best, point) => haversineKm(place, point) < haversineKm(place, best) ? point : best, first);
+}
+
+function resolvedTimezoneOffset(place: Candidate, timezone: string, tables: TimezoneTables, override?: number): number {
+  const committedOffset = committedOffsetFor(timezone, tables);
+  validateOffsetOverride(place, timezone, override);
+  const utcOffsetMinutes = override ?? committedOffset;
+  assertValidSnapshotOffset(place, utcOffsetMinutes);
+  return utcOffsetMinutes;
+}
+
+function committedOffsetFor(timezone: string, tables: TimezoneTables): number {
+  const offset = tables.utcOffsetsByTimezone?.[timezone];
+  if (offset === undefined) throw new InvalidCandidateTimezoneError(`Missing committed UTC offset for ${timezone}`);
+  return offset;
+}
+
+function validateOffsetOverride(place: Candidate, timezone: string, override: number | undefined): void {
+  if (override === undefined) return;
+  assertValidSnapshotOffset(place, override);
+  const nominalArrival = Date.parse(christmasArrival({ timezoneOrOffset: timezone, minutesAfterMidnight: 60 }));
+  const ianaOffset = ianaOffsetMinutesAt({ timezone, instant: nominalArrival });
+  if (override !== ianaOffset) {
+    throw new InvalidCandidateTimezoneError(`Snapshot UTC offset ${override} does not match IANA offset ${ianaOffset} at local arrival for ${timezone} (${place.name})`);
+  }
+}
+
+function assertValidSnapshotOffset(place: Candidate, offset: number): void {
+  if (isValidSnapshotOffset(offset)) return;
+  throw new InvalidCandidateTimezoneError(`Invalid snapshot UTC offset override for ${place.name}: ${offset}`);
+}
+
+function isValidSnapshotOffset(offset: number): boolean {
+  if (!Number.isInteger(offset)) return false;
+  if (offset < -720) return false;
+  return offset <= 840;
 }
 
 function humanCountry(code: string, tables?: TimezoneTables): string {
@@ -74,19 +147,20 @@ function speedCurve(kmh: number): string {
 }
 
 type TransitOptions = {
-  from: LatLng;
+  from: LatLng & { utcOffsetMinutes?: number };
   to: LatLng;
-  fromDeparture: number;
-  toArrival: number;
+  travelDurationMilliseconds: number;
   description: string;
   cameraZoom?: number;
+  eastwardReason?: 'dateline' | 'offset-anomaly' | 'return' | 'soft-orienteering';
+  routeReason?: string;
 };
 
-function transit({ from, to, fromDeparture, toArrival, description, cameraZoom = 9 }: TransitOptions) {
-  const durationSeconds = Math.max(0, Math.ceil((toArrival - fromDeparture) / 1000));
+function transit({ from, to, travelDurationMilliseconds, description, cameraZoom = 9, eastwardReason, routeReason }: TransitOptions) {
+  const durationSeconds = Math.max(0, Math.ceil(travelDurationMilliseconds / 1000));
   const distanceKm = haversineKm(from, to);
   const speedKmh = durationSeconds > 0 ? legSpeedKmh(from, to, durationSeconds) ?? 0 : 0;
-  return {
+  const result: Record<string, unknown> = {
     description,
     duration_seconds: durationSeconds,
     distance_km: Math.round(distanceKm * 100) / 100,
@@ -94,11 +168,29 @@ function transit({ from, to, fromDeparture, toArrival, description, cameraZoom =
     speed_kmh: Math.round(speedKmh),
     camera_zoom: cameraZoom,
   };
+  if (isEastwardDelta(longitudeDelta(from, to))) {
+    if (distanceKm > 1_500 && !eastwardReason) throw new Error(`Unrecorded eastward leg to ${'name' in to ? to.name : 'North Pole'}`);
+  }
+  if (eastwardReason) result.eastward_reason = eastwardReason;
+  if (routeReason) result.route_reason = routeReason;
+  return result;
+}
+
+function deliveryRouteReason(place: Candidate, from: Candidate | LatLng, to: Candidate): string | undefined {
+  const legReason = longLegReason(from, to, { reinsertionChecked: place.longLegReinsertionChecked });
+  if (!place.mandatoryCoverageSpacingException) return legReason;
+  if (!legReason) return 'mandatory-country-coverage-spacing-exception';
+  return legReason + '; mandatory-country-coverage-spacing-exception';
 }
 
 function localTimeLabel(place: Candidate, arrival: number): string {
-  const minute = localMinute({ iso: new Date(arrival).toISOString(), timezoneOrOffset: place.utcOffsetMinutes ?? 0 });
-  return `${Math.floor(minute / 60).toString().padStart(2, '0')}:${(minute % 60).toString().padStart(2, '0')}`;
+  const local = localClock({ iso: new Date(arrival).toISOString(), timezoneOrOffset: candidateOffset(place) });
+  return `${local.hour.toString().padStart(2, '0')}:${local.minute.toString().padStart(2, '0')}`;
+}
+
+function candidateOffset(place: Candidate): number {
+  if (place.utcOffsetMinutes === undefined) throw new InvalidCandidateTimezoneError(`Missing snapshot UTC offset for ${place.name}`);
+  return place.utcOffsetMinutes;
 }
 
 function startNode(): Record<string, unknown> {
@@ -116,26 +208,40 @@ function startNode(): Record<string, unknown> {
 type DeliveryNodeResult = { node: Record<string, unknown>; stop: Route['stops'][number]; locationId: string };
 
 type DeliveryNodeOptions = {
-  place: Candidate;
+  place: TimedCandidate;
+  displayName: string;
   index: number;
   config: GeneratorConfig;
   tables: TimezoneTables | undefined;
-  priorLocation: LatLng;
-  priorDeparture: number;
+  priorLocation: Candidate | LatLng;
 };
 
-function buildDeliveryNode({ place, index, config, tables, priorLocation, priorDeparture }: DeliveryNodeOptions): DeliveryNodeResult {
-  const stopArrival = place.plannedArrivalUtc
-    ? Date.parse(place.plannedArrivalUtc)
-    : Date.parse(christmasArrival({ timezoneOrOffset: place.utcOffsetMinutes ?? 0, minutesAfterMidnight: place.plannedMinute ?? config.arrivalStartMinute }));
-  const stopDeparture = stopArrival + config.durationSeconds * 1000;
+type DeliveryTiming = { stopArrival: number; tier: TimedCandidate['plannedStopTier']; durationSeconds: number };
+
+function deliveryTiming(place: TimedCandidate): DeliveryTiming {
+  const stopArrival = Date.parse(place.plannedArrivalUtc);
+  const tier = place.plannedStopTier;
+  const durationSeconds = place.plannedStopDurationSeconds;
+  if (!Number.isFinite(stopArrival)) throw new Error(`Missing sweep arrival for ${place.name}`);
+  if (!Number.isFinite(durationSeconds) || durationSeconds !== stopDurationSeconds(tier)) {
+    throw new Error(`Invalid sweep duration for ${place.name}: ${String(durationSeconds)}s for ${tier} tier`);
+  }
+  return { stopArrival, tier, durationSeconds };
+}
+
+function buildDeliveryNode({ place, displayName, index, config, tables, priorLocation }: DeliveryNodeOptions): DeliveryNodeResult {
+  const { stopArrival, tier, durationSeconds } = deliveryTiming(place);
+  const stopDeparture = stopArrival + durationSeconds * 1000;
+  const knownReason = eastwardLegReason({ from: priorLocation, to: place, destinationIndex: index, arrivalUtc: stopArrival });
+  const eastwardReason = knownReason ?? (config.useOrienteering && isEastwardDelta(longitudeDelta(priorLocation, place))
+    && haversineKm(priorLocation, place) > 1_500 ? 'soft-orienteering' : undefined);
   const stopId = `stop_${stableHash(place.id, config.seed).toString(36)}_${index.toString().padStart(3, '0')}`;
   const locationId = createLocationId(stopId);
   const stop: Route['stops'][number] = {
     locationId,
     arrivalIso: new Date(stopArrival).toISOString(),
     departureIso: new Date(stopDeparture).toISOString(),
-    durationSeconds: config.durationSeconds,
+    durationSeconds,
   };
   const node: Record<string, unknown> = {
     id: stopId,
@@ -143,27 +249,29 @@ function buildDeliveryNode({ place, index, config, tables, priorLocation, priorD
     comment: place.category,
     candidate_id: place.id,
     location: {
-      name: place.name,
+      name: displayName,
       region: humanCountry(place.country, tables),
       country_code: place.country,
+      ...(place.admin1Code ? { admin1_code: place.admin1Code } : {}),
       timezone: place.timezone,
       lat: place.lat,
       lng: place.lng,
-      timezone_offset: (place.utcOffsetMinutes ?? 0) / 60,
+      timezone_offset: candidateOffset(place) / 60,
     },
     schedule: {
       arrival_utc: new Date(stopArrival).toISOString(),
       departure_utc: new Date(stopDeparture).toISOString(),
       local_arrival_time: localTimeLabel(place, stopArrival),
-      time_window_status: 'GREEN',
+      time_window_status: localWindowStatus({ instant: stopArrival, offsetMinutes: candidateOffset(place) }),
     },
-    stop_experience: { duration_seconds: config.durationSeconds, camera_zoom: 14, weather_condition: 'clear', presents_delivered_at_stop: 1 },
+    stop_experience: { duration_seconds: durationSeconds, stop_tier: tier, camera_zoom: 14, weather_condition: 'clear', presents_delivered_at_stop: 1 },
     transit_to_here: transit({
       from: priorLocation,
       to: place,
-      fromDeparture: priorDeparture,
-      toArrival: stopArrival,
+      travelDurationMilliseconds: scheduledTravelMilliseconds(priorLocation, place, config),
       description: index === 0 ? `Launch to ${place.name}` : `Flight to ${place.name}`,
+      eastwardReason,
+      routeReason: deliveryRouteReason(place, priorLocation, place),
     }),
     notes: place.source ?? null,
     priority: place.worldCity ? 1 : 2,
@@ -172,8 +280,7 @@ function buildDeliveryNode({ place, index, config, tables, priorLocation, priorD
 }
 
 function endNode(last: Candidate, priorDeparture: number, config: GeneratorConfig): { node: Record<string, unknown>; routeEndUtc: string } {
-  const returnDistance = haversineKm(last, NORTH_POLE);
-  const returnSeconds = Math.max(1, Math.ceil(returnDistance / config.targetLegSpeedKmh * 3600));
+  const returnSeconds = Math.max(1, Math.ceil(scheduledTravelMilliseconds(last, NORTH_POLE, config) / 1000));
   const endArrival = priorDeparture + returnSeconds * 1000;
   const endDeparture = endArrival + 1000;
   return {
@@ -185,78 +292,108 @@ function endNode(last: Candidate, priorDeparture: number, config: GeneratorConfi
       location: { name: 'North Pole', region: 'Arctic', lat: NORTH_POLE.lat, lng: NORTH_POLE.lng, timezone_offset: 0 },
       schedule: { arrival_utc: new Date(endArrival).toISOString(), departure_utc: new Date(endDeparture).toISOString(), local_arrival_time: null, time_window_status: 'HOME' },
       stop_experience: { duration_seconds: 0, camera_zoom: 4, weather_condition: 'blizzard', presents_delivered_at_stop: 0 },
-      transit_to_here: transit({ from: last, to: NORTH_POLE, fromDeparture: priorDeparture, toArrival: endArrival, description: 'Return to the North Pole', cameraZoom: 4 }),
+      transit_to_here: transit({ from: last, to: NORTH_POLE, travelDurationMilliseconds: scheduledTravelMilliseconds(last, NORTH_POLE, config), description: 'Return to the North Pole', cameraZoom: 4,
+        eastwardReason: isEastwardDelta(longitudeDelta(last, NORTH_POLE)) ? 'return' : undefined,
+        routeReason: longLegReason(last, NORTH_POLE) }),
     },
   };
 }
 
-function buildDocument(places: Candidate[], config: GeneratorConfig, tables?: TimezoneTables): { document: GeneratedRoute['document']; route: Route; coordinates: Map<string, LatLng>; routeEndUtc: string } {
-  const takeoff = Date.parse(TAKEOFF_UTC);
+function displayNamesFor(places: Candidate[], tables?: TimezoneTables): Map<string, string> {
+  const namesByLabel = new Map<string, Candidate[]>();
+  for (const place of places) {
+    const candidates = namesByLabel.get(place.name) ?? [];
+    candidates.push(place);
+    namesByLabel.set(place.name, candidates);
+  }
+  const displayNames = new Map<string, string>();
+  for (const [name, candidates] of namesByLabel) {
+    if (candidates.length < 2) continue;
+    const countryCounts = new Map<string, number>();
+    for (const place of candidates) countryCounts.set(place.country, (countryCounts.get(place.country) ?? 0) + 1);
+    for (const place of candidates) {
+      const suffix = (countryCounts.get(place.country) ?? 0) > 1
+        ? place.admin1Code ?? `${place.lat.toFixed(2)}, ${place.lng.toFixed(2)}`
+        : humanCountry(place.country, tables);
+      displayNames.set(place.id, `${name} (${suffix})`);
+    }
+  }
+  return displayNames;
+}
+
+function buildDeliveryNodes(places: TimedCandidate[], config: GeneratorConfig, tables: TimezoneTables | undefined,
+  displayNames: Map<string, string>): { routeNodes: Record<string, unknown>[]; stops: Route['stops']; coordinates: Map<string, LatLng>; priorDeparture: number } {
   const routeNodes: Record<string, unknown>[] = [startNode()];
   const stops: Route['stops'] = [];
   const coordinates = new Map<string, LatLng>();
-  let priorDeparture = takeoff;
-  let priorLocation: LatLng = NORTH_POLE;
+  let priorDeparture = Date.parse(TAKEOFF_UTC);
+  let priorLocation: Candidate | LatLng = NORTH_POLE;
   for (const [index, place] of places.entries()) {
-    const result = buildDeliveryNode({ place, index, config, tables, priorLocation, priorDeparture });
+    const result = buildDeliveryNode({ place, displayName: displayNames.get(place.id) ?? place.name, index, config, tables, priorLocation });
     coordinates.set(result.locationId, place);
     stops.push(result.stop);
     routeNodes.push(result.node);
     priorDeparture = Date.parse(result.stop.departureIso);
     priorLocation = place;
   }
+  return { routeNodes, stops, coordinates, priorDeparture };
+}
 
+function buildDocument(places: TimedCandidate[], config: GeneratorConfig, tables?: TimezoneTables): { document: GeneratedRoute['document']; route: Route; coordinates: Map<string, LatLng>; routeEndUtc: string } {
   const last = places.at(-1);
   if (!last) throw new Error('Cannot build an empty route');
-  const ending = endNode(last, priorDeparture, config);
-  routeNodes.push(ending.node);
-  const route = { schemaVersion: SCHEMA_VERSION, season: 2026, stops } as Route;
+  const deliveries = buildDeliveryNodes(places, config, tables, displayNamesFor(places, tables));
+  const ending = endNode(last, deliveries.priorDeparture, config);
+  deliveries.routeNodes.push(ending.node);
+  const route = { schemaVersion: SCHEMA_VERSION, season: 2026, stops: deliveries.stops } as Route;
   const document = {
     meta: { year: 2026, route_version: '2026-draft-1', generated_at: config.generatedAt },
-    route_nodes: routeNodes,
+    route_nodes: deliveries.routeNodes,
   };
   LegacyRouteFixtureSchema.parse(document);
-  return { document, route, coordinates, routeEndUtc: ending.routeEndUtc };
+  return { document, route, coordinates: deliveries.coordinates, routeEndUtc: ending.routeEndUtc };
 }
 
 function validateArrivalWindow(route: Route, places: Candidate[], config: GeneratorConfig): void {
-  route.stops.forEach((stop, index) => {
-    const place = places[index];
-    if (!place) throw new Error(`Missing candidate for route stop ${index + 1}`);
-    const minute = localMinute({ iso: stop.arrivalIso, timezoneOrOffset: place.utcOffsetMinutes ?? 0 });
-    if (minute < config.arrivalStartMinute || minute > config.arrivalEndMinute) throw new Error(`${place.name} arrives outside its local window`);
-  });
+  if (config.useOrienteering) return;
+  for (const [index, stop] of route.stops.entries()) validateStopArrival(stop, places[index], index);
+}
+
+function validateStopArrival(stop: Route['stops'][number], place: Candidate | undefined, index: number): void {
+  if (!place) throw new Error(`Missing candidate for route stop ${index + 1}`);
+  const timezoneOffset = candidateOffset(place);
+  const arrival = { iso: stop.arrivalIso, timezoneOrOffset: timezoneOffset };
+  if (!isInChristmasWindow(arrival)) throw new Error(`${place.name} arrives outside its local window`);
+  if (!isSouthernPlace(place)) return;
+  if (!isInSouthernChristmasWindow(arrival)) throw new Error(`${place.name} arrives after the southern 02:30 local limit`);
+}
+
+function isSouthernPlace(place: Candidate): boolean {
+  return place.lat < -35;
 }
 
 function validateIntegerSettings(config: GeneratorConfig): void {
   const integers: [number, number, string][] = [
     [config.seed, Number.MIN_SAFE_INTEGER, 'Invalid seed'],
-    [config.total, 1, 'Invalid stop total'],
-    [config.arrivalStartMinute, 0, 'Invalid arrival window'],
-    [config.arrivalEndMinute, 0, 'Invalid arrival window'],
-    [config.durationSeconds, 1, 'Invalid stop duration'],
-    [config.maxCountryRun, 1, 'Invalid country run limit'],
     [config.maxStopsPerCountry, 1, 'Invalid country total limit'],
-    [config.minArrivalGapMinutes, 1, 'Invalid minimum arrival gap'],
-    [config.maxArrivalGapMinutes, 1, 'Invalid maximum arrival gap'],
   ];
-  for (const [value, minimum, message] of integers) {
-    if (!Number.isSafeInteger(value) || value < minimum) throw new Error(message);
-  }
-  if (config.arrivalEndMinute > 1439 || config.arrivalStartMinute > config.arrivalEndMinute) throw new Error('Invalid arrival window');
+  for (const [value, minimum, message] of integers) assertSafeIntegerSetting(value, minimum, message);
+}
+
+function assertSafeIntegerSetting(value: number, minimum: number, message: string): void {
+  if (!Number.isSafeInteger(value) || value < minimum) throw new Error(message);
 }
 
 function validateSpeedAndDistanceSettings(config: GeneratorConfig): void {
   const positives: [number, string, boolean][] = [
+    [config.localLegSpeedKmh, 'Invalid local leg speed', false],
     [config.targetLegSpeedKmh, 'Invalid target leg speed', false],
     [config.maxLegSpeedKmh, 'Invalid maximum leg speed', false],
-    [config.medianLegSpeedMinKmh, 'Invalid median minimum', false],
-    [config.medianLegSpeedMaxKmh, 'Invalid median maximum', false],
     [config.p90LegSpeedMaxKmh, 'Invalid p90 speed maximum', false],
-    [config.maxRouteDistanceKm, 'Invalid route distance maximum', false],
-    [config.minStopSeparationKm, 'Invalid minimum stop separation', true],
+    [config.minStopSeparationKm, 'Invalid minimum stop separation', false],
   ];
   for (const [value, message, allowZero] of positives) assertNonNegativeSetting(value, message, allowZero);
+  if (config.p90LegSpeedMaxKmh > config.maxLegSpeedKmh) throw new Error('p90 speed limit cannot exceed the hard speed limit');
 }
 
 function assertNonNegativeSetting(value: number, message: string, allowZero: boolean): void {
@@ -265,10 +402,28 @@ function assertNonNegativeSetting(value: number, message: string, allowZero: boo
   if (!allowZero && value === 0) throw new Error(message);
 }
 
+function validateWeightValues(entries: [string, number][]): void {
+  if (entries.some(([, weight]) => !Number.isFinite(weight) || weight < 0)) {
+    throw new Error('Category weights must be finite and non-negative');
+  }
+}
+
+function validateWeightTotal(entries: [string, number][]): void {
+  const total = entries.reduce((sum, [, weight]) => sum + weight, 0);
+  if (!Number.isFinite(total) || total <= 0) throw new Error('Category weights must have a finite positive total');
+}
+
+function validateCategoryWeights(weights: Record<string, number>): void {
+  const entries = Object.entries(weights);
+  if (entries.length === 0) throw new Error('Category weights are required');
+  validateWeightValues(entries);
+  validateWeightTotal(entries);
+}
+
 function validateGeneratorConfig(config: GeneratorConfig): void {
   validateIntegerSettings(config);
   validateSpeedAndDistanceSettings(config);
-  if (Object.keys(config.weights).length === 0) throw new Error('Category weights are required');
+  validateCategoryWeights(config.weights);
   if (!config.generatedAt || Number.isNaN(Date.parse(config.generatedAt))) throw new Error('Invalid fixed generation date');
 }
 
@@ -277,29 +432,59 @@ type BuiltRouteValidationOptions = {
   coordinates: Map<string, LatLng>;
   routeEndUtc: string;
   ordered: Candidate[];
+  pool: Candidate[];
   config: GeneratorConfig;
+  invalidCandidateIds: string[];
+  duplicateCandidateIds: string[];
 };
 
-function validateBuiltRoute({ route, coordinates, routeEndUtc, ordered, config }: BuiltRouteValidationOptions): RouteReport {
+function validateBuiltRoute({ route, coordinates, routeEndUtc, ordered, pool, config,
+  invalidCandidateIds, duplicateCandidateIds }: BuiltRouteValidationOptions): RouteReport {
   validateArrivalWindow(route, ordered, config);
   const validation = validateRoute(route);
   if (!validation.ok) throw new Error(`Invalid generated route: ${validation.issues.map((issue) => issue.message).join('; ')}`);
   const geometry = validateRouteGeometry(route, coordinates, { maxSpeedKmh: config.maxLegSpeedKmh });
   const geometryErrors = geometry.issues.filter((issue) => issue.severity === 'error');
   if (geometryErrors.length > 0) throw new Error(`Invalid route geometry: ${geometryErrors.map((issue) => issue.message).join('; ')}`);
-  const report = buildReport(ordered, route, config);
+  const report = buildReport(ordered, route, { config, pool, invalidCandidateIds, duplicateCandidateIds });
   validateRouteLimits(report, routeEndUtc, config);
   addGeometryWarnings(report, geometry.issues, route, ordered);
   return report;
 }
 
-function validateRouteLimits(report: RouteReport, routeEndUtc: string, config: GeneratorConfig): void {
-  if (report.maxLegSpeedKmh > config.maxLegSpeedKmh) {
-    const leg = report.legs.find((item) => item.kmh > config.maxLegSpeedKmh);
-    throw new Error(`Leg ${leg?.from} to ${leg?.to} requires ${Math.round(leg?.kmh ?? 0)} km/h, above ${config.maxLegSpeedKmh}`);
+function validateMaximumSpeed(report: RouteReport, config: GeneratorConfig): void {
+  if (report.maxLegSpeedKmh <= config.maxLegSpeedKmh) return;
+  const leg = report.legs.find((item) => item.kmh > config.maxLegSpeedKmh);
+  throw new Error(`Leg ${leg?.from} to ${leg?.to} requires ${Math.round(leg?.kmh ?? 0)} km/h, above ${config.maxLegSpeedKmh}`);
+}
+
+function validateP90Speed(report: RouteReport, config: GeneratorConfig): void {
+  if (config.useOrienteering) return;
+  if (report.p90LegSpeedKmh > config.p90LegSpeedMaxKmh) {
+    throw new Error(`Route p90 ${Math.round(report.p90LegSpeedKmh)} km/h exceeds ${config.p90LegSpeedMaxKmh}`);
   }
-  if (Date.parse(report.lastDepartureUtc) > Date.parse(TAKEOFF_UTC) + 27 * 3_600_000) throw new Error('Last delivery departure exceeds takeoff plus 27 hours');
-  if (Date.parse(routeEndUtc) > Date.parse(TAKEOFF_UTC) + 27 * 3_600_000 + 45 * 60_000) throw new Error(`North Pole return at ${routeEndUtc} leaves less than 15 minutes inside the 28-hour flight window`);
+}
+
+function validateReturnDeadline(routeEndUtc: string): void {
+  if (Date.parse(routeEndUtc) > Date.parse(RETURN_DEADLINE_UTC)) {
+    throw new Error(`North Pole return at ${routeEndUtc} exceeds the 28-hour flight window`);
+  }
+}
+
+function validateNoDetours(report: RouteReport, config: GeneratorConfig): void {
+  if (config.useOrienteering) return;
+  const hardDetours = report.detours.filter((detour) => detour.viaCountryStopCount > 1);
+  if (hardDetours.length > 0) {
+    const detail = hardDetours.map((detour) => `${detour.from} -> ${detour.via} -> ${detour.to} (${detour.ratio.toFixed(2)}x)`).join('; ');
+    throw new Error(`Route contains ${hardDetours.length} detour(s) inside covered countries: ${detail}`);
+  }
+}
+
+function validateRouteLimits(report: RouteReport, routeEndUtc: string, config: GeneratorConfig): void {
+  validateMaximumSpeed(report, config);
+  validateP90Speed(report, config);
+  validateReturnDeadline(routeEndUtc);
+  validateNoDetours(report, config);
 }
 
 function addGeometryWarnings(report: RouteReport, geometryIssues: ReturnType<typeof validateRouteGeometry>['issues'],
@@ -316,12 +501,33 @@ function addGeometryWarnings(report: RouteReport, geometryIssues: ReturnType<typ
   }));
 }
 
+function normalizeSelectionTimezone(place: Candidate, overrides: RouteOverrides, tables: TimezoneTables): Candidate | undefined {
+  try {
+    return normalizeCandidateTimezone(place, overrides, tables);
+  } catch (error) {
+    if (!isInvalidCandidateTimezoneError(error)) throw error;
+    if (overrides.timezone?.[place.id] !== undefined) throw error;
+    return undefined;
+  }
+}
+
+function selectionTimezoneNormalizer(overrides: RouteOverrides, tables?: TimezoneTables): ((place: Candidate) => Candidate | undefined) | undefined {
+  if (!tables) return undefined;
+  return (place) => normalizeSelectionTimezone(place, overrides, tables);
+}
+
 export function generateRoute(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides = {}, tables?: TimezoneTables): GeneratedRoute {
   validateGeneratorConfig(config);
-  const normalizedPool = normalizeCandidateTimezones(pool, overrides, tables);
-  const chosen = chooseCandidates(normalizedPool, config, overrides, tables);
-  const ordered = sweepOrder(chosen, config);
+  const normalizedPool = pool.map(normalizeCandidateCodes);
+  const selection = chooseCandidates(normalizedPool, config, overrides,
+    { normalizeTimezone: selectionTimezoneNormalizer(overrides, tables) });
+  const normalized = normalizeCandidateTimezones(selection.candidates, overrides);
+  const chosen = normalized.candidates;
+  if (chosen.length === 0) throw new Error('No eligible route candidates remain after timezone validation');
+  const ordered = config.useOrienteering ? orienteeringOrder(chosen, config) : sweepOrder(chosen, config);
   const built = buildDocument(ordered, config, tables);
-  const report = validateBuiltRoute({ route: built.route, coordinates: built.coordinates, routeEndUtc: built.routeEndUtc, ordered, config });
+  const report = validateBuiltRoute({ route: built.route, coordinates: built.coordinates, routeEndUtc: built.routeEndUtc,
+    ordered, pool: normalizedPool, config, invalidCandidateIds: [...selection.invalidCandidateIds, ...normalized.invalidCandidateIds],
+    duplicateCandidateIds: selection.duplicateCandidateIds });
   return { document: built.document, route: built.route, locations: ordered, report };
 }

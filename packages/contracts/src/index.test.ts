@@ -5,6 +5,7 @@ import {
   ActivitySchema,
   FeatureFlagsSchema,
   RouteSchema,
+  LegacyRouteNodeSchema,
   SCHEMA_VERSION,
   createLocationId,
   LocalizedContentSchema,
@@ -38,6 +39,18 @@ describe('@santa-tracker/contracts', () => {
       stops: [{ locationId: 'north-pole', arrivalIso: now, departureIso: later, durationSeconds: 60 }],
     });
     expect(route.stops).toHaveLength(1);
+  });
+
+  it('accepts explicit nulls for optional legacy tier and eastward reason fields', () => {
+    const result = LegacyRouteNodeSchema.safeParse({
+      id: 'legacy-stop',
+      type: 'DELIVERY',
+      location: { name: 'Place', region: 'Region', lat: 0, lng: 0, timezone_offset: 0 },
+      schedule: {},
+      stop_experience: { stop_tier: null },
+      transit_to_here: { eastward_reason: null },
+    });
+    expect(result.success).toBe(true);
   });
 
   it('rejects unsupported versions with a typed error', () => {

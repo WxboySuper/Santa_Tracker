@@ -85,7 +85,12 @@ export function applyCandidateOverrides<T extends { id: string; name: string; ti
   overrides: RouteOverrides,
 ): T[] {
   const known = new Set(pool.map((place) => place.id));
-  validateIds(known, [...Object.keys(overrides.timezone ?? {}), ...Object.keys(overrides.utcOffsetMinutes ?? {}), ...Object.keys(overrides.rename ?? {})]);
+  validateIds(known, [
+    ...(overrides.veto ?? []),
+    ...Object.keys(overrides.timezone ?? {}),
+    ...Object.keys(overrides.utcOffsetMinutes ?? {}),
+    ...Object.keys(overrides.rename ?? {}),
+  ]);
   return pool.map((place) => ({
     ...place,
     name: overrides.rename?.[place.id] ?? place.name,

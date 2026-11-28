@@ -1,3 +1,5 @@
+import { InvalidCandidateTimezoneError } from './timezone-error';
+
 function invalidUtcOffset(hours: number, minutes: number): boolean {
   if (hours > 14) return true;
   if (minutes > 59) return true;
@@ -15,7 +17,26 @@ export function parseUtcOffset(options: { rawOffset: string; timezone: string })
   return (match[1] === '-' ? -1 : 1) * (hours * 60 + minutes);
 }
 
-/** Use the committed Dec 25 offset during generation. The IANA lookup is only a test or refresh fallback. */
+const offsetFormatters = new Map<string, Intl.DateTimeFormat>();
+
+export function ianaOffsetMinutesAt(options: { timezone: string; instant: number }): number {
+  const { timezone, instant } = options;
+  if (!Number.isFinite(instant)) throw new Error(`Invalid instant for ${timezone}`);
+  let formatter = offsetFormatters.get(timezone);
+  if (!formatter) {
+    try {
+      formatter = new Intl.DateTimeFormat('en-US', { timeZone: timezone, timeZoneName: 'longOffset' });
+    } catch {
+      throw new InvalidCandidateTimezoneError(`Invalid IANA time zone: ${timezone}`);
+    }
+    offsetFormatters.set(timezone, formatter);
+  }
+  const rawOffset = formatter.formatToParts(instant).find((part) => part.type === 'timeZoneName')?.value;
+  if (rawOffset === undefined) throw new Error(`Missing IANA offset for ${timezone}`);
+  return parseUtcOffset({ rawOffset, timezone });
+}
+
+/** Use the committed Dec 25 snapshot when available, otherwise ask IANA directly. */
 export function christmasOffset(options: { timezone: string; snapshotOffsetMinutes?: number }): number {
   const { timezone, snapshotOffsetMinutes } = options;
   if (snapshotOffsetMinutes !== undefined) return snapshotOffsetMinutes;
