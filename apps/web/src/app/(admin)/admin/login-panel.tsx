@@ -52,8 +52,9 @@ function OtherMethods({ current, busy, onSwitch }: { current: Method; busy: bool
 }
 
 function MethodForm({ method, busy, attempt }: { method: Method; busy: boolean; attempt: (action: () => Promise<AdminResult<null>>) => void }) {
-  if (method === "password") return <SecretForm label="Admin password" type="password" busy={busy} onSubmit={value => attempt(() => signInWithPassword(value))} />;
-  if (method === "recovery") return <SecretForm label="Recovery code" type="text" busy={busy} onSubmit={value => attempt(() => signInWithRecoveryCode(value))} />;
+  // Keyed by method so a typed password never carries over into the recovery-code field, or the other way round.
+  if (method === "password") return <SecretForm key="password" label="Admin password" type="password" busy={busy} onSubmit={value => attempt(() => signInWithPassword(value))} />;
+  if (method === "recovery") return <SecretForm key="recovery" label="Recovery code" type="text" busy={busy} onSubmit={value => attempt(() => signInWithRecoveryCode(value))} />;
   return (
     <button
       type="button"

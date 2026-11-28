@@ -82,8 +82,50 @@ function PasskeyList({ summary, busy, onRemove }: { summary: PasskeySummary; bus
   );
 }
 
-/** Passkeys and recovery codes for the admin account (#549). */
-export default function PasskeySecurity({ onSessionEnded }: { onSessionEnded: () => void }) {
+interface OverviewProps {
+  summary: PasskeySummary | null;
+  busy: boolean;
+  supported: boolean;
+  onAdd: () => void;
+  onRotate: () => void;
+  onRemove: (id: string) => void;
+}
+
+function RecoveryCount({ remaining }: { remaining: number }) {
+  return (
+    <p className="mt-2 text-sm text-white/70">
+      Recovery codes left: <strong>{remaining}</strong>
+      {remaining < 3 && <span className="text-amber-200"> (running low; replace them)</span>}
+    </p>
+  );
+}
+
+/** The passkey list, recovery-code count and actions, once the list has loaded. */
+function Overview({ summary, busy, supported, onAdd, onRotate, onRemove }: OverviewProps) {
+  if (!summary) return <p className="text-sm text-white/60">Loading passkeys…</p>;
+  const hasPasskey = summary.passkeys.length > 0;
+  return (
+    <>
+      <PasskeyList summary={summary} busy={busy} onRemove={onRemove} />
+      {hasPasskey && <RecoveryCount remaining={summary.recoveryCodesRemaining} />}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button type="button" disabled={busy || !supported} onClick={onAdd} className="rounded bg-red-600 px-4 py-1.5 text-sm font-semibold hover:bg-red-700 disabled:opacity-40">
+          {hasPasskey ? "Add another passkey" : "Set up a passkey"}
+        </button>
+        {hasPasskey && (
+          <button type="button" disabled={busy} onClick={onRotate} className="rounded bg-gray-700 px-4 py-1.5 text-sm disabled:opacity-40">
+            Replace recovery codes
+          </button>
+        )}
+      </div>
+    </>
+  );
+}
+
+type Outcome<T> = { message: (value: T) => string; refreshAfter?: (value: T) => boolean };
+
+/** Everything the panel tracks: the loaded list, the last message, and the one-time codes being shown. */
+function usePasskeyPanel(onSessionEnded: () => void) {
   const [summary, setSummary] = useState<PasskeySummary | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -91,9 +133,6 @@ export default function PasskeySecurity({ onSessionEnded }: { onSessionEnded: ()
   const [needsSecondCode, setNeedsSecondCode] = useState(false);
   // The first passkey turns password sign-in off and ends password sessions, including this one.
   const [mustSignInAgain, setMustSignInAgain] = useState(false);
-  // Checked after mount so the server render and the first client render agree.
-  const [supported, setSupported] = useState(true);
-  useEffect(() => setSupported(browserSupportsWebAuthn()), []);
 
   const refresh = useCallback(async () => {
     const result = await loadPasskeys();
@@ -106,7 +145,7 @@ export default function PasskeySecurity({ onSessionEnded }: { onSessionEnded: ()
     void refresh();
   }, [refresh]);
 
-  async function run<T>(action: () => Promise<AdminResult<T>>, done: (value: T) => string, refreshAfter: (value: T) => boolean = () => true) {
+  async function run<T>(action: () => Promise<AdminResult<T>>, outcome: Outcome<T>) {
     setBusy(true);
     setMessage("");
     const result = await action();
@@ -115,59 +154,74 @@ export default function PasskeySecurity({ onSessionEnded }: { onSessionEnded: ()
       setNeedsSecondCode(true);
       return;
     }
-    setMessage(result.ok ? done(result.value) : result.error);
-    if (!result.ok || refreshAfter(result.value)) await refresh();
+    setMessage(result.ok ? outcome.message(result.value) : result.error);
+    const again = result.ok ? (outcome.refreshAfter?.(result.value) ?? true) : true;
+    if (again) await refresh();
   }
 
-  // Only the first registration returns recovery codes, so the server's answer, not the loaded list, says which one this was.
-  function add() {
-    const isFirst = (value: { recoveryCodes: string[] }) => value.recoveryCodes.length > 0;
-    void run(registerPasskey, value => {
+  return { summary, message, setMessage, busy, codes, setCodes, needsSecondCode, setNeedsSecondCode, mustSignInAgain, setMustSignInAgain, run };
+}
+
+type Panel = ReturnType<typeof usePasskeyPanel>;
+
+// Only the first registration returns recovery codes, so the server's answer, not the loaded list, says which one this was.
+function addPasskey(panel: Panel) {
+  const isFirst = (value: { recoveryCodes: string[] }) => value.recoveryCodes.length > 0;
+  void panel.run(registerPasskey, {
+    message: value => {
       if (!isFirst(value)) return "Passkey added.";
-      setCodes(value.recoveryCodes);
-      setMustSignInAgain(true);
+      panel.setCodes(value.recoveryCodes);
+      panel.setMustSignInAgain(true);
       return "Passkey added. Save your recovery codes, then sign in again with the passkey.";
-    }, value => !isFirst(value));
-  }
+    },
+    refreshAfter: value => !isFirst(value),
+  });
+}
 
-  function remove(id: string) {
-    if (!window.confirm("Remove this passkey? It will no longer sign in to the admin.")) return;
-    void run(() => removePasskey(id), () => "Passkey removed.");
-  }
+function removeOne(panel: Panel, id: string) {
+  if (!window.confirm("Remove this passkey? It will no longer sign in to the admin.")) return;
+  void panel.run(() => removePasskey(id), { message: () => "Passkey removed." });
+}
 
-  function rotate() {
-    if (!window.confirm("Replace all recovery codes? The old codes stop working immediately.")) return;
-    void run(replaceRecoveryCodes, value => {
-      setCodes(value.recoveryCodes);
+function rotateCodes(panel: Panel) {
+  if (!window.confirm("Replace all recovery codes? The old codes stop working immediately.")) return;
+  void panel.run(replaceRecoveryCodes, {
+    message: value => {
+      panel.setCodes(value.recoveryCodes);
       return "New recovery codes created.";
-    });
-  }
+    },
+  });
+}
 
-  const hasPasskey = Boolean(summary?.passkeys.length);
+function useWebAuthnSupport(): boolean {
+  // Checked after mount so the server render and the first client render agree.
+  const [supported, setSupported] = useState(true);
+  useEffect(() => setSupported(browserSupportsWebAuthn()), []);
+  return supported;
+}
+
+/** Passkeys and recovery codes for the admin account (#549). */
+export default function PasskeySecurity({ onSessionEnded }: { onSessionEnded: () => void }) {
+  const panel = usePasskeyPanel(onSessionEnded);
+  const supported = useWebAuthnSupport();
+  const reSignIn = panel.mustSignInAgain;
   return (
     <section aria-labelledby="security-title" className="mb-6 rounded-xl bg-white/5 p-4">
       <h2 id="security-title" className="mb-2 text-xl font-semibold">Sign-in security</h2>
       {!supported && <p role="alert" className="mb-2 text-sm text-red-300">This browser does not support passkeys.</p>}
-      {!mustSignInAgain && (summary ? <PasskeyList summary={summary} busy={busy} onRemove={remove} /> : <p className="text-sm text-white/60">Loading passkeys…</p>)}
-      {hasPasskey && summary && !mustSignInAgain && (
-        <p className="mt-2 text-sm text-white/70">
-          Recovery codes left: <strong>{summary.recoveryCodesRemaining}</strong>
-          {summary.recoveryCodesRemaining < 3 && <span className="text-amber-200"> (running low; replace them)</span>}
-        </p>
+      {!reSignIn && (
+        <Overview
+          summary={panel.summary}
+          busy={panel.busy}
+          supported={supported}
+          onAdd={() => addPasskey(panel)}
+          onRotate={() => rotateCodes(panel)}
+          onRemove={id => removeOne(panel, id)}
+        />
       )}
-      <div className={mustSignInAgain ? "hidden" : "mt-3 flex flex-wrap gap-2"}>
-        <button type="button" disabled={busy || !supported || !summary} onClick={add} className="rounded bg-red-600 px-4 py-1.5 text-sm font-semibold hover:bg-red-700 disabled:opacity-40">
-          {hasPasskey ? "Add another passkey" : "Set up a passkey"}
-        </button>
-        {hasPasskey && (
-          <button type="button" disabled={busy} onClick={rotate} className="rounded bg-gray-700 px-4 py-1.5 text-sm disabled:opacity-40">
-            Replace recovery codes
-          </button>
-        )}
-      </div>
-      {message && <p role="status" className="mt-2 text-sm">{message}</p>}
-      {needsSecondCode && <SecondCodeForm onConfirmed={() => { setNeedsSecondCode(false); setMessage("Confirmed. Try that again."); }} />}
-      {codes && <RecoveryCodes codes={codes} doneLabel={mustSignInAgain ? "Done, sign in again" : "Done"} onDone={mustSignInAgain ? onSessionEnded : () => setCodes(null)} />}
+      {panel.message && <p role="status" className="mt-2 text-sm">{panel.message}</p>}
+      {panel.needsSecondCode && <SecondCodeForm onConfirmed={() => { panel.setNeedsSecondCode(false); panel.setMessage("Confirmed. Try that again."); }} />}
+      {panel.codes && <RecoveryCodes codes={panel.codes} doneLabel={reSignIn ? "Done, sign in again" : "Done"} onDone={reSignIn ? onSessionEnded : () => panel.setCodes(null)} />}
     </section>
   );
 }
