@@ -130,9 +130,10 @@ function orderedAdmin1Units(units: Map<string, Candidate[]>): string[] {
 }
 
 function recordMandatoryPlace(place: Candidate, selection: MandatorySelection): void {
-  selection.chosen.push(place);
+  const mandatoryPlace = { ...place, mandatoryCoverageStop: true };
+  selection.chosen.push(mandatoryPlace);
   selection.selected.add(place.id);
-  selection.separation.add(place);
+  selection.separation.add(mandatoryPlace);
 }
 
 function addAdmin1Unit(unit: string, candidates: Candidate[], minimumSeparationKm: number,
@@ -692,6 +693,113 @@ function addOptionalStops(mandatory: Candidate[], pool: Candidate[], config: Gen
   return selection.route;
 }
 
+type LongLegRouteEvaluation = {
+  score: number;
+};
+
+type LongLegRelocationOptions = {
+  order: Candidate[];
+  placeId: string;
+  currentScore: number;
+  config: GeneratorConfig;
+};
+
+type LongLegRelocation = {
+  order: Candidate[];
+  score: number;
+};
+
+function routeCost(order: Candidate[], config: GeneratorConfig): number | undefined {
+  const plan = timing(order, config);
+  if (!plan || !isWithinBudget(plan)) return undefined;
+  if (plan.greenCount / order.length < 0.85) return undefined;
+
+  let score = 0;
+  for (let index = 0; index < order.length; index++) {
+    const place = order[index]!;
+    const previous = order[index - 1] ?? NORTH_POLE;
+    const next = order[index + 1] ?? NORTH_POLE;
+    score += legCost(previous, place, config);
+    score += plan.waits[index]! * MINUTES_PER_MS;
+    score += localArrivalPenalty(place, plan.arrivals[index]!);
+    score += detourPenalty(previous, place, next);
+  }
+  const last = order.at(-1) ?? NORTH_POLE;
+  return score + legCost(last, NORTH_POLE, config);
+}
+
+function incomingLegExceedsDistance(order: Candidate[], index: number, distanceKm: number): boolean {
+  const destination = order[index];
+  if (!destination) return false;
+  const origin = order[index - 1] ?? NORTH_POLE;
+  return haversineKm(origin, destination) > distanceKm;
+}
+
+function longLegDestinationIds(order: Candidate[]): string[] {
+  return order.filter((_place, index) => incomingLegExceedsDistance(order, index, 2_500))
+    .map((place) => place.id);
+}
+
+function routeWithRelocatedStop(order: Candidate[], from: number, to: number): Candidate[] | undefined {
+  return relocatedTour(order, from, to);
+}
+
+function isBetterLongLegRelocation(score: number, best: LongLegRelocation | undefined, currentScore: number): boolean {
+  if (score >= currentScore - IMPROVEMENT_EPSILON) return false;
+  return !best || score < best.score - IMPROVEMENT_EPSILON;
+}
+
+function evaluateLongLegRelocation(order: Candidate[], from: number, to: number,
+  config: GeneratorConfig): LongLegRelocation | undefined {
+  const proposal = routeWithRelocatedStop(order, from, to);
+  if (!proposal) return undefined;
+  const score = routeCost(proposal, config);
+  return score === undefined ? undefined : { order: proposal, score };
+}
+
+function bestLongLegRelocation({ order, placeId, currentScore, config }: LongLegRelocationOptions): LongLegRelocation | undefined {
+  const from = order.findIndex((place) => place.id === placeId);
+  if (from < 0 || !incomingLegExceedsDistance(order, from, 2_500)) return undefined;
+
+  let best: LongLegRelocation | undefined;
+  for (let to = 0; to < order.length; to++) {
+    if (to === from) continue;
+    const proposal = evaluateLongLegRelocation(order, from, to, config);
+    if (!proposal || !isBetterLongLegRelocation(proposal.score, best, currentScore)) continue;
+    best = proposal;
+  }
+  return best;
+}
+
+function evaluateCurrentRoute(order: Candidate[], config: GeneratorConfig): LongLegRouteEvaluation | undefined {
+  const score = routeCost(order, config);
+  return score === undefined ? undefined : { score };
+}
+
+function applyLongLegRelocations(initial: Candidate[], config: GeneratorConfig): Candidate[] {
+  let order = [...initial];
+  let evaluation = evaluateCurrentRoute(order, config);
+  if (!evaluation) return order;
+
+  let changed: boolean;
+  do {
+    changed = false;
+    for (const placeId of longLegDestinationIds(order)) {
+      const proposal = bestLongLegRelocation({ order, placeId, currentScore: evaluation.score, config });
+      if (!proposal) continue;
+      order = proposal.order;
+      evaluation = { score: proposal.score };
+      changed = true;
+    }
+  } while (changed);
+
+  return order.map((place) => ({ ...place, longLegReinsertionChecked: true }));
+}
+
+export function reinsertLongLegStops(order: Candidate[], config: GeneratorConfig): Candidate[] {
+  return applyLongLegRelocations(order, config);
+}
+
 function validateMandatorySelection(seed: { places: Candidate[]; missing: string[] }): void {
   if (seed.missing.length === 0) return;
   throw new Error(`Mandatory coverage cannot satisfy candidate availability or 20 km separation: ${seed.missing.slice(0, 20).join('; ')}`);
@@ -742,8 +850,9 @@ export function orienteeringOrder(pool: Candidate[], config: GeneratorConfig = D
   validateMandatoryStopLimit(seed.places);
   const improved = improveTour(seed.places, config);
   const selected = addOptionalStops(improved, pool, config);
-  const final = timing(selected, config);
-  assertWithinRouteBudget(final, seed.places.length, selected, config);
+  const reinserted = reinsertLongLegStops(selected, config);
+  const final = timing(reinserted, config);
+  assertWithinRouteBudget(final, seed.places.length, reinserted, config);
   assertRouteTargets(final);
   return final.places;
 }

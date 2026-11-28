@@ -7,7 +7,7 @@ import type { RouteOverrides } from './overrides';
 import { chooseCandidates, normalizeCandidateCodes } from './candidates';
 import { scheduledTravelMilliseconds, sweepOrder } from './order';
 import { orienteeringOrder } from './orienteering';
-import { classifyRegion } from './regions';
+import { longLegReason } from './route-reasons';
 import { buildReport } from './report';
 import { christmasArrival, eastwardLegReason, isEastwardDelta, isInChristmasWindow, isInSouthernChristmasWindow,
   localClock, localWindowStatus, longitudeDelta, stopDurationSeconds } from './sweep';
@@ -177,29 +177,11 @@ function transit({ from, to, travelDurationMilliseconds, description, cameraZoom
   return result;
 }
 
-function longLegReason(from: Candidate | LatLng, to: Candidate | LatLng): string | undefined {
-  if (haversineKm(from, to) <= 4_000) return undefined;
-  if (!('country' in from)) return 'polar-launch';
-  if (!('country' in to)) return 'polar-return';
-  const origin = classifyRegion(from);
-  const destination = classifyRegion(to);
-  if (isOceanCrossing(origin.continent, destination.continent, origin.pacificIsland, destination.pacificIsland)) return 'ocean-crossing';
-  if (from.country !== to.country) return 'cross-border-coverage';
-  return 'long-regional-transfer';
-}
-
 function deliveryRouteReason(place: Candidate, from: Candidate | LatLng, to: Candidate): string | undefined {
-  const legReason = longLegReason(from, to);
+  const legReason = longLegReason(from, to, { reinsertionChecked: place.longLegReinsertionChecked });
   if (!place.mandatoryCoverageSpacingException) return legReason;
   if (!legReason) return 'mandatory-country-coverage-spacing-exception';
-  return `${legReason}; mandatory-country-coverage-spacing-exception`;
-}
-
-function isOceanCrossing(originContinent: string, destinationContinent: string, originPacificIsland: boolean,
-  destinationPacificIsland: boolean): boolean {
-  if (originContinent !== destinationContinent) return true;
-  if (originPacificIsland) return true;
-  return destinationPacificIsland;
+  return legReason + '; mandatory-country-coverage-spacing-exception';
 }
 
 function localTimeLabel(place: Candidate, arrival: number): string {
