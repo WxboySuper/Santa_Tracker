@@ -2,6 +2,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { createTranslator } from "@santa-tracker/localization";
 import EmergencySwitches from "./emergency-switches";
+import LoginPanel from "./login-panel";
+import PasskeySecurity from "./passkey-security";
 
 const t = createTranslator().t;
 
@@ -22,11 +24,6 @@ interface AdminLocation {
   is_stop?: boolean | null;
 }
 
-interface LoginResponse {
-  token?: string;
-  error?: string;
-}
-
 interface LocationsResponse {
   locations?: AdminLocation[];
   error?: string;
@@ -38,50 +35,6 @@ async function parseJson<T>(res: Response): Promise<T | null> {
   } catch {
     return null;
   }
-}
-
-interface LoginPanelProps {
-  onAuthenticated: () => void;
-}
-
-function LoginPanel({ onAuthenticated }: LoginPanelProps) {
-  const [password, setPassword] = useState("");
-  const [status, setStatus] = useState("");
-
-  async function login() {
-    const res = await fetch("/api/admin/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-      credentials: "include",
-    });
-    const data = await parseJson<LoginResponse>(res);
-    if (res.ok) {
-      onAuthenticated();
-      setStatus("Logged in");
-      return;
-    }
-    setStatus(data?.error ?? "Login failed");
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white p-8">
-      <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 max-w-md w-full">
-        <h1 className="text-2xl font-bold mb-4">Admin Login</h1>
-        <input
-          type="password"
-          placeholder="Admin password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          className="w-full p-2 rounded bg-white text-black mb-4"
-        />
-        <button onClick={() => { void login(); }} className="bg-red-600 hover:bg-red-700 px-6 py-2 rounded font-semibold w-full">
-          Login
-        </button>
-        {status && <p className="mt-4 text-sm">{status}</p>}
-      </div>
-    </div>
-  );
 }
 
 interface DashboardProps {
@@ -119,12 +72,12 @@ function Dashboard({ onLogout }: DashboardProps) {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
-      <p className="text-white/70 mb-4">Authenticated via HttpOnly JWT cookie (server-owned boundary, Bearer also accepted).</p>
       <button onClick={() => { void logout(); }} className="bg-gray-700 px-4 py-2 rounded mb-6">Logout</button>
       <div className="flex gap-4 mb-6">
         <a href="/admin/route-simulator" className="bg-blue-600 px-4 py-2 rounded">Route Simulator</a>
         <button onClick={() => { void loadLocations(); }} className="bg-green-600 px-4 py-2 rounded">Refresh Locations ({locations.length})</button>
       </div>
+      <PasskeySecurity onSessionEnded={onLogout} />
       <EmergencySwitches />
       {status && <p className="mb-4">{status}</p>}
       <div className="bg-white/5 rounded p-4 overflow-auto max-h-[60vh]">
@@ -154,9 +107,11 @@ export default function AdminPage() {
     };
   }, []);
 
+  const signedOut = useCallback(() => setIsAuthed(false), []);
+
   if (isAuthed === null) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white p-8">Loading…</div>;
   }
   if (!isAuthed) return <LoginPanel onAuthenticated={() => setIsAuthed(true)} />;
-  return <Dashboard onLogout={() => setIsAuthed(false)} />;
+  return <Dashboard onLogout={signedOut} />;
 }
