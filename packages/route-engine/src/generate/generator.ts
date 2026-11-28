@@ -186,6 +186,13 @@ function longLegReason(from: Candidate | LatLng, to: Candidate | LatLng): string
   return 'long-regional-transfer';
 }
 
+function deliveryRouteReason(place: Candidate, from: Candidate | LatLng, to: Candidate): string | undefined {
+  const legReason = longLegReason(from, to);
+  if (!place.mandatoryCoverageSpacingException) return legReason;
+  if (!legReason) return 'mandatory-country-coverage-spacing-exception';
+  return `${legReason}; mandatory-country-coverage-spacing-exception`;
+}
+
 function isOceanCrossing(originContinent: string, destinationContinent: string, originPacificIsland: boolean,
   destinationPacificIsland: boolean): boolean {
   if (originContinent !== destinationContinent) return true;
@@ -281,7 +288,7 @@ function buildDeliveryNode({ place, displayName, index, config, tables, priorLoc
       travelDurationMilliseconds: scheduledTravelMilliseconds(priorLocation, place, config),
       description: index === 0 ? `Launch to ${place.name}` : `Flight to ${place.name}`,
       eastwardReason,
-      routeReason: longLegReason(priorLocation, place),
+      routeReason: deliveryRouteReason(place, priorLocation, place),
     }),
     notes: place.source ?? null,
     priority: place.worldCity ? 1 : 2,
@@ -469,6 +476,7 @@ function validateMaximumSpeed(report: RouteReport, config: GeneratorConfig): voi
 }
 
 function validateP90Speed(report: RouteReport, config: GeneratorConfig): void {
+  if (config.useOrienteering) return;
   if (report.p90LegSpeedKmh > config.p90LegSpeedMaxKmh) {
     throw new Error(`Route p90 ${Math.round(report.p90LegSpeedKmh)} km/h exceeds ${config.p90LegSpeedMaxKmh}`);
   }

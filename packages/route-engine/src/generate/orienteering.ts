@@ -150,12 +150,35 @@ function countryCoverageFailure(country: string, candidates: Candidate[], minimu
   return `${country}: no representative at least ${minimumSeparationKm} km from mandatory stops; closest ${nearest.candidate.name} is ${nearest.km.toFixed(1)} km from ${nearest.selectedPlace.name} (${nearest.selectedPlace.country})`;
 }
 
+function distanceToNearestMandatory(candidate: Candidate, chosen: Candidate[]): number {
+  if (chosen.length === 0) return Number.POSITIVE_INFINITY;
+  return Math.min(...chosen.map((place) => haversineKm(candidate, place)));
+}
+
+function spacingExceptionCandidate(candidates: Candidate[], selection: MandatorySelection): Candidate | undefined {
+  let best: Candidate | undefined;
+  let bestDistance = Number.NEGATIVE_INFINITY;
+  for (const candidate of candidatesByPriority(candidates)) {
+    if (selection.selected.has(candidate.id)) continue;
+    const distance = distanceToNearestMandatory(candidate, selection.chosen);
+    if (distance <= bestDistance) continue;
+    best = candidate;
+    bestDistance = distance;
+  }
+  return best ? { ...best, mandatoryCoverageSpacingException: true } : undefined;
+}
+
 function addCountryRepresentative(country: string, candidates: Candidate[], minimumSeparationKm: number,
   selection: MandatorySelection): void {
   const sortedCandidates = candidatesByPriority(candidates);
   const place = sortedCandidates.find((candidate) => isEligibleMandatoryCandidate(candidate, selection));
   if (!place) {
-    selection.missing.push(countryCoverageFailure(country, candidates, minimumSeparationKm, selection.chosen));
+    const spacingException = spacingExceptionCandidate(sortedCandidates, selection);
+    if (!spacingException) {
+      selection.missing.push(countryCoverageFailure(country, candidates, minimumSeparationKm, selection.chosen));
+      return;
+    }
+    recordMandatoryPlace(spacingException, selection);
     return;
   }
   recordMandatoryPlace(place, selection);

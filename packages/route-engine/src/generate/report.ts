@@ -359,6 +359,8 @@ export function buildReport(places: Candidate[], route: Route, { config, pool, i
   const candidateIssues = [
     ...invalidCandidateIds.map((id) => `Invalid candidate row skipped: ${id}`),
     ...duplicateCandidateIds.map((id) => `Duplicate candidate ID skipped: ${id}`),
+    ...places.filter((place) => place.mandatoryCoverageSpacingException)
+      .map((place) => `${place.name}: retained for mandatory country coverage under the recorded 20 km spacing exception.`),
   ];
   return {
     seed: config.seed,
