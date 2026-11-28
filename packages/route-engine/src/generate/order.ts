@@ -228,7 +228,7 @@ function initialSweepState(pool: Candidate[], config: GeneratorConfig): SweepSta
     countryCounts: new Map(),
     admin1Counts: new Map(),
     bandCounts: new Map(),
-    separation: new SeparationIndex(config.minStopSeparationKm),
+    separation: new SeparationIndex({ minimumKm: config.minStopSeparationKm }),
     prior: NORTH_POLE,
     priorDeparture: Date.parse(TAKEOFF_UTC),
   };

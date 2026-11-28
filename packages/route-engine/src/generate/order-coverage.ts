@@ -69,7 +69,7 @@ function insertionState(initial: TimedCandidate[], minimumSeparationKm: number):
     const offset = requiredSnapshotOffset(place);
     bandCounts.set(offset, (bandCounts.get(offset) ?? 0) + 1);
   }
-  const separation = new SeparationIndex(minimumSeparationKm);
+  const separation = new SeparationIndex({ minimumKm: minimumSeparationKm });
   for (const place of initial) separation.add(place);
   return { route: [...initial], counts, admin1Counts, bandCounts, separation };
 }
@@ -573,7 +573,7 @@ function selectRepresentatives(groups: MandatoryGroup[], covered: Set<string>, s
 
 export function selectMandatoryRepresentatives(pool: Candidate[], config: GeneratorConfig): Candidate[] {
   const selection: RepresentativeSelection = {
-    separation: new SeparationIndex(config.minStopSeparationKm),
+    separation: new SeparationIndex({ minimumKm: config.minStopSeparationKm }),
     selected: [],
     selectedIds: new Set(),
     coveredCountries: new Set(),
@@ -637,7 +637,7 @@ function launchRepresentativePool(launch: Candidate, representatives: Candidate[
 }
 
 function launchIsSeparated(launch: Candidate, others: Candidate[], minimumKm: number): boolean {
-  const separation = new SeparationIndex(minimumKm);
+  const separation = new SeparationIndex({ minimumKm });
   for (const place of others) separation.add(place);
   return separation.allows(launch);
 }

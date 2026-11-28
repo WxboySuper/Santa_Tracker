@@ -38,6 +38,15 @@ export type TimedCandidate = Candidate & {
 export type PlannedStop = { place: TimedCandidate; arrival: number; departure: number; eastwardDegrees: number };
 export type RoutePlan = { places: TimedCandidate[]; arrivalTimes: number[]; departures: number[] };
 type CandidateTimingOptions = { place: Candidate; prior: Candidate | LatLng; priorDeparture: number; index: number; config: GeneratorConfig };
+type PlanningSpeedOptions = { from: Candidate | LatLng; to: Candidate | LatLng; distanceKm: number; config: GeneratorConfig };
+type OrienteeringSpeedOptions = { distanceKm: number; oceanCrossing: boolean; config: GeneratorConfig };
+type CrossingDistanceOptions = { distanceKm: number; oceanCrossing: boolean };
+type SeparationIndexOptions = { minimumKm: number };
+type SeparationCellOptions = { place: LatLng; cellSize: number };
+type CellCoordinateOptions = { key: string };
+type AdjacentCellOptions = { x: number; y: number; z: number };
+type DeliveryLongitudeOptions = { prior: Candidate | LatLng; place: Candidate; index: number; arrival: number };
+type AppendPlannedStopOptions = { builder: RoutePlanBuilder; place: Candidate; index: number; config: GeneratorConfig };
 
 export function seededRandom(seed: number): () => number {
   let state = seed >>> 0;
@@ -59,38 +68,38 @@ function isOceanCrossing(from: Candidate | LatLng, to: Candidate | LatLng, dista
   return fromRegion.pacificIsland || toRegion.pacificIsland || fromRegion.continent !== toRegion.continent;
 }
 
-function planningSpeed(from: Candidate | LatLng, to: Candidate | LatLng, distanceKm: number, config: GeneratorConfig): number {
+function planningSpeed({ from, to, distanceKm, config }: PlanningSpeedOptions): number {
   const oceanCrossing = isOceanCrossing(from, to, distanceKm);
   if (config.useOrienteering) {
-    return orienteeringPlanningSpeed(distanceKm, oceanCrossing, config);
+    return orienteeringPlanningSpeed({ distanceKm, oceanCrossing, config });
   }
   if (oceanCrossing && distanceKm >= FAST_OCEAN_CROSSING_KM) return Math.min(config.targetLegSpeedKmh, config.maxLegSpeedKmh);
   const target = oceanCrossing ? config.targetLegSpeedKmh : config.localLegSpeedKmh;
   return Math.min(target, config.maxLegSpeedKmh, config.p90LegSpeedMaxKmh);
 }
 
-function orienteeringPlanningSpeed(distanceKm: number, oceanCrossing: boolean, config: GeneratorConfig): number {
-  if (requiresMaximumCrossingSpeed(distanceKm, oceanCrossing)) {
+function orienteeringPlanningSpeed({ distanceKm, oceanCrossing, config }: OrienteeringSpeedOptions): number {
+  if (requiresMaximumCrossingSpeed({ distanceKm, oceanCrossing })) {
     return Math.min(config.targetLegSpeedKmh, config.maxLegSpeedKmh);
   }
-  if (requiresP90CrossingSpeed(distanceKm)) {
+  if (requiresP90CrossingSpeed({ distanceKm })) {
     return Math.min(config.p90LegSpeedMaxKmh, config.maxLegSpeedKmh);
   }
   return Math.min(config.localLegSpeedKmh, config.maxLegSpeedKmh);
 }
 
-function requiresMaximumCrossingSpeed(distanceKm: number, oceanCrossing: boolean): boolean {
+function requiresMaximumCrossingSpeed({ distanceKm, oceanCrossing }: CrossingDistanceOptions): boolean {
   if (distanceKm >= MAX_SPEED_CROSSING_KM) return true;
   return oceanCrossing;
 }
 
-function requiresP90CrossingSpeed(distanceKm: number): boolean {
+function requiresP90CrossingSpeed({ distanceKm }: Pick<CrossingDistanceOptions, 'distanceKm'>): boolean {
   return distanceKm >= SLOW_REGIONAL_HOP_KM;
 }
 
 export function scheduledTravelMilliseconds(from: Candidate | LatLng, to: Candidate | LatLng, config: GeneratorConfig): number {
   const distance = haversineKm(from, to);
-  const travelSeconds = Math.ceil(distance / planningSpeed(from, to, distance, config) * 3_600);
+  const travelSeconds = Math.ceil(distance / planningSpeed({ from, to, distanceKm: distance, config }) * 3_600);
   return travelSeconds * 1000;
 }
 
@@ -99,7 +108,7 @@ export function countryCapacity(place: Candidate, counts: Map<string, number>, c
   return (counts.get(place.country) ?? 0) < config.maxStopsPerCountry;
 }
 
-function separationCell(place: LatLng, cellSize: number): string {
+function separationCell({ place, cellSize }: SeparationCellOptions): string {
   const latitude = place.lat * Math.PI / 180;
   const longitude = place.lng * Math.PI / 180;
   const x = Math.cos(latitude) * Math.cos(longitude);
@@ -108,11 +117,11 @@ function separationCell(place: LatLng, cellSize: number): string {
   return `${Math.floor(x / cellSize)},${Math.floor(y / cellSize)},${Math.floor(z / cellSize)}`;
 }
 
-function cellCoordinates(key: string): [number, number, number] {
+function cellCoordinates({ key }: CellCoordinateOptions): [number, number, number] {
   return key.split(',').map(Number) as [number, number, number];
 }
 
-function adjacentCellKeys(x: number, y: number, z: number): string[] {
+function adjacentCellKeys({ x, y, z }: AdjacentCellOptions): string[] {
   return Array.from({ length: 27 }, (_, index) => {
     const dx = index % 3 - 1;
     const dy = Math.floor(index / 3) % 3 - 1;
@@ -125,22 +134,22 @@ export class SeparationIndex {
   private readonly cells = new Map<string, Candidate[]>();
   private readonly cellSize: number;
 
-  constructor(private readonly minimumKm: number) {
-    this.cellSize = Math.max(minimumKm / EARTH_RADIUS_KM, 0.00001);
+  constructor(private readonly options: SeparationIndexOptions) {
+    this.cellSize = Math.max(options.minimumKm / EARTH_RADIUS_KM, 0.00001);
   }
 
   add(place: Candidate): void {
-    const key = separationCell(place, this.cellSize);
+    const key = separationCell({ place, cellSize: this.cellSize });
     const members = this.cells.get(key) ?? [];
     members.push(place);
     this.cells.set(key, members);
   }
 
   allows(place: Candidate): boolean {
-    if (this.minimumKm <= 0) return true;
-    const [x, y, z] = cellCoordinates(separationCell(place, this.cellSize));
-    const nearby = adjacentCellKeys(x, y, z).flatMap((key) => this.cells.get(key) ?? []);
-    return nearby.every((candidate) => haversineKm(candidate, place) >= this.minimumKm);
+    if (this.options.minimumKm <= 0) return true;
+    const [x, y, z] = cellCoordinates({ key: separationCell({ place, cellSize: this.cellSize }) });
+    const nearby = adjacentCellKeys({ x, y, z }).flatMap((key) => this.cells.get(key) ?? []);
+    return nearby.every((candidate) => haversineKm(candidate, place) >= this.options.minimumKm);
   }
 }
 
@@ -155,7 +164,7 @@ export function requiredSnapshotOffset(place: Candidate): number {
   return place.utcOffsetMinutes!;
 }
 
-function deliveryLongitudeIsAllowed(prior: Candidate | LatLng, place: Candidate, index: number, arrival: number): boolean {
+function deliveryLongitudeIsAllowed({ prior, place, index, arrival }: DeliveryLongitudeOptions): boolean {
   const degrees = longitudeDelta(prior, place);
   if (!isEastwardDelta(degrees)) return true;
   const reason = eastwardLegReason({ from: prior, to: place, destinationIndex: index, arrivalUtc: arrival });
@@ -168,7 +177,7 @@ export function candidateTiming({ place, prior, priorDeparture, index, config }:
   const arrival = Math.max(window.startUtc, priorDeparture + scheduledTravelMilliseconds(prior, place, config));
   if (ianaOffsetMinutesAt({ timezone: place.timezone, instant: arrival }) !== snapshotOffset) return undefined;
   if (arrival > latestLocalArrival(place, window)) return undefined;
-  if (!deliveryLongitudeIsAllowed(prior, place, index, arrival)) return undefined;
+  if (!deliveryLongitudeIsAllowed({ prior, place, index, arrival })) return undefined;
   const eastwardDegrees = longitudeDelta(prior, place);
   const tier = stopTier(place);
   const durationSeconds = stopDurationSeconds(tier);
@@ -195,7 +204,7 @@ export function canStartFromNorthPole(place: Candidate, config: GeneratorConfig)
 type RoutePlanBuilder = { places: TimedCandidate[]; arrivalTimes: number[]; departures: number[];
   prior: Candidate | LatLng; priorDeparture: number };
 
-function appendPlannedStop(builder: RoutePlanBuilder, place: Candidate, index: number, config: GeneratorConfig): boolean {
+function appendPlannedStop({ builder, place, index, config }: AppendPlannedStopOptions): boolean {
   let stop: PlannedStop | undefined;
   try {
     stop = candidateTiming({ place, prior: builder.prior, priorDeparture: builder.priorDeparture, index, config });
@@ -224,7 +233,7 @@ export function planTiming(order: Candidate[], config: GeneratorConfig): RoutePl
   const builder: RoutePlanBuilder = { places: [], arrivalTimes: [], departures: [],
     prior: NORTH_POLE, priorDeparture: Date.parse(TAKEOFF_UTC) };
   for (const [index, place] of order.entries()) {
-    if (!appendPlannedStop(builder, place, index, config)) return undefined;
+    if (!appendPlannedStop({ builder, place, index, config })) return undefined;
   }
   if (builder.places.length === 0) return undefined;
   if (!returnsByDeadline(builder, config)) return undefined;
