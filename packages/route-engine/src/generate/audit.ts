@@ -349,9 +349,9 @@ function isPreferredNightStatus(assessment: LocalArrivalAssessment): boolean {
 function addPreferredNightCoverageCheck(view: AuditView, checks: AuditCheck[], assessments: LocalArrivalAssessment[]): void {
   const green = assessments.filter(isPreferredNightStatus).length;
   const share = assessments.length > 0 ? green / assessments.length : 0;
-  const pass = view.matched && assessments.length === view.delivery.length && share >= 0.85;
+  const pass = view.matched && assessments.length === view.delivery.length && share >= 0.97;
   addCheck(checks, 'Preferred local-night coverage', pass,
-    `${green}/${assessments.length} stops (${(share * 100).toFixed(1)}%) arrive from 23:00 to 05:00 local; minimum 85%.`);
+    `${green}/${assessments.length} stops (${(share * 100).toFixed(1)}%) arrive from 23:00 to 05:00 local; minimum 97%.`);
 }
 
 function hasMismatchedWindowLabel(assessment: LocalArrivalAssessment): boolean {
