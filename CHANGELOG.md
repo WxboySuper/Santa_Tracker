@@ -4,7 +4,7 @@
 
 - **Route draft:** Rebuilds `route.json` and `review.html` from the deterministic orienteering tour, including mandatory country/admin-1 coverage, per-leg direction and long-leg reasons, speed percentiles, and the 28-hour schedule report.
 - **Presents:** Keeps the existing per-stop presents allocation and updates it for the regenerated route.
-- **Maps:** Adds world and North America route maps with a direction arrow on each leg.
+- **Maps:** Adds viewport-sized world and North America maps, clips land polygons at the antimeridian, and wraps crossing legs along the short path with a direction arrow.
 
 ## [Unreleased] - Time-window orienteering route generator
 
