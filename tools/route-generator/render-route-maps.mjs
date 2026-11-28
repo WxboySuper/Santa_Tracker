@@ -10,10 +10,11 @@ const landUrl = 'https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/land-110m.json';
 function decodeArcs(topology) {
   const [scaleX, scaleY] = topology.transform.scale;
   const [translateX, translateY] = topology.transform.translate;
-  return topology.arcs.map((arc) => decodeArc(arc, scaleX, scaleY, translateX, translateY));
+  const transform = { scaleX, scaleY, translateX, translateY };
+  return topology.arcs.map((arc) => decodeArc(arc, transform));
 }
 
-function decodeArc(arc, scaleX, scaleY, translateX, translateY) {
+function decodeArc(arc, { scaleX, scaleY, translateX, translateY }) {
   let x = 0;
   let y = 0;
   return arc.map(([dx, dy]) => {
