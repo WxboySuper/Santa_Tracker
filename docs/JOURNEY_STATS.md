@@ -16,6 +16,8 @@ Flight time counts only transit intervals, from one stop's departure to the next
 
 Magical estimates are fixed arithmetic, not measured facts. `PRESENTS_TOTAL` defaults to 7,000,000,000 and can be changed in the route-engine source when the estimate needs tuning. Treat it as a playful estimate, never a real delivery count. The global total is allocated across the UTC-offset bands represented in the route by each band's share of candidate-pool population. Each band's share stays fixed when the route contains more or fewer stops in that band. A stop gets a population-weighted share within its band, with a 10,000-person minimum weight so small hops still count. The counter advances linearly: 30% of each stop's presents during its inbound flight and 70% during its dwell. START and END markers do not receive presents. The count is zero before takeoff and reaches `PRESENTS_TOTAL` at the final delivery stop's departure.
 
+Generated delivery nodes store their integer allocation in `stop_experience.presents_delivered_at_stop`; those values sum to `PRESENTS_TOTAL` and use the same band and population weights as live stats. `interpolateStopPresentProgress` exposes the per-stop 30% inbound / 70% dwell progress used by the live counter.
+
 - Presents delivered: a smooth schedule-based estimate from zero to `PRESENTS_TOTAL`. This is a playful estimate, not a count of real recipients.
 - Cookies eaten: two cookies per estimated present. Santa has clearly found a system.
 - Reindeer snacks: nine per visited stop, one for each reindeer. The route does not record snack inventory.

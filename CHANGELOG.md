@@ -1,9 +1,16 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Regenerate the 2026 route artifacts
+
+- **Route draft:** Regenerates the deterministic 640-stop tour with mandatory coverage of all 195 sovereign states and the required US, Canadian, and Australian admin-1 units. The review lists six visited and 44 skipped optional territories and gives each delivery leg over 4,000 km a specific mandatory-coverage reason.
+- **Presents:** Keeps the existing per-stop presents allocation and updates it for the regenerated route.
+- **Maps:** Adds viewport-sized world and North America maps, clips land polygons at the antimeridian, and wraps crossing legs along the short path with a direction arrow.
+
 ## [Unreleased] - Admin-1 route coverage metadata
 
 - **Coverage units:** Adds the committed US, Canadian, and Australian state, province, and territory codes used to seed mandatory stops.
 - **Refresh tool:** Adds a reproducible Natural Earth based refresh command and tests for resolving candidate places to required units.
+
 
 ## [Unreleased] - Time-window orienteering route generator
 

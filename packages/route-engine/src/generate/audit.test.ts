@@ -25,7 +25,7 @@ function routeFixture(points: { id: string; name: string; lng: number; country?:
         departure_utc: new Date(Date.parse(arrival) + 30_000).toISOString(),
         time_window_status: point.status ?? localWindowStatus({ instant: Date.parse(arrival), offsetMinutes: point.offset ?? 0 }),
       },
-      stop_experience: { presents_delivered_at_stop: 1, camera_zoom: 1, weather_condition: 'clear', stop_tier: point.tier ?? 'town', duration_seconds: point.duration ?? 10 },
+      stop_experience: { presents: 1, presents_delivered_at_stop: 1, camera_zoom: 1, weather_condition: 'clear', stop_tier: point.tier ?? 'town', duration_seconds: point.duration ?? 10 },
       transit_to_here: { duration_seconds: point.transitSeconds ?? 0, distance_km: 1, speed_kmh: 100,
         ...(point.reason ? { eastward_reason: point.reason } : {}), ...(point.routeReason ? { route_reason: point.routeReason } : {}) },
       notes: 'https://www.wikidata.org/wiki/Q1',

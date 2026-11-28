@@ -2,6 +2,7 @@ import { createLocationId, LegacyRouteFixtureSchema, SCHEMA_VERSION, type Route 
 import { validateRouteGeometry } from '../geometry-validate';
 import { haversineKm, legSpeedKmh, type LatLng } from '../geo';
 import { validateRoute } from '../validate';
+import { allocatePresentsForStops, type RouteStatsLocation } from '../stats';
 import type { RouteOverrides } from './overrides';
 import { chooseCandidates, normalizeCandidateCodes } from './candidates';
 import { scheduledTravelMilliseconds, sweepOrder } from './order';
@@ -210,11 +211,14 @@ type DeliveryNodeResult = { node: Record<string, unknown>; stop: Route['stops'][
 type DeliveryNodeOptions = {
   place: TimedCandidate;
   displayName: string;
+  presents: number;
   index: number;
   config: GeneratorConfig;
   tables: TimezoneTables | undefined;
   priorLocation: Candidate | LatLng;
 };
+
+type DeliveryNodeMetadata = { displayNames: Map<string, string>; presents: number[] };
 
 type DeliveryTiming = { stopArrival: number; tier: TimedCandidate['plannedStopTier']; durationSeconds: number };
 
@@ -229,7 +233,7 @@ function deliveryTiming(place: TimedCandidate): DeliveryTiming {
   return { stopArrival, tier, durationSeconds };
 }
 
-function buildDeliveryNode({ place, displayName, index, config, tables, priorLocation }: DeliveryNodeOptions): DeliveryNodeResult {
+function buildDeliveryNode({ place, displayName, presents, index, config, tables, priorLocation }: DeliveryNodeOptions): DeliveryNodeResult {
   const { stopArrival, tier, durationSeconds } = deliveryTiming(place);
   const stopDeparture = stopArrival + durationSeconds * 1000;
   const knownReason = eastwardLegReason({ from: priorLocation, to: place, destinationIndex: index, arrivalUtc: stopArrival });
@@ -264,7 +268,7 @@ function buildDeliveryNode({ place, displayName, index, config, tables, priorLoc
       local_arrival_time: localTimeLabel(place, stopArrival),
       time_window_status: localWindowStatus({ instant: stopArrival, offsetMinutes: candidateOffset(place) }),
     },
-    stop_experience: { duration_seconds: durationSeconds, stop_tier: tier, camera_zoom: 14, weather_condition: 'clear', presents_delivered_at_stop: 1 },
+    stop_experience: { duration_seconds: durationSeconds, stop_tier: tier, camera_zoom: 14, weather_condition: 'clear', presents, presents_delivered_at_stop: presents },
     transit_to_here: transit({
       from: priorLocation,
       to: place,
@@ -321,15 +325,40 @@ function displayNamesFor(places: Candidate[], tables?: TimezoneTables): Map<stri
   return displayNames;
 }
 
+function statsLocationForCandidate(place: Candidate): RouteStatsLocation | undefined {
+  if (typeof place !== 'object') return undefined;
+  if (place === null) return undefined;
+  if (typeof place.timezone !== 'string') return undefined;
+  if (place.timezone.length === 0) return undefined;
+  return {
+    id: place.id,
+    name: place.name,
+    country: place.country,
+    countryCode: place.country,
+    timezone: place.timezone,
+    coordinates: { lat: place.lat, lng: place.lng },
+    population: place.population,
+    type: 'DELIVERY',
+  };
+}
+
+function statsLocationsForCandidates(places: Candidate[]): RouteStatsLocation[] {
+  return places.flatMap((place) => {
+    const location = statsLocationForCandidate(place);
+    return location ? [location] : [];
+  });
+}
+
 function buildDeliveryNodes(places: TimedCandidate[], config: GeneratorConfig, tables: TimezoneTables | undefined,
-  displayNames: Map<string, string>): { routeNodes: Record<string, unknown>[]; stops: Route['stops']; coordinates: Map<string, LatLng>; priorDeparture: number } {
+  metadata: DeliveryNodeMetadata): { routeNodes: Record<string, unknown>[]; stops: Route['stops']; coordinates: Map<string, LatLng>; priorDeparture: number } {
   const routeNodes: Record<string, unknown>[] = [startNode()];
   const stops: Route['stops'] = [];
   const coordinates = new Map<string, LatLng>();
   let priorDeparture = Date.parse(TAKEOFF_UTC);
   let priorLocation: Candidate | LatLng = NORTH_POLE;
   for (const [index, place] of places.entries()) {
-    const result = buildDeliveryNode({ place, displayName: displayNames.get(place.id) ?? place.name, index, config, tables, priorLocation });
+    const result = buildDeliveryNode({ place, displayName: metadata.displayNames.get(place.id) ?? place.name,
+      presents: metadata.presents[index] ?? 0, index, config, tables, priorLocation });
     coordinates.set(result.locationId, place);
     stops.push(result.stop);
     routeNodes.push(result.node);
@@ -339,10 +368,12 @@ function buildDeliveryNodes(places: TimedCandidate[], config: GeneratorConfig, t
   return { routeNodes, stops, coordinates, priorDeparture };
 }
 
-function buildDocument(places: TimedCandidate[], config: GeneratorConfig, tables?: TimezoneTables): { document: GeneratedRoute['document']; route: Route; coordinates: Map<string, LatLng>; routeEndUtc: string } {
+function buildDocument(places: TimedCandidate[], config: GeneratorConfig, tables?: TimezoneTables,
+  presents: number[] = []): { document: GeneratedRoute['document']; route: Route; coordinates: Map<string, LatLng>; routeEndUtc: string } {
   const last = places.at(-1);
   if (!last) throw new Error('Cannot build an empty route');
-  const deliveries = buildDeliveryNodes(places, config, tables, displayNamesFor(places, tables));
+  const deliveries = buildDeliveryNodes(places, config, tables,
+    { displayNames: displayNamesFor(places, tables), presents });
   const ending = endNode(last, deliveries.priorDeparture, config);
   deliveries.routeNodes.push(ending.node);
   const route = { schemaVersion: SCHEMA_VERSION, season: 2026, stops: deliveries.stops } as Route;
@@ -525,7 +556,8 @@ export function generateRoute(pool: Candidate[], config: GeneratorConfig, overri
   const chosen = normalized.candidates;
   if (chosen.length === 0) throw new Error('No eligible route candidates remain after timezone validation');
   const ordered = config.useOrienteering ? orienteeringOrder(chosen, config) : sweepOrder(chosen, config);
-  const built = buildDocument(ordered, config, tables);
+  const presents = allocatePresentsForStops(statsLocationsForCandidates(ordered), statsLocationsForCandidates(normalizedPool), 2026);
+  const built = buildDocument(ordered, config, tables, presents);
   const report = validateBuiltRoute({ route: built.route, coordinates: built.coordinates, routeEndUtc: built.routeEndUtc,
     ordered, pool: normalizedPool, config, invalidCandidateIds: [...selection.invalidCandidateIds, ...normalized.invalidCandidateIds],
     duplicateCandidateIds: selection.duplicateCandidateIds });

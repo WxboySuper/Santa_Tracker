@@ -44,7 +44,7 @@ type RouteNode = {
     local_arrival_time?: string | null;
     time_window_status?: string;
   };
-  stop_experience?: { presents_delivered_at_stop?: number | null; camera_zoom?: number | null; weather_condition?: string | null; stop_tier?: string | null; duration_seconds?: number | null };
+  stop_experience?: { presents?: number | null; presents_delivered_at_stop?: number | null; camera_zoom?: number | null; weather_condition?: string | null; stop_tier?: string | null; duration_seconds?: number | null };
   transit_to_here?: { duration_seconds?: number | null; distance_km?: number | null; speed_kmh?: number | null; eastward_reason?: 'dateline' | 'offset-anomaly' | 'return' | 'soft-orienteering' | null; route_reason?: string | null } | null;
   notes?: string | null;
 };
@@ -577,7 +577,12 @@ function hasMissingSource(node: RouteNode): boolean {
 
 function hasIncompleteExperience(node: RouteNode): boolean {
   const experience = node.stop_experience;
-  if (experience?.presents_delivered_at_stop !== 1) return true;
+  if (!experience) return true;
+  const presents = experience.presents;
+  if (typeof presents !== 'number') return true;
+  if (!Number.isSafeInteger(presents)) return true;
+  if (presents < 0) return true;
+  if (experience.presents_delivered_at_stop !== presents) return true;
   if (experience.camera_zoom == null) return true;
   return !experience.weather_condition;
 }

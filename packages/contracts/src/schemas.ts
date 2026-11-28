@@ -91,6 +91,7 @@ const LegacyStopExperienceSchema = z.object({
   stop_tier: z.enum(['major', 'city', 'town', 'hop']).nullable().optional(),
   camera_zoom: z.number().int().nullable().optional(),
   weather_condition: z.string().min(1).nullable().optional(),
+  presents: z.number().int().nonnegative().nullable().optional(),
   presents_delivered_at_stop: z.number().int().nonnegative().nullable().optional(),
 });
 
