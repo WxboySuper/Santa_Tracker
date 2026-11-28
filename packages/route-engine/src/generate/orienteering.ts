@@ -736,6 +736,17 @@ type LongLegRelocation = {
   score: number;
 };
 
+const LONG_DELIVERY_LEG_PENALTY_MINUTES = 30;
+
+function longDeliveryLegPenalty(order: Candidate[]): number {
+  let penalty = 0;
+  for (let index = 1; index < order.length; index++) {
+    const origin = order[index - 1]!;
+    const destination = order[index]!;
+    if (haversineKm(origin, destination) > 3_000) penalty += LONG_DELIVERY_LEG_PENALTY_MINUTES;
+  }
+  return penalty;
+}
 function routeCost(order: Candidate[], config: GeneratorConfig): number | undefined {
   if (!remoteTerritoryLegsWithinLimit(order)) return undefined;
   const plan = timing(order, config);
@@ -754,7 +765,7 @@ function routeCost(order: Candidate[], config: GeneratorConfig): number | undefi
     score += detourPenalty(previous, place, next);
   }
   const last = order.at(-1) ?? NORTH_POLE;
-  return score + legCost(last, NORTH_POLE, config);
+  return score + legCost(last, NORTH_POLE, config) + longDeliveryLegPenalty(order);
 }
 
 function incomingLegExceedsDistance(order: Candidate[], index: number, distanceKm: number): boolean {
