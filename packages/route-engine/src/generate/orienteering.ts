@@ -1,5 +1,6 @@
 import { haversineKm } from '../geo';
 import { admin1UnitFor } from './admin1';
+import { isRemoteOptionalTerritory, isSovereignState } from './coverage';
 import { classifyRegion } from './regions';
 import { scheduledTravelMilliseconds, seededRandom, REQUIRED_ADMIN1_CODES, SeparationIndex, type TimedCandidate } from './order-shared';
 import { detourRatio, localWindowPenaltyMinutes, localWindowStatus, longitudeDelta,
@@ -223,6 +224,7 @@ function addMandatoryCountries(pool: Candidate[], minimumSeparationKm: number, s
   const countryCandidates = countryCandidatesByCode(pool);
   const represented = new Set(selection.chosen.map((place) => place.country));
   for (const country of orderedCountries(countryCandidates)) {
+    if (!isSovereignState(country)) continue;
     if (represented.has(country)) continue;
     addCountryRepresentative(country, countryCandidates.get(country) ?? [], minimumSeparationKm, selection);
     const chosen = selection.chosen.at(-1);
@@ -644,7 +646,19 @@ function compareRankedInsertions(a: RankedInsertion, b: RankedInsertion): number
 
 function insertionIsFeasible(order: Candidate[], proposal: RankedInsertion, plan: Timing): boolean {
   const impact = insertionImpact(order, proposal.place, proposal.insertion, plan);
-  return impact !== undefined && isInsertionWithinBudget(plan, impact);
+  if (impact === undefined || !isInsertionWithinBudget(plan, impact)) return false;
+  const proposedOrder = [...order];
+  proposedOrder.splice(proposal.insertion.index, 0, proposal.place);
+  return remoteTerritoryLegsWithinLimit(proposedOrder);
+}
+
+function remoteTerritoryLegsWithinLimit(order: Candidate[]): boolean {
+  return order.every((place, index) => {
+    if (!isRemoteOptionalTerritory(place.country)) return true;
+    const previous = order[index - 1] ?? NORTH_POLE;
+    const next = order[index + 1] ?? NORTH_POLE;
+    return haversineKm(previous, place) <= 3_000 && haversineKm(place, next) <= 3_000;
+  });
 }
 
 function bestOptionalInsertion(selection: OptionalSelection, plan: Timing, config: GeneratorConfig): RankedInsertion | undefined {
@@ -710,6 +724,7 @@ type LongLegRelocation = {
 };
 
 function routeCost(order: Candidate[], config: GeneratorConfig): number | undefined {
+  if (!remoteTerritoryLegsWithinLimit(order)) return undefined;
   const plan = timing(order, config);
   if (!plan || !isWithinBudget(plan)) return undefined;
   if (plan.greenCount / order.length < 0.85) return undefined;

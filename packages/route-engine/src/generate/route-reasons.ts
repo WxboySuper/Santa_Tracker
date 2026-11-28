@@ -1,13 +1,18 @@
 import { haversineKm, type LatLng } from '../geo';
 import { classifyRegion } from './regions';
+import { admin1UnitFor } from './admin1';
 import type { Candidate } from './types';
 
 type LongLegReasonOptions = {
   reinsertionChecked?: boolean;
 };
 
-function coverageDescription(destination: Candidate): string {
-  return destination.mandatoryCoverageStop ? 'mandatory country/admin-1 coverage' : 'selected stop';
+function coverageDescription(origin: Candidate, destination: Candidate): string {
+  const mandatory = destination.mandatoryCoverageStop ? destination : origin.mandatoryCoverageStop ? origin : undefined;
+  if (!mandatory) return 'selected stop';
+  const admin1Unit = admin1UnitFor(mandatory);
+  if (admin1Unit) return `mandatory admin-1 coverage (${admin1Unit})`;
+  return `mandatory sovereign-state coverage (${mandatory.country})`;
 }
 
 function insertionDescription(options: LongLegReasonOptions): string {
@@ -23,7 +28,7 @@ function isOceanCrossing(origin: Candidate, destination: Candidate): boolean {
 }
 
 function deliveryReason(origin: Candidate, destination: Candidate, options: LongLegReasonOptions): string {
-  const coverage = coverageDescription(destination);
+  const coverage = coverageDescription(origin, destination);
   const suffix = insertionDescription(options);
   if (isOceanCrossing(origin, destination)) {
     return 'ocean crossing ' + origin.country + ' to ' + destination.country + ' for ' + coverage + suffix;

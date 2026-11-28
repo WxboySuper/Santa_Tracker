@@ -82,6 +82,10 @@ export type RouteReport = {
   invalidCandidateIds: string[];
   unselectedCandidateCount: number;
   countriesCovered: number;
+  sovereignStatesExpected: number;
+  sovereignStatesCovered: number;
+  territoriesVisited: string[];
+  territoriesSkipped: string[];
   countryCodes: string[];
   uncoveredCountryCodes: string[];
   uncoveredCountryReasons: { code: string; candidateCount: number; reason: string }[];

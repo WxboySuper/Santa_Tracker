@@ -1,6 +1,8 @@
 import { LegacyRouteFixtureSchema } from '@santa-tracker/contracts';
 import { haversineKm, legSpeedKmh } from '../geo';
 import { classifyRegion } from './regions';
+import { admin1UnitFor } from './admin1';
+import { isRemoteOptionalTerritory, isSovereignState } from './coverage';
 import { localWindowStatus } from './sweep';
 import { hasSpecificLongLegReason } from './route-reasons';
 import { NORTH_POLE, TAKEOFF_UTC, type Candidate, type GeneratorConfig, type RouteReport } from './types';
@@ -608,6 +610,23 @@ function addSelectionChecks(context: RouteAuditContext, view: AuditView, checks:
   addCoordinateChecks(context, view, checks);
   addExperienceCheck(view, checks);
   addStopTierCheck(view, checks);
+  const remoteFailures = view.places.flatMap((place, index) => {
+    if (!isRemoteOptionalTerritory(place.country)) return [];
+    const previous = view.places[index - 1] ?? NORTH_POLE;
+    const next = view.places[index + 1] ?? NORTH_POLE;
+    const inboundKm = haversineKm(previous, place);
+    const outboundKm = haversineKm(place, next);
+    return inboundKm <= 3_000 && outboundKm <= 3_000
+      ? []
+      : [`${place.name} (${place.country}) has adjacent legs ${human(inboundKm)} km and ${human(outboundKm)} km`];
+  });
+  addCheck(checks, 'Remote territory leg limit', remoteFailures.length === 0,
+    remoteFailures.length ? remoteFailures.join('; ') : 'Every visited remote territory adds only adjacent legs of 3,000 km or less.');
+  const required = [...new Set(context.pool.map((place) => place.country).filter(isSovereignState))].sort();
+  const visited = new Set(view.places.map((place) => place.country));
+  const missing = required.filter((code) => !visited.has(code));
+  addCheck(checks, 'Sovereign-state coverage', missing.length === 0,
+    `${required.length - missing.length}/${required.length} sovereign states visited${missing.length ? `; missing ${missing.join(', ')}` : ''}.`);
 }
 
 function addFlightWindowCheck(context: RouteAuditContext, view: AuditView, checks: AuditCheck[]): void {
@@ -817,12 +836,24 @@ function hasReasonForRouteContext(view: AuditView, leg: AuditLeg, reason: string
   if (!hasSpecificLongLegReason(reason)) return false;
   if (!reason || !hasInsertionProof(leg, reason)) return false;
   if (leg.kind === 'return') return reason.startsWith('polar return from ');
+  if (leg.kind === 'launch') return reason.startsWith('polar launch to ');
   const expected = expectedCountryPair(view, leg);
-  return expected !== undefined && reason.includes(expected);
+  if (expected === undefined || !reason.includes(expected)) return false;
+  const index = deliveryIndex(view, leg);
+  const destination = view.places[index];
+  const origin = view.places[index - 1];
+  const mandatory = [destination, origin].filter((place): place is Candidate => place?.mandatoryCoverageStop === true);
+  return mandatory.some((place) => {
+    const admin1Unit = admin1UnitFor(place);
+    const coverage = admin1Unit
+      ? `mandatory admin-1 coverage (${admin1Unit})`
+      : `mandatory sovereign-state coverage (${place.country})`;
+    return reason.includes(coverage);
+  });
 }
 
 function addLongLegReasonCheck(view: AuditView, legs: AuditLeg[], checks: AuditCheck[]): void {
-  const long = legs.filter((leg) => leg.km > 4_000);
+  const long = legs.filter((leg) => leg.km > 4_000 && leg.kind === 'delivery');
   const missing = long.filter((leg) => !hasReasonForRouteContext(view, leg, leg.toNode?.transit_to_here?.route_reason ?? undefined));
   const details = long.map((leg) => leg.fromName + ' -> ' + leg.toName + ' ' + human(leg.km) + ' km ('
     + (leg.toNode?.transit_to_here?.route_reason ?? 'no reason') + ')');
@@ -942,12 +973,16 @@ function addDistanceReport(legs: AuditLeg[], reports: { name: string; detail: st
 
 function addCoverageReports(view: AuditView, context: RouteAuditContext, legs: AuditLeg[], reports: { name: string; detail: string }[]): void {
   const countries = [...new Set(view.delivery.map((node) => node.location.country_code).filter((code): code is string => !!code))].sort();
+  const territories = [...new Set(context.pool.map((place) => place.country).filter((code) => !isSovereignState(code)))].sort();
+  const visitedTerritories = territories.filter((code) => countries.includes(code));
+  const skippedTerritories = territories.filter((code) => !countries.includes(code));
   const continents: Record<string, number> = {};
   for (const place of view.places) {
     const continent = classifyRegion(place).continent;
     continents[continent] = (continents[continent] ?? 0) + 1;
   }
   reports.push({ name: 'Coverage', detail: `${view.delivery.length} stops; ${countries.length} countries/territories (${countries.join(', ')}); per-continent ${Object.entries(continents).sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => `${name} ${count}`).join(', ')}.` });
+  reports.push({ name: 'Territory coverage', detail: `Visited ${visitedTerritories.length}/${territories.length} optional territories (${visitedTerritories.join(', ') || 'none'}); skipped ${skippedTerritories.length} (${skippedTerritories.join(', ') || 'none'}).` });
   const worldPlaces = context.worldPlaces ?? context.pool;
   const populationTotal = worldPlaces.reduce((sum, place) => sum + Math.max(0, place.population ?? 0), 0);
   const coveredPopulation = worldPlaces.reduce((sum, place) => sum + (view.places.some((stop) => haversineKm(stop, place) <= 500) ? Math.max(0, place.population ?? 0) : 0), 0);
