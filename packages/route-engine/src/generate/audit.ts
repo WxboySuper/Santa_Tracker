@@ -841,8 +841,14 @@ function legServesMandatoryCoverage(view: AuditView, leg: AuditLeg, reason: stri
     && reason.includes(mandatoryCoverageLabel(place)));
 }
 
+function isLongLegWithoutReason(leg: AuditLeg, reason: string): boolean {
+  if (!hasSpecificLongLegReason(reason)) return true;
+  return !hasInsertionProof(leg, reason);
+}
+
 function hasReasonForRouteContext(view: AuditView, leg: AuditLeg, reason: string | undefined): boolean {
-  if (!reason || !hasSpecificLongLegReason(reason) || !hasInsertionProof(leg, reason)) return false;
+  if (!reason) return false;
+  if (isLongLegWithoutReason(leg, reason)) return false;
   if (leg.kind === 'return') return reason.startsWith('polar return from ');
   if (leg.kind === 'launch') return reason.startsWith('polar launch to ');
   const expected = expectedCountryPair(view, leg);
