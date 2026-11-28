@@ -4,6 +4,8 @@ import { localWindowStatus } from './sweep';
 import { DEFAULT_GENERATOR_LIMITS } from './types';
 import type { Candidate, GeneratorConfig } from './types';
 
+type AuditTestConfig = GeneratorConfig & { useOrienteering: boolean };
+
 function routeFixture(points: { id: string; name: string; lng: number; country?: string; offset?: number; reason?: string; routeReason?: string; population?: number; category?: string; arrivalUtc?: string; status?: string; tier?: string; duration?: number; transitSeconds?: number }[]): { document: unknown; selected: Candidate[] } {
   const selected = points.map((point) => ({ id: point.id, name: point.name, country: point.country ?? 'US', timezone: 'Etc/UTC', utcOffsetMinutes: point.offset ?? 0,
     category: point.category ?? 'populated', population: point.population ?? 1000, lat: 0, lng: point.lng }));
