@@ -3,7 +3,7 @@
 ## [Unreleased] - Time-window orienteering route generator
 
 - **Ordering:** Seeds every candidate country and required US, Canadian, and Australian admin-1 unit, improves the tour with 2-opt and or-opt, then inserts optional stops by marginal route cost.
-- **Schedule:** Plans regional legs at 12,000 km/h and allows long crossings to use the 25,000 km/h ceiling when needed to preserve the 28-hour return. Speed percentiles and local arrival windows remain soft targets. Mandatory country representatives record a spacing exception only when every candidate is within 20 km of a selected mandatory stop.
+- **Schedule:** Plans every leg at the 25,000 km/h ceiling to fit mandatory coverage and leave more of the 28-hour window for optional stops. Speed percentiles and local arrival windows remain soft targets. Mandatory country representatives record a spacing exception only when every candidate is within 20 km of a selected mandatory stop.
 - **Reports:** Records reasons for eastward legs over 1,500 km and legs over 4,000 km; the review page shows those reasons beside leg speeds and distances.
 
 ## [Unreleased] - Route generation audit model
