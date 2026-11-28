@@ -34,10 +34,16 @@ function shortId(id: string): string {
 function SecondCodeForm({ onConfirmed }: { onConfirmed: () => void }) {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
+  // A recovery code is single-use, so a second submit while the first is in flight must not happen.
+  const [pending, setPending] = useState(false);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (pending) return;
+    setPending(true);
+    setError("");
     const result = await confirmRecoverySession(code);
+    setPending(false);
     if (result.ok) onConfirmed();
     else setError(result.error);
   }
@@ -47,7 +53,7 @@ function SecondCodeForm({ onConfirmed }: { onConfirmed: () => void }) {
       <p>You signed in with a recovery code. Enter a second unused code to change passkeys.</p>
       <div className="mt-2 flex gap-2">
         <input value={code} onChange={event => setCode(event.target.value)} aria-label="Second recovery code" autoComplete="one-time-code" className="flex-1 rounded bg-white p-1.5 font-mono text-black" />
-        <button type="submit" disabled={!code.trim()} className="rounded bg-blue-600 px-3 py-1.5 disabled:opacity-40">Confirm</button>
+        <button type="submit" disabled={pending || !code.trim()} className="rounded bg-blue-600 px-3 py-1.5 disabled:opacity-40">Confirm</button>
       </div>
       {error && <p role="alert" className="mt-2 text-red-300">{error}</p>}
     </form>
@@ -134,11 +140,12 @@ function usePasskeyPanel(onSessionEnded: () => void) {
   // The first passkey turns password sign-in off and ends password sessions, including this one.
   const [mustSignInAgain, setMustSignInAgain] = useState(false);
 
-  const refresh = useCallback(async () => {
+  // `quiet` keeps an earlier action's error on screen when the follow-up reload also fails.
+  const refresh = useCallback(async (quiet = false) => {
     const result = await loadPasskeys();
     if (result.ok) setSummary(result.value);
     else if (result.status === 401) onSessionEnded();
-    else setMessage(result.error);
+    else if (!quiet) setMessage(result.error);
   }, [onSessionEnded]);
 
   useEffect(() => {
@@ -154,9 +161,13 @@ function usePasskeyPanel(onSessionEnded: () => void) {
       setNeedsSecondCode(true);
       return;
     }
-    setMessage(result.ok ? outcome.message(result.value) : result.error);
-    const again = result.ok ? (outcome.refreshAfter?.(result.value) ?? true) : true;
-    if (again) await refresh();
+    if (!result.ok) {
+      setMessage(result.error);
+      await refresh(true);
+      return;
+    }
+    setMessage(outcome.message(result.value));
+    if (outcome.refreshAfter?.(result.value) ?? true) await refresh();
   }
 
   return { summary, message, setMessage, busy, codes, setCodes, needsSecondCode, setNeedsSecondCode, mustSignInAgain, setMustSignInAgain, run };
