@@ -155,12 +155,13 @@ export function renderReview(generated: GeneratedRoute, inputs: GeneratorInputs)
     ? generated.report.issues.map((issue) => `<li>${escapeHtml(issue)}</li>`)
     : ['<li>No generator warnings.</li>'];
   const ownerDecisionRows = [
-    ['Ordering', 'Seed every mandatory country and admin-1 unit by local-midnight time, then improve the tour with 2-opt and or-opt.'],
+    ['Ordering', 'Seed every mandatory country and admin-1 unit in westward timezone bands, then improve the route within each band.'],
     ['Selection', 'Reserve one stop per candidate country/territory and every required US, Canadian and Australian admin-1 unit before dense fill.'],
-    ['Arrival window', 'Prefer 23:00-05:00 local; out-of-window arrivals add a soft penalty.'],
-    ['Pacing', 'Aim for 4,000 km/h on regional legs and 15,000 km/h on long crossings; 25,000 km/h is the hard maximum.'],
+    ['Arrival window', 'Require at least 90% of stops from 22:00-06:00 local; no stop may arrive outside 20:00-08:00.'],
+    ['Distribution', 'Weight optional stops by population and candidate importance; cap each country at 12% and US plus Canada at 20%.'],
+    ['Pacing', 'Plan short hops at 5,000 km/h, regional legs at up to 15,000 km/h, and long ocean crossings at up to 25,000 km/h.'],
     ['Separation', 'Keep selected stops at least 20 km apart.'],
-    ['Dwell', 'Major 60 s, city 30 s, town 10 s, hop 3 s.'],
+    ['Dwell', 'Major 30 s, city 20 s, town 5 s, hop 3 s.'],
     ['Selection', 'Insert optional stops at the lowest marginal route cost while the 28-hour return budget holds; stop at 700 deliveries.'],
   ].map(([decision, applied]) => `<tr><td>${escapeHtml(decision ?? '')}</td><td>${escapeHtml(applied ?? '')}</td></tr>`);
   const tierSummary = Object.entries(generated.report.stopTiers).map(([tier, count]) => `${tier} ${count}`).join(', ');
