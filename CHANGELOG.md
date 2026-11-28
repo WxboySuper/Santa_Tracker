@@ -3,7 +3,7 @@
 ## [Unreleased] - Local-night route pacing and audit limits
 
 - **Route ordering:** Keeps mandatory country and admin-1 coverage while advancing through timezone bands with local night. Optional stops are weighted by population and importance, with 12% per-country and 20% combined US+Canada share caps.
-- **Local arrivals:** Requires at least 90% of stops from 22:00 to 06:00 local and rejects arrivals outside 20:00 to 08:00. `GREEN`, `YELLOW`, and `RED` labels now follow the recorded local arrival.
+- **Local arrivals:** Requires at least 85% of stops from 23:00 to 05:00 local and rejects arrivals outside 22:30 to 05:30. `GREEN`, `YELLOW`, and `RED` labels now follow the recorded local arrival.
 - **Audit:** Detects repeated long north-south reversals, checks country shares and local-night coverage, requires reasons for eastward legs over 1,500 km, records mandatory spacing exceptions, and reports speed percentiles and long-leg reasons.
 
 ## [Unreleased] - Place notes and photos in the globe's Here panel
