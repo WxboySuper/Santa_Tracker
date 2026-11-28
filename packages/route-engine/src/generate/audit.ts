@@ -416,6 +416,14 @@ function isHeadlineCandidate(place: Candidate): boolean {
   return place.category === 'special' || ('headlineLandmark' in place && place.headlineLandmark === true);
 }
 
+function hasKnownPopulation(place: Candidate): place is Candidate & { population: number } {
+  return place.population !== undefined;
+}
+
+function isCityCandidate(place: Candidate, population: number): boolean {
+  return population >= 100_000 || isCapitalCandidate(place) || isCuratedCandidate(place);
+}
+
 function tierWithoutPopulation(place: Candidate): string {
   if (isHeadlineCandidate(place)) return 'major';
   if (isCuratedCandidate(place) || isCapitalCandidate(place)) return 'city';
@@ -428,20 +436,35 @@ function majorTierAtPopulation(place: Candidate, population: number): boolean {
 }
 
 function expectedTier(place: Candidate): string {
+  if (!hasKnownPopulation(place)) return tierWithoutPopulation(place);
   const population = place.population;
-  if (population === undefined) return tierWithoutPopulation(place);
   if (majorTierAtPopulation(place, population)) return 'major';
-  if (population >= 100_000 || isCapitalCandidate(place) || isCuratedCandidate(place)) return 'city';
+  if (isCityCandidate(place, population)) return 'city';
   if (population >= 5_000) return 'town';
   return 'hop';
 }
 
+function tierDurationMatches(tier: string, duration: number | undefined): boolean {
+  const expectedSeconds = STOP_TIER_SECONDS[tier];
+  if (expectedSeconds === undefined) return false;
+  return duration === expectedSeconds;
+}
+
+function matchesExpectedTier(tier: string, place: Candidate | undefined): boolean {
+  if (!place) return true;
+  return tier === expectedTier(place);
+}
+
+function hasValidStopTier(tier: string, duration: number | undefined, place: Candidate | undefined): boolean {
+  if (!tierDurationMatches(tier, duration)) return false;
+  return matchesExpectedTier(tier, place);
+}
+
 function tierFailure(node: RouteNode, place: Candidate | undefined): string | undefined {
   const tier = node.stop_experience?.stop_tier ?? '';
-  const expectedSeconds = STOP_TIER_SECONDS[tier];
   const duration = node.stop_experience?.duration_seconds ?? undefined;
   const expected = place ? expectedTier(place) : undefined;
-  if (expectedSeconds !== undefined && duration === expectedSeconds && (!expected || tier === expected)) return undefined;
+  if (hasValidStopTier(tier, duration, place)) return undefined;
   return `${node.location.name}: tier ${tier || 'missing'}, duration ${duration ?? 'missing'}s${expected ? `, expected ${expected}` : ''}`;
 }
 
@@ -587,11 +610,17 @@ function addReturnLeg(legs: AuditLeg[], view: AuditView): void {
   if (leg) legs.push(leg);
 }
 
+function arrivalFollowsRecordedTravel(arrival: number, departure: number, recordedSeconds: number): boolean {
+  if (!Number.isFinite(arrival)) return false;
+  if (!Number.isFinite(departure)) return false;
+  return arrival >= departure + recordedSeconds * 1000;
+}
+
 function chronologyFailure(previous: RouteNode, current: RouteNode): string | undefined {
   const arrival = Date.parse(current.schedule.arrival_utc ?? '');
   const departure = Date.parse(previous.schedule.departure_utc);
   const recorded = current.transit_to_here?.duration_seconds ?? 0;
-  if (Number.isFinite(arrival) && Number.isFinite(departure) && arrival >= departure + recorded * 1000) return undefined;
+  if (arrivalFollowsRecordedTravel(arrival, departure, recorded)) return undefined;
   return `${current.location.name}: arrival precedes prior departure plus ${recorded}s travel`;
 }
 
@@ -609,7 +638,9 @@ function deliveryChronologyFailures(view: AuditView, legs: AuditLeg[]): string[]
 function returnChronologyFailure(view: AuditView, legs: AuditLeg[]): string | undefined {
   const previous = view.delivery.at(-1);
   const end = view.end;
-  if (!previous || !end || !legs.at(-1)) return 'missing return leg';
+  if (!previous) return 'missing return leg';
+  if (!end) return 'missing return leg';
+  if (!legs.at(-1)) return 'missing return leg';
   const failure = chronologyFailure(previous, end);
   return failure ? failure.replace(end.location.name, 'END') : undefined;
 }
@@ -631,13 +662,20 @@ function addSpeedCheck(legs: AuditLeg[], checks: AuditCheck[]): void {
   addCheck(checks, 'Leg speed', pass, `median ${human(median)} km/h; p90 ${human(p90)} km/h; max ${human(maximum)} km/h (hard limit 25,000).`);
 }
 
+function longMeridionalDirection(from: Candidate | undefined, to: Candidate | undefined): number | undefined {
+  if (!from) return undefined;
+  if (!to) return undefined;
+  if (haversineKm(from, to) < 1_500) return undefined;
+  const latitudeChange = to.lat - from.lat;
+  if (Math.abs(latitudeChange) < 20) return undefined;
+  return Math.sign(latitudeChange);
+}
+
 function meridionalDirections(places: Candidate[]): number[] {
   const directions: number[] = [];
   for (let index = 1; index < places.length; index++) {
-    const from = places[index - 1];
-    const to = places[index];
-    if (!from || !to || haversineKm(from, to) < 1_500 || Math.abs(to.lat - from.lat) < 20) continue;
-    directions.push(Math.sign(to.lat - from.lat));
+    const direction = longMeridionalDirection(places[index - 1], places[index]);
+    if (direction !== undefined) directions.push(direction);
   }
   return directions;
 }
@@ -666,22 +704,49 @@ function addLongLegReasonCheck(legs: AuditLeg[], checks: AuditCheck[]): void {
     long.length ? details.join('; ') : 'No legs exceed 4,000 km.');
 }
 
+function deliveryIndex(view: AuditView, leg: AuditLeg): number {
+  if (!leg.toNode) return -1;
+  return view.delivery.indexOf(leg.toNode);
+}
+
+function plausibleOffsetAnomaly(view: AuditView, leg: AuditLeg): boolean {
+  const index = deliveryIndex(view, leg);
+  if (index <= 0) return false;
+  const origin = view.places[index - 1]?.utcOffsetMinutes;
+  const destination = view.places[index]?.utcOffsetMinutes;
+  if (origin === undefined) return false;
+  if (destination === undefined) return false;
+  return destination > origin;
+}
+
+function destinationIsBeforeSweep(view: AuditView, index: number): boolean {
+  if (index < 0) return false;
+  const firstIndex = view.places.findIndex((place) => (place.utcOffsetMinutes ?? Infinity) <= 720);
+  if (firstIndex !== -1 && index >= firstIndex) return false;
+  return (view.places[index]?.utcOffsetMinutes ?? -Infinity) > 720;
+}
+
+function destinationCrossesDateLine(view: AuditView, leg: AuditLeg, index: number): boolean {
+  if (index <= 0) return false;
+  const originLongitude = view.delivery[index - 1]?.location.lng;
+  if (originLongitude === undefined) return false;
+  const destinationLongitude = leg.toNode?.location.lng ?? 0;
+  return Math.abs(normalizedLongitude(destinationLongitude) - normalizedLongitude(originLongitude)) > 180;
+}
+
+function plausibleDateline(view: AuditView, leg: AuditLeg): boolean {
+  const index = deliveryIndex(view, leg);
+  return destinationIsBeforeSweep(view, index) && destinationCrossesDateLine(view, leg, index);
+}
+
 function plausibleEastwardReason(view: AuditView, leg: AuditLeg, context: RouteAuditContext): boolean {
+  if (leg.km <= 1_500) return true;
   const reason = leg.toNode?.transit_to_here?.eastward_reason;
-  if (leg.km <= 1_500) return !reason || reason === 'soft-orienteering';
   if (reason === 'soft-orienteering') return usesOrienteering(context);
   if (reason === 'return') return leg.kind === 'return';
-  const firstOffsetAtOrBelow12 = view.places.findIndex((place) => (place.utcOffsetMinutes ?? Infinity) <= 720);
-  const destinationIndex = leg.toNode ? view.delivery.indexOf(leg.toNode) : -1;
-  const originOffset = destinationIndex > 0 ? view.places[destinationIndex - 1]?.utcOffsetMinutes : undefined;
-  const destinationOffset = destinationIndex >= 0 ? view.places[destinationIndex]?.utcOffsetMinutes : undefined;
-  if (reason === 'offset-anomaly') return originOffset !== undefined && destinationOffset !== undefined && destinationOffset > originOffset;
-  if (reason !== 'dateline') return leg.km <= 1_500;
-  const beforeSweep = destinationIndex >= 0 && (firstOffsetAtOrBelow12 === -1 || destinationIndex < firstOffsetAtOrBelow12)
-    && (destinationOffset ?? -Infinity) > 720;
-  const originLongitude = destinationIndex > 0 ? view.delivery[destinationIndex - 1]?.location.lng : undefined;
-  const crossesDateLine = originLongitude !== undefined && Math.abs(normalizedLongitude(leg.toNode?.location.lng ?? 0) - normalizedLongitude(originLongitude)) > 180;
-  return beforeSweep && crossesDateLine;
+  if (reason === 'offset-anomaly') return plausibleOffsetAnomaly(view, leg);
+  if (reason === 'dateline') return plausibleDateline(view, leg);
+  return false;
 }
 
 function addEastwardCheck(context: RouteAuditContext, view: AuditView, legs: AuditLeg[], checks: AuditCheck[]): void {
@@ -703,10 +768,14 @@ function detourAt(places: Candidate[], index: number): { name: string; country: 
   const previous = places[index - 1];
   const current = places[index];
   const next = places[index + 1];
-  if (!previous || !current || !next) return undefined;
+  if (!previous) return undefined;
+  if (!current) return undefined;
+  if (!next) return undefined;
   const via = haversineKm(previous, current) + haversineKm(current, next);
   const direct = haversineKm(previous, next);
-  return via > 0 && via > direct * 2.5 ? { name: current.name, country: current.country, via, direct } : undefined;
+  if (direct <= 0) return undefined;
+  if (via <= direct * 2.5) return undefined;
+  return { name: current.name, country: current.country, via, direct };
 }
 
 function detourFindings(view: AuditView): { fail: string[]; warnings: string[] } {
