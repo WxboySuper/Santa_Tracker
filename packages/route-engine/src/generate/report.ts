@@ -12,6 +12,7 @@ import {
 } from './sweep';
 import { requiredSnapshotOffset, scheduledTravelMilliseconds } from './order-shared';
 import { admin1Coverage } from './admin1';
+import { isSovereignState } from './coverage';
 import { longLegReason } from './route-reasons';
 import { NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type GeneratorConfig, type RouteDetourReport, type RouteLegReport, type RouteReport, type StopTier } from './types';
 
@@ -333,7 +334,12 @@ export function buildReport(places: Candidate[], route: Route, { config, pool, i
   const mix = countsBy(places, (place) => place.category);
   const coveredCountries = countryCodes(places);
   const availableCountries = candidateCountryCodes(pool);
-  const missingCountries = availableCountries.filter((code) => !coveredCountries.includes(code));
+  const requiredSovereignStates = availableCountries.filter(isSovereignState);
+  const coveredSovereignStates = requiredSovereignStates.filter((code) => coveredCountries.includes(code));
+  const missingCountries = requiredSovereignStates.filter((code) => !coveredCountries.includes(code));
+  const territories = availableCountries.filter((code) => !isSovereignState(code));
+  const territoriesVisited = territories.filter((code) => coveredCountries.includes(code));
+  const territoriesSkipped = territories.filter((code) => !coveredCountries.includes(code));
   const adminCoverage = admin1Coverage(places);
   const legDistances = legDistanceSummary(places, legs);
   const speeds = speedSummary(legs);
@@ -351,7 +357,11 @@ export function buildReport(places: Candidate[], route: Route, { config, pool, i
     candidateCount: pool.length,
     invalidCandidateIds,
     unselectedCandidateCount: Math.max(0, pool.length - places.length),
-    countriesCovered: coveredCountries.length,
+    countriesCovered: coveredSovereignStates.length,
+    sovereignStatesExpected: requiredSovereignStates.length,
+    sovereignStatesCovered: coveredSovereignStates.length,
+    territoriesVisited,
+    territoriesSkipped,
     countryCodes: coveredCountries,
     uncoveredCountryCodes: missingCountries,
     uncoveredCountryReasons: uncoveredCountryReasons(missingCountries, pool, places, config.minStopSeparationKm),

@@ -1,6 +1,7 @@
 import { LegacyRouteFixtureSchema } from '@santa-tracker/contracts';
 import { haversineKm, legSpeedKmh } from '../geo';
 import { classifyRegion } from './regions';
+import { admin1UnitFor } from './admin1';
 import { isSovereignState } from './coverage';
 import { localWindowStatus } from './sweep';
 import { hasSpecificLongLegReason } from './route-reasons';
@@ -818,12 +819,24 @@ function hasReasonForRouteContext(view: AuditView, leg: AuditLeg, reason: string
   if (!hasSpecificLongLegReason(reason)) return false;
   if (!reason || !hasInsertionProof(leg, reason)) return false;
   if (leg.kind === 'return') return reason.startsWith('polar return from ');
+  if (leg.kind === 'launch') return reason.startsWith('polar launch to ');
   const expected = expectedCountryPair(view, leg);
-  return expected !== undefined && reason.includes(expected);
+  if (expected === undefined || !reason.includes(expected)) return false;
+  const index = deliveryIndex(view, leg);
+  const destination = view.places[index];
+  const origin = view.places[index - 1];
+  const mandatory = [destination, origin].filter((place): place is Candidate => place?.mandatoryCoverageStop === true);
+  return mandatory.some((place) => {
+    const admin1Unit = admin1UnitFor(place);
+    const coverage = admin1Unit
+      ? `mandatory admin-1 coverage (${admin1Unit})`
+      : `mandatory sovereign-state coverage (${place.country})`;
+    return reason.includes(coverage);
+  });
 }
 
 function addLongLegReasonCheck(view: AuditView, legs: AuditLeg[], checks: AuditCheck[]): void {
-  const long = legs.filter((leg) => leg.km > 4_000);
+  const long = legs.filter((leg) => leg.km > 4_000 && leg.kind === 'delivery');
   const missing = long.filter((leg) => !hasReasonForRouteContext(view, leg, leg.toNode?.transit_to_here?.route_reason ?? undefined));
   const details = long.map((leg) => leg.fromName + ' -> ' + leg.toName + ' ' + human(leg.km) + ' km ('
     + (leg.toNode?.transit_to_here?.route_reason ?? 'no reason') + ')');

@@ -210,7 +210,7 @@ describe('auditRouteDocument', () => {
     const fixture = routeFixture([{ id: 'us-stop', name: 'US stop', country: 'US', lng: -100 }]);
     const pitcairn = { ...fixture.selected[0]!, id: 'pn-stop', name: 'Adamstown', country: 'PN' };
     const result = auditRouteDocument(fixture.document, {
-      config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] },
+      config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as AuditTestConfig,
       pool: [...fixture.selected, pitcairn], selected: fixture.selected,
       zonesByCountry: { US: ['Etc/UTC'], PN: ['Pacific/Pitcairn'] }, utcOffsetsByTimezone: { 'Etc/UTC': 0, 'Pacific/Pitcairn': -480 },
       countryBoundsByCode: { US: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 }, PN: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 } },
@@ -342,8 +342,9 @@ describe('auditRouteDocument', () => {
     const specific = routeFixture([
       { id: 'origin', name: 'Origin', lng: 0, country: 'US', routeReason: 'polar launch to US; best feasible insertion checked' },
       { id: 'destination', name: 'Destination', lng: 50, country: 'CA',
-        routeReason: 'ocean crossing US to CA for mandatory country/admin-1 coverage; best feasible insertion checked' },
+        routeReason: 'ocean crossing US to CA for mandatory sovereign-state coverage (CA); best feasible insertion checked' },
     ]);
+    specific.selected[1]!.mandatoryCoverageStop = true;
     const nodes = (specific.document as { route_nodes: { transit_to_here?: { route_reason?: string } }[] }).route_nodes;
     nodes.at(-1)!.transit_to_here = { route_reason: 'polar return from CA' };
     const specificResult = auditFixture(specific, true);
