@@ -20,7 +20,7 @@ describe('long-leg reinsertion', () => {
     const west: Candidate = { id: 'west', name: 'West', country: 'US', lat: 0, lng: 0,
       timezone: 'Etc/GMT+11', utcOffsetMinutes: -660, category: 'hub' };
     const eastern: Candidate = { id: 'eastern', name: 'Eastern', country: 'US', lat: 0, lng: 60,
-      timezone: 'Etc/GMT+11', utcOffsetMinutes: -660, category: 'hub' };
+      timezone: 'Etc/GMT+11', utcOffsetMinutes: -660, category: 'hub', mandatoryCoverageStop: true };
     const nearWest: Candidate = { id: 'near-west', name: 'Near West', country: 'US', lat: 0, lng: 5,
       timezone: 'Etc/GMT+11', utcOffsetMinutes: -660, category: 'hub' };
 
