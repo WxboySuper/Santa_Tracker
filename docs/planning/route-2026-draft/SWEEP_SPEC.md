@@ -16,8 +16,8 @@ The seed is the sole tie-break input. Given the same seed and input snapshots, g
 ## Clock and pacing
 
 - Takeoff is Dec 24 10:00 UTC from the North Pole. Return by Dec 25 14:00 UTC.
-- Use 4,000 km/h for regional legs and 15,000 km/h for long crossings. The 25,000 km/h maximum is a hard ceiling, not a target.
-- Aim for median leg speed near 5,000 km/h or less and p90 at or below 15,000 km/h.
+- Use 4,000 km/h for regional legs and allow long crossings to use up to the 25,000 km/h hard ceiling when needed to protect the 28-hour return and make room for more stops. This schedule-speed preference is soft and does not override the absolute ceiling.
+- Aim for median leg speed near 5,000 km/h or less and p90 at or below 15,000 km/h. These are route-quality targets; the generator may exceed them to meet the return budget and preserve mandatory coverage.
 - Prefer arrival between 23:00 and 05:00 local. Outside arrivals are allowed when they buy useful stops or preserve required coverage; the audit reports them as a soft-rule cost.
 - Keep stops at least 20 km apart.
 - A mandatory country representative may use the recorded spacing exception only when every available candidate conflicts with another mandatory stop. All remaining pairs must still meet the 20 km minimum.
