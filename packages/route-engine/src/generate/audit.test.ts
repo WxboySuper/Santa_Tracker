@@ -212,20 +212,13 @@ describe('auditRouteDocument', () => {
     expect(auditFixture(fixture).find((check) => check.name === 'Vetoes, coordinates, duplicates, and separation')?.pass).toBe(true);
   });
 
-  it('keeps the committed old draft as an eastward regression case', async () => {
-    const { readFile } = await import('node:fs/promises');
-    const document: unknown = JSON.parse(await readFile(new URL('../../../../docs/planning/route-2026-draft/route.json', import.meta.url), 'utf8'));
-    const nodes = (document as { route_nodes: { type: string; candidate_id: string; location: { name: string; country_code: string; timezone: string; timezone_offset: number; lat: number; lng: number }; comment?: string }[] }).route_nodes;
-    const selected = nodes.filter((node) => node.type === 'DELIVERY').map((node) => ({
-      id: node.candidate_id, name: node.location.name, country: node.location.country_code, timezone: node.location.timezone,
-      utcOffsetMinutes: node.location.timezone_offset * 60, category: node.comment ?? 'populated', lat: node.location.lat, lng: node.location.lng,
-    }));
-    const result = auditRouteDocument(document, {
-      config: { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: false, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as GeneratorConfig & { useOrienteering: boolean },
-      pool: selected, selected, zonesByCountry: {}, utcOffsetsByTimezone: {}, countryBoundsByCode: {},
-      report: { continentBalance: {}, subregionBalance: {} }, vetoIds: [],
-    });
-    expect(result.checks.find((check) => check.name === 'Eastward legs')?.pass).toBe(false);
+  it('requires a reason for eastward legs over 1,500 km in hard-rule mode', () => {
+    const fixture = routeFixture([
+      { id: 'a', name: 'Origin', lng: 0 },
+      { id: 'b', name: 'Eastward destination', lng: 20 },
+    ]);
+    const result = auditFixture(fixture);
+    expect(result.find((check) => check.name === 'Eastward legs')?.pass).toBe(false);
   });
 
   it('fails repeated-country detours in hard-rule mode', () => {
