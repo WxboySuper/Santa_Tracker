@@ -16,7 +16,7 @@ The seed is the sole tie-break input. Given the same seed and input snapshots, g
 ## Clock and pacing
 
 - Takeoff is Dec 24 10:00 UTC from the North Pole. Return by Dec 25 14:00 UTC.
-- Use 15,000 km/h for regional hops and non-ocean legs under 4,000 km. Use the 25,000 km/h ceiling only for ocean crossings and longer gaps. Route distance and travel time lead the cost; eastward backtracking, local arrival windows, detours, and region crossings add modest penalties.
+- Use 5,000 km/h for hops under 400 km, 15,000 km/h for regional legs, and the 25,000 km/h ceiling only for ocean crossings and longer gaps. Route distance and travel time lead the cost; eastward backtracking, local arrival windows, detours, and region crossings add modest penalties.
 - Aim for median leg speed near 5,000 km/h or less and p90 at or below 15,000 km/h. These are route-quality targets; the generator may exceed them to meet the return budget and preserve mandatory coverage.
 - Prefer arrival between 23:00 and 05:00 local. Outside arrivals are allowed when they buy useful stops or preserve required coverage; the audit reports them as a soft-rule cost.
 - Keep stops at least 20 km apart.
