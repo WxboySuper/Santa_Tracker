@@ -1,6 +1,7 @@
 ﻿import { LegacyRouteFixtureSchema } from '@santa-tracker/contracts';
 import { haversineKm, legSpeedKmh } from '../geo';
 import { classifyRegion } from './regions';
+import { localWindowStatus } from './sweep';
 import { NORTH_POLE, TAKEOFF_UTC, type Candidate, type GeneratorConfig, type RouteReport } from './types';
 
 export type AuditCheck = { name: string; pass: boolean; detail: string };
@@ -38,6 +39,7 @@ type RouteNode = {
     arrival_utc: string | null;
     departure_utc: string;
     local_arrival_time?: string | null;
+    time_window_status?: string;
   };
   stop_experience?: { presents_delivered_at_stop?: number | null; camera_zoom?: number | null; weather_condition?: string | null; stop_tier?: string | null; duration_seconds?: number | null };
   transit_to_here?: { duration_seconds?: number | null; distance_km?: number | null; speed_kmh?: number | null; eastward_reason?: 'dateline' | 'offset-anomaly' | 'return' | 'soft-orienteering' | null; route_reason?: string | null } | null;
@@ -138,7 +140,7 @@ function addCheck(checks: AuditCheck[], name: string, pass: boolean, detail: str
 }
 
 function usesOrienteering(context: RouteAuditContext): boolean {
-  return (context.config as typeof context.config & { useOrienteering?: boolean }).useOrienteering;
+  return (context.config as typeof context.config & { useOrienteering?: boolean }).useOrienteering === true;
 }
 
 function addNameAndRegionCheck(view: AuditView, checks: AuditCheck[]): void {
@@ -284,24 +286,13 @@ function timezoneOffsetFailures(node: RouteNode, place: Candidate, context: Rout
   return [];
 }
 
-function isLocalChristmasDate(local: Date): boolean {
-  return local.getUTCFullYear() === 2026 && local.getUTCMonth() === 11;
-}
-
-function isInPreferredLocalWindow(local: Date): boolean {
-  const day = local.getUTCDate();
-  const minute = local.getUTCHours() * 60 + local.getUTCMinutes();
-  return (day === 24 && minute >= 23 * 60) || (day === 25 && minute <= 5 * 60);
-}
-
 function localArrivalFailures(node: RouteNode, place: Candidate): string[] {
   const arrival = node.schedule.arrival_utc;
   if (!arrival) return [`${node.location.name}: missing arrival time`];
   const offset = place.utcOffsetMinutes;
   if (offset === undefined) return [`${node.location.name}: missing snapshot UTC offset`];
-  const local = new Date(Date.parse(arrival) + offset * 60_000);
-  return isLocalChristmasDate(local) && isInPreferredLocalWindow(local)
-    ? [] : [`${node.location.name}: local arrival is outside Dec 24 23:00–Dec 25 05:00`];
+  const status = localWindowStatus(Date.parse(arrival), offset);
+  return status === 'RED' ? [`${node.location.name}: local arrival is outside 20:00–08:00`] : [];
 }
 
 function displayOffsetFailures(node: RouteNode, place: Candidate): string[] {
@@ -328,14 +319,80 @@ function addTimezoneChecks(context: RouteAuditContext, view: AuditView, checks: 
   let outsideWindow = 0;
   view.delivery.forEach((node, index) => {
     const place = view.places[index];
-    failures.push(...timezoneFailuresForNode(node, place, context, !usesOrienteering(context)));
+    failures.push(...timezoneFailuresForNode(node, place, context, true));
     if (place && localArrivalFailures(node, place).length > 0) outsideWindow++;
   });
   addCheck(checks, 'Timezone and local arrival window', failures.length === 0,
     failures.length ? failures.slice(0, 6).join('; ')
-      : usesOrienteering(context)
-        ? `${view.delivery.length} stops match country zones; ${outsideWindow} arrivals fall outside the preferred local window (soft penalty).`
-        : `${view.delivery.length} stops match country zones and arrive between 23:00 Dec 24 and 05:00 Dec 25 local.`);
+      : `${view.delivery.length} stops match country zones; ${outsideWindow} arrivals fall outside 20:00–08:00 local.`);
+}
+
+type LocalArrivalAssessment = { node: RouteNode; place?: Candidate; status?: string };
+
+function assessLocalArrivals(view: AuditView): LocalArrivalAssessment[] {
+  return view.delivery.map((node, index) => {
+    const place = view.places[index];
+    const arrival = Date.parse(node.schedule.arrival_utc ?? '');
+    if (place?.utcOffsetMinutes === undefined || !Number.isFinite(arrival)) return { node, place };
+    return { node, place, status: localWindowStatus(arrival, place.utcOffsetMinutes) };
+  });
+}
+
+function isPreferredNightStatus(assessment: LocalArrivalAssessment): boolean {
+  return assessment.status === 'GREEN';
+}
+
+function addPreferredNightCoverageCheck(view: AuditView, checks: AuditCheck[], assessments: LocalArrivalAssessment[]): void {
+  const green = assessments.filter(isPreferredNightStatus).length;
+  const share = assessments.length > 0 ? green / assessments.length : 0;
+  const pass = view.matched && assessments.length === view.delivery.length && share >= 0.9;
+  addCheck(checks, 'Preferred local-night coverage', pass,
+    `${green}/${assessments.length} stops (${(share * 100).toFixed(1)}%) arrive from 22:00 to 06:00 local; minimum 90%.`);
+}
+
+function hasMismatchedWindowLabel(assessment: LocalArrivalAssessment): boolean {
+  return assessment.status !== undefined && assessment.node.schedule.time_window_status !== assessment.status;
+}
+
+function addWindowLabelCheck(view: AuditView, checks: AuditCheck[], assessments: LocalArrivalAssessment[]): void {
+  const mismatches = assessments.filter(hasMismatchedWindowLabel);
+  const missingStatus = assessments.some((assessment) => assessment.status === undefined);
+  const pass = view.matched && !missingStatus && mismatches.length === 0;
+  const examples = mismatches.slice(0, 5).map(({ node, status }) => `${node.location.name}: ${node.schedule.time_window_status ?? 'missing'} should be ${status}`);
+  addCheck(checks, 'Local time-window status labels', pass,
+    pass ? `${assessments.length} labels agree with their local arrival time.`
+      : [...examples, ...(missingStatus ? ['one or more arrivals lack a candidate, UTC offset, or valid timestamp'] : [])].join('; '));
+}
+
+function exceedsCountryShare(count: number, total: number, shareLimit: number): boolean {
+  return total > 0 && count / total > shareLimit;
+}
+
+function countryShareFailures(places: Candidate[]): string[] {
+  if (places.length === 0) return ['Cannot check country shares without selected stops'];
+  const counts = countryCountsFor(places);
+  const failures = [...counts.entries()]
+    .filter(([, count]) => exceedsCountryShare(count, places.length, 0.12))
+    .map(([country, count]) => `${country} has ${count}/${places.length} stops (${(count / places.length * 100).toFixed(1)}%, limit 12%)`);
+  const northAmericaCount = (counts.get('US') ?? 0) + (counts.get('CA') ?? 0);
+  if (exceedsCountryShare(northAmericaCount, places.length, 0.20)) {
+    failures.push(`US and CA have ${northAmericaCount}/${places.length} stops (${(northAmericaCount / places.length * 100).toFixed(1)}%, limit 20%)`);
+  }
+  return failures;
+}
+
+function addCountryShareCheck(view: AuditView, checks: AuditCheck[]): void {
+  const failures = countryShareFailures(view.places);
+  const pass = view.matched && failures.length === 0;
+  addCheck(checks, 'Country stop-share caps', pass,
+    failures.length ? failures.slice(0, 8).join('; ') : `${view.places.length} stops pass the 12% country and 20% US+CA limits.`);
+}
+
+function addLocalNightChecks(view: AuditView, checks: AuditCheck[]): void {
+  const assessments = assessLocalArrivals(view);
+  addPreferredNightCoverageCheck(view, checks, assessments);
+  addWindowLabelCheck(view, checks, assessments);
+  addCountryShareCheck(view, checks);
 }
 
 function minimumSeparationKm(places: Candidate[]): number {
@@ -893,6 +950,7 @@ export function auditRouteDocument(document: unknown, context: RouteAuditContext
   addHeaderChecks(document, context, view, checks);
   addNameAndRegionCheck(view, checks);
   addSelectionChecks(context, view, checks);
+  addLocalNightChecks(view, checks);
   addFlightWindowCheck(context, view, checks);
   addPacingChecks(context, view, checks);
   const reports: { name: string; detail: string }[] = [];

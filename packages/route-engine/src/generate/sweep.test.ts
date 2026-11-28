@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { christmasArrival } from './sweep';
+import { christmasArrival, localWindowDeadline, localWindowPenaltyMinutes, localWindowStatus } from './sweep';
 import { christmasOffset, parseUtcOffset } from './timezone';
 
 describe('christmasArrival', () => {
@@ -40,5 +40,32 @@ describe('christmasArrival', () => {
     expect(parseUtcOffset({ rawOffset: 'GMT-4', timezone: 'test' })).toBe(-240);
     expect(parseUtcOffset({ rawOffset: 'GMT+05:30:00', timezone: 'test' })).toBe(330);
     expect(parseUtcOffset({ rawOffset: 'GMT', timezone: 'test' })).toBe(0);
+  });
+});
+
+describe('localWindowStatus', () => {
+  it('marks the preferred night, the hard-window shoulders, and daytime', () => {
+    expect(localWindowStatus(Date.parse('2026-12-24T22:00:00Z'), 0)).toBe('GREEN');
+    expect(localWindowStatus(Date.parse('2026-12-25T06:00:00Z'), 0)).toBe('GREEN');
+    expect(localWindowStatus(Date.parse('2026-12-24T21:59:00Z'), 0)).toBe('YELLOW');
+    expect(localWindowStatus(Date.parse('2026-12-25T07:00:00Z'), 0)).toBe('YELLOW');
+    expect(localWindowStatus(Date.parse('2026-12-25T08:01:00Z'), 0)).toBe('RED');
+    expect(localWindowStatus(Date.parse('2026-12-24T19:59:00Z'), 0)).toBe('RED');
+  });
+
+  it('uses the local offset for status and the next hard-window deadline', () => {
+    const beforeMidnightUtc = Date.parse('2026-12-25T03:00:00Z');
+    expect(localWindowStatus(beforeMidnightUtc, -300)).toBe('GREEN');
+    expect(localWindowDeadline(Date.parse('2026-12-25T01:00:00Z'), 0))
+      .toBe(Date.parse('2026-12-25T08:00:00Z'));
+    expect(localWindowDeadline(Date.parse('2026-12-24T23:00:00Z'), 0))
+      .toBe(Date.parse('2026-12-25T08:00:00Z'));
+    expect(localWindowDeadline(Date.parse('2026-12-25T09:00:00Z'), 0)).toBeUndefined();
+  });
+
+  it('measures distance from the preferred window edges', () => {
+    expect(localWindowPenaltyMinutes(Date.parse('2026-12-24T21:30:00Z'), 0)).toBe(30);
+    expect(localWindowPenaltyMinutes(Date.parse('2026-12-25T07:00:00Z'), 0)).toBe(60);
+    expect(localWindowPenaltyMinutes(Date.parse('2026-12-25T01:00:00Z'), 0)).toBe(0);
   });
 });
