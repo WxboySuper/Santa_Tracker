@@ -14,9 +14,15 @@ const IMPROVEMENT_EPSILON = 0.01;
 const MAX_TOUR_IMPROVEMENT_ROUNDS = 100;
 const MAX_COUNTRY_STOPS = Math.floor(550 * 0.12);
 const MAX_US_CA_STOPS = Math.floor(550 * 0.20);
+// Soft total-stop targets allocate more of the optional budget to larger
+// populations. Countries outside this list keep one representative plus one
+// optional stop by default; the hard country share cap still applies.
+const DEFAULT_COUNTRY_DEPTH_TARGET = 2;
 const COUNTRY_DEPTH_TARGETS: Record<string, number> = {
-  CN: 5, IN: 5, BR: 5, ID: 4, JP: 4, RU: 4, MX: 4, NG: 4, PK: 4, BD: 3,
-  TR: 3, DE: 3, KR: 3, IR: 3, GB: 3, EG: 3, AR: 3, PH: 3, CO: 3, FR: 3, VN: 3,
+  US: 66, CA: 33, AU: 16, CN: 24, IN: 24, ID: 18, NG: 18, BR: 18, PK: 18, BD: 18,
+  MX: 18, JP: 18, DE: 18, FR: 17, GB: 16, RU: 16, ES: 16, IT: 16,
+  TR: 15, PH: 16, VN: 16, TH: 15, AR: 14, CO: 14, EG: 14, KR: 14, IR: 14, ZA: 14,
+  UA: 13, PL: 13, MY: 13, ET: 12, KE: 12, AF: 8, CU: 7, JM: 5, SV: 5,
 };
 
 type Timing = { places: TimedCandidate[]; arrivals: number[]; departures: number[]; waits: number[]; returnArrival: number; greenCount: number };
@@ -271,23 +277,14 @@ function localArrivalPenalty(place: Candidate, arrival: number): number {
   return localWindowPenaltyMinutes({ instant: arrival, offsetMinutes: place.utcOffsetMinutes ?? 0 }) * 0.1;
 }
 
-function isMorningShoulder(minute: number): boolean {
-  return minute >= 6 * 60 && minute < 8 * 60;
-}
-
-function isWaitUntilPreferredWindow(minute: number): boolean {
-  return minute >= 8 * 60 && minute < 22 * 60;
-}
-
 function scheduledLocalArrival(place: Candidate, earliest: number): { arrival: number; waitMs: number } | undefined {
   const offset = place.utcOffsetMinutes ?? 0;
   const status = localWindowStatus({ instant: earliest, offsetMinutes: offset });
-  if (status === 'GREEN') return { arrival: earliest, waitMs: 0 };
+  if (status !== 'RED') return { arrival: earliest, waitMs: 0 };
   const local = new Date(earliest + offset * 60_000);
   const minute = local.getUTCHours() * 60 + local.getUTCMinutes();
-  if (isMorningShoulder(minute)) return { arrival: earliest, waitMs: 0 };
-  if (!isWaitUntilPreferredWindow(minute)) return undefined;
-  const opening = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate(), 22) - offset * 60_000;
+  if (minute <= 5 * 60 + 30 || minute >= 22 * 60 + 30) return undefined;
+  const opening = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate(), 23) - offset * 60_000;
   if (opening < earliest) return undefined;
   return { arrival: opening, waitMs: opening - earliest };
 }
@@ -575,7 +572,7 @@ function insertionImpact(order: Candidate[], place: Candidate, insertion: Insert
   }
   const currentShare = plan.greenCount / Math.max(1, order.length);
   const projectedShare = greenCount / (order.length + 1);
-  if (projectedShare < 0.9 && projectedShare <= currentShare) return undefined;
+  if (projectedShare < 0.85 && projectedShare <= currentShare) return undefined;
   return { returnDelayMs: upstreamShift, greenCount };
 }
 
@@ -604,7 +601,7 @@ function isAvailableOptionalCandidate(place: Candidate, selection: OptionalSelec
 
 function candidateImportanceBonus(place: Candidate): number {
   const population = Math.max(0, place.population ?? 0);
-  const populationWeight = Math.log10(population + 1) * 0.4;
+  const populationWeight = Math.log10(population + 1) * 0.9;
   const capitalWeight = isCapitalPlace(place) ? 0.7 : 0;
   const landmarkWeight = place.headlineLandmark ? 0.4 : 0;
   const worldCityWeight = place.worldCity ? 0.35 : 0;
@@ -612,9 +609,9 @@ function candidateImportanceBonus(place: Candidate): number {
 }
 
 function countryDepthBonus(place: Candidate, counts: Map<string, number>): number {
-  const target = COUNTRY_DEPTH_TARGETS[place.country] ?? 0;
-  const missingStops = Math.max(0, target - (counts.get(place.country) ?? 0));
-  return missingStops * 8;
+  const target = COUNTRY_DEPTH_TARGETS[place.country] ?? DEFAULT_COUNTRY_DEPTH_TARGET;
+  const currentStops = counts.get(place.country) ?? 0;
+  return (target - currentStops) * 8;
 }
 
 function optionalInsertionBonus(place: Candidate, counts: Map<string, number>): number {
@@ -711,7 +708,7 @@ function firstHardWindowFailure(order: Candidate[], config: GeneratorConfig): st
   for (const place of order) {
     const earliest = departure + scheduledTravelMilliseconds(previous, place, config);
     const scheduled = scheduledLocalArrival(place, earliest);
-    if (!scheduled) return `${place.name} cannot reach the next 20:00–08:00 local window within the tour order`;
+    if (!scheduled) return `${place.name} cannot reach the next 22:30–05:30 local window within the tour order`;
     const { arrival } = scheduled;
     departure = arrival + stopDurationSeconds(stopTier(place)) * 1000;
     previous = place;
@@ -734,8 +731,8 @@ function assertRouteTargets(final: Timing): void {
   if (count < MIN_STOPS || count > MAX_STOPS) {
     throw new Error(`Route has ${count} stops; the required range is ${MIN_STOPS} to ${MAX_STOPS}.`);
   }
-  if (greenShare < 0.9) {
-    throw new Error(`Only ${(greenShare * 100).toFixed(1)}% of ${count} stops arrive from 22:00 to 06:00 local; at least 90% is required.`);
+  if (greenShare < 0.85) {
+    throw new Error(`Only ${(greenShare * 100).toFixed(1)}% of ${count} stops arrive from 23:00 to 05:00 local; at least 85% is required.`);
   }
 }
 

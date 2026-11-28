@@ -7,8 +7,8 @@
 
 ## [Unreleased] - Time-window orienteering route generator
 
-- **Ordering:** Seeds every candidate country and required US, Canadian, and Australian admin-1 unit, preserves westward timezone bands, and inserts optional stops by marginal travel cost weighted by population and candidate importance. Country shares stay below 12%, with US and Canada combined below 20%.
-- **Schedule:** Uses a preferred 22:00–06:00 local window for at least 90% of stops and rejects arrivals outside 20:00–08:00. Uses 5,000 km/h for short hops, 15,000 km/h for regional legs, and the 25,000 km/h ceiling for ocean crossings or longer gaps. Stop dwell is 30 seconds for major places, 20 for cities, 5 for towns, and 3 for hops. Mandatory country representatives record a spacing exception only when every candidate is within 20 km of a selected mandatory stop.
+- **Ordering:** Seeds every candidate country and required US, Canadian, and Australian admin-1 unit, preserves westward timezone bands, and inserts optional stops by marginal travel cost weighted by candidate population and country population targets. Each country stays below 12%, with US and Canada combined below 20%; populous-country targets prevent Afghanistan and small Caribbean countries from absorbing optional stops ahead of India, China, Indonesia, Nigeria, Brazil, and Pakistan.
+- **Schedule:** Targets 23:00–05:00 local arrivals for at least 85% of stops and rejects arrivals outside 22:30–05:30. Uses 5,000 km/h for short hops, 15,000 km/h for regional legs, and the 25,000 km/h ceiling for ocean crossings or longer gaps. Stop dwell is 30 seconds for major places, 20 for cities, 5 for towns, and 3 for hops. Mandatory country representatives record a spacing exception only when every candidate is within 20 km of a selected mandatory stop.
 - **Reports:** Records reasons for eastward legs over 1,500 km and legs over 4,000 km; the review page shows those reasons beside leg speeds and distances.
 
 ## [Unreleased] - Local-night route pacing and audit limits
