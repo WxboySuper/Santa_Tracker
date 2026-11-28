@@ -2,7 +2,7 @@
 
 ## [Unreleased] - Regenerate the 2026 route artifacts
 
-- **Route draft:** Rebuilds route.json and review.html from the deterministic orienteering tour, including mandatory country/admin-1 coverage, per-leg direction and long-leg reasons, speed percentiles, and the 28-hour schedule report.
+- **Route draft:** Regenerates the deterministic 640-stop tour with mandatory coverage of all 195 sovereign states and the required US, Canadian, and Australian admin-1 units. The review lists six visited and 44 skipped optional territories and gives each delivery leg over 4,000 km a specific mandatory-coverage reason.
 - **Presents:** Keeps the existing per-stop presents allocation and updates it for the regenerated route.
 - **Maps:** Adds viewport-sized world and North America maps, clips land polygons at the antimeridian, and wraps crossing legs along the short path with a direction arrow.
 
