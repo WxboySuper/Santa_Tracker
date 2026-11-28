@@ -1,10 +1,16 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Admin-1 route coverage metadata
+
+- **Coverage units:** Adds the committed US, Canadian, and Australian state, province, and territory codes used to seed mandatory stops.
+- **Refresh tool:** Adds a reproducible Natural Earth based refresh command and tests for resolving candidate places to required units.
+
 ## [Unreleased] - Time-window orienteering route generator
 
 - **Ordering:** Seeds every candidate country and required US, Canadian, and Australian admin-1 unit, improves the tour with 2-opt and or-opt, then inserts optional stops by marginal route cost.
 - **Schedule:** Plans every leg at the 25,000 km/h ceiling to fit mandatory coverage and leave more of the 28-hour window for optional stops. Speed percentiles and local arrival windows remain soft targets. Mandatory country representatives record a spacing exception only when every candidate is within 20 km of a selected mandatory stop.
 - **Reports:** Records reasons for eastward legs over 1,500 km and legs over 4,000 km; the review page shows those reasons beside leg speeds and distances.
+
 
 ## [Unreleased] - Route generation audit model
 
