@@ -10,6 +10,10 @@
 - **Coverage policy:** Requires sovereign states and the US, Canadian, and Australian admin-1 units. Territories stay optional, and the audit lists which were visited or skipped.
 - **Remote territories:** Allows a remote or sparse territory only when both adjacent route legs are 3,000 km or less; the audit checks this limit.
 
+## [Unreleased] - Current tracker CSS bundle budgets
+
+- **CSS budgets:** Sets the public bundle cap to 22 KiB and the 3D cap to 9.5 KiB, just above the current measured 20.6 KiB and 8.5 KiB assets, so the advisory report can keep checking future growth.
+
 ## [Unreleased] - Place notes and photos in the globe's Here panel
 
 - **Here panel:** Shows the stop card for the place Santa is over: a sourced cultural note with its source link, and on wider screens a Wikimedia photo with author and license credit. Cards are matched by the route stop's `candidate_id`.
