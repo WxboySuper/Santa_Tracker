@@ -49,10 +49,18 @@ function actualLeg(options: ActualLegOptions): RouteLegReport {
   // average speed; transit duration remains the separate in-flight estimate.
   const kmh = legSpeedKmh(from, to, elapsedDurationSeconds) ?? 0;
   const leg: RouteLegReport = { from: fromName, to: toName, km, kmh, gapMinutes, kind, eastwardDegrees };
-  if (isEastwardDelta(eastwardDegrees) && km > 1_500 && !eastwardReason) throw new Error(`Unrecorded eastward leg from ${fromName} to ${toName}`);
+  if (requiresEastwardReason(eastwardDegrees, km, eastwardReason)) {
+    throw new Error(`Unrecorded eastward leg from ${fromName} to ${toName}`);
+  }
   if (eastwardReason) leg.eastwardReason = eastwardReason;
   if (routeReason) leg.routeReason = routeReason;
   return leg;
+}
+
+function requiresEastwardReason(eastwardDegrees: number, distanceKm: number, eastwardReason: string | undefined): boolean {
+  if (!isEastwardDelta(eastwardDegrees)) return false;
+  if (distanceKm <= 1_500) return false;
+  return !eastwardReason;
 }
 
 function longLegReason(from: Candidate | LatLng, to: Candidate | LatLng, distanceKm: number): string | undefined {
@@ -61,9 +69,16 @@ function longLegReason(from: Candidate | LatLng, to: Candidate | LatLng, distanc
   if (!('country' in to)) return 'polar-return';
   const origin = classifyRegion(from);
   const destination = classifyRegion(to);
-  if (origin.continent !== destination.continent || origin.pacificIsland || destination.pacificIsland) return 'ocean-crossing';
+  if (isOceanCrossing(origin.continent, destination.continent, origin.pacificIsland, destination.pacificIsland)) return 'ocean-crossing';
   if (from.country !== to.country) return 'cross-border-coverage';
   return 'long-regional-transfer';
+}
+
+function isOceanCrossing(originContinent: string, destinationContinent: string, originPacificIsland: boolean,
+  destinationPacificIsland: boolean): boolean {
+  if (originContinent !== destinationContinent) return true;
+  if (originPacificIsland) return true;
+  return destinationPacificIsland;
 }
 
 function percentile(values: number[], fraction: number): number {
