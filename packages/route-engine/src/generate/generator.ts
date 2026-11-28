@@ -127,7 +127,7 @@ type DeliveryNodeOptions = {
 function buildDeliveryNode({ place, index, config, tables, priorLocation, priorDeparture }: DeliveryNodeOptions): DeliveryNodeResult {
   const stopArrival = place.plannedArrivalUtc
     ? Date.parse(place.plannedArrivalUtc)
-    : Date.parse(christmasArrival(place.utcOffsetMinutes ?? 0, place.plannedMinute ?? config.arrivalStartMinute));
+    : Date.parse(christmasArrival({ timezoneOrOffset: place.utcOffsetMinutes ?? 0, minutesAfterMidnight: place.plannedMinute ?? config.arrivalStartMinute }));
   const stopDeparture = stopArrival + config.durationSeconds * 1000;
   const stopId = `stop_${stableHash(place.id, config.seed).toString(36)}_${index.toString().padStart(3, '0')}`;
   const locationId = createLocationId(stopId);

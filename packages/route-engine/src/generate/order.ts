@@ -17,12 +17,12 @@ function windowFor(place: Candidate, config: GeneratorConfig): { lo: number; hi:
   const exactMinute = config.arrivalAnchorMinutes[place.id]
     ?? (config.openingStopIds.includes(place.id) ? config.arrivalStartMinute : undefined);
   if (exactMinute !== undefined) {
-    const exact = Date.parse(christmasArrival(offset(place), exactMinute));
+    const exact = Date.parse(christmasArrival({ timezoneOrOffset: offset(place), minutesAfterMidnight: exactMinute }));
     return { lo: exact, hi: exact };
   }
   return {
-    lo: Date.parse(christmasArrival(offset(place), config.arrivalStartMinute)),
-    hi: Date.parse(christmasArrival(offset(place), config.arrivalEndMinute)),
+    lo: Date.parse(christmasArrival({ timezoneOrOffset: offset(place), minutesAfterMidnight: config.arrivalStartMinute })),
+    hi: Date.parse(christmasArrival({ timezoneOrOffset: offset(place), minutesAfterMidnight: config.arrivalEndMinute })),
   };
 }
 
@@ -31,7 +31,7 @@ function hasValidAnchorOrder(places: Candidate[], config: GeneratorConfig): bool
   for (const place of places) {
     const exactMinute = config.arrivalAnchorMinutes[place.id];
     if (exactMinute === undefined) continue;
-    const arrival = Date.parse(christmasArrival(offset(place), exactMinute));
+    const arrival = Date.parse(christmasArrival({ timezoneOrOffset: offset(place), minutesAfterMidnight: exactMinute }));
     if (arrival < previous) return false;
     previous = arrival;
   }
@@ -168,7 +168,8 @@ function createWindowedRouteStart(places: Candidate[], config: GeneratorConfig):
     openings,
     end,
     remaining: places.filter((place) => !openingIds.has(place.id) && place.id !== end.id),
-    previousArrival: Date.parse(christmasArrival(offset(lastOpening), config.arrivalAnchorMinutes[lastOpening.id] ?? config.arrivalStartMinute)),
+    previousArrival: Date.parse(christmasArrival({ timezoneOrOffset: offset(lastOpening),
+      minutesAfterMidnight: config.arrivalAnchorMinutes[lastOpening.id] ?? config.arrivalStartMinute })),
   };
 }
 
