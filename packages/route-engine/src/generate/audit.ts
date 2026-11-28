@@ -2,7 +2,7 @@ import { LegacyRouteFixtureSchema } from '@santa-tracker/contracts';
 import { haversineKm, legSpeedKmh } from '../geo';
 import { classifyRegion } from './regions';
 import { admin1UnitFor } from './admin1';
-import { isSovereignState } from './coverage';
+import { isRemoteOptionalTerritory, isSovereignState } from './coverage';
 import { localWindowStatus } from './sweep';
 import { hasSpecificLongLegReason } from './route-reasons';
 import { NORTH_POLE, TAKEOFF_UTC, type Candidate, type GeneratorConfig, type RouteReport } from './types';
@@ -605,6 +605,18 @@ function addSelectionChecks(context: RouteAuditContext, view: AuditView, checks:
   addCoordinateChecks(context, view, checks);
   addExperienceCheck(view, checks);
   addStopTierCheck(view, checks);
+  const remoteFailures = view.places.flatMap((place, index) => {
+    if (!isRemoteOptionalTerritory(place.country)) return [];
+    const previous = view.places[index - 1] ?? NORTH_POLE;
+    const next = view.places[index + 1] ?? NORTH_POLE;
+    const inboundKm = haversineKm(previous, place);
+    const outboundKm = haversineKm(place, next);
+    return inboundKm <= 3_000 && outboundKm <= 3_000
+      ? []
+      : [`${place.name} (${place.country}) has adjacent legs ${human(inboundKm)} km and ${human(outboundKm)} km`];
+  });
+  addCheck(checks, 'Remote territory leg limit', remoteFailures.length === 0,
+    remoteFailures.length ? remoteFailures.join('; ') : 'Every visited remote territory adds only adjacent legs of 3,000 km or less.');
   const required = [...new Set(context.pool.map((place) => place.country).filter(isSovereignState))].sort();
   const visited = new Set(view.places.map((place) => place.country));
   const missing = required.filter((code) => !visited.has(code));
