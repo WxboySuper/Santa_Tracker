@@ -230,7 +230,7 @@ function localArrivalPenalty(place: Candidate, arrival: number): number {
   const minute = new Date(arrival + (place.utcOffsetMinutes ?? 0) * 60_000).getUTCHours() * 60
     + new Date(arrival + (place.utcOffsetMinutes ?? 0) * 60_000).getUTCMinutes();
   const outside = minute < 23 * 60 ? 23 * 60 - minute : minute > 5 * 60 ? minute - 5 * 60 : 0;
-  return Math.max(0, outside - 30) * 0.65;
+  return Math.max(0, outside - 30) * 0.05;
 }
 
 function directionPenalty(from: Candidate | typeof NORTH_POLE, to: Candidate | typeof NORTH_POLE, config: GeneratorConfig): number {
@@ -239,7 +239,7 @@ function directionPenalty(from: Candidate | typeof NORTH_POLE, to: Candidate | t
   const meanLatitude = (from.lat + to.lat) / 2;
   const clockMinutesLost = eastwardDegrees * 4 * Math.max(0.15, Math.cos(meanLatitude * Math.PI / 180));
   const travelMinutes = scheduledTravelMilliseconds(from, to, config) * MINUTES_PER_MS;
-  return Math.max(0, clockMinutesLost - travelMinutes) * 0.35;
+  return Math.min(Math.max(0, clockMinutesLost - travelMinutes) * 0.05, travelMinutes * 0.25);
 }
 
 function regionCrossingPenalty(from: Candidate | typeof NORTH_POLE, to: Candidate | typeof NORTH_POLE, distanceKm: number): number {
@@ -249,7 +249,7 @@ function regionCrossingPenalty(from: Candidate | typeof NORTH_POLE, to: Candidat
   const origin = classifyRegion(from);
   const destination = classifyRegion(to);
   if (origin.continent === destination.continent) return 0;
-  return Math.min(45, distanceKm / 250);
+  return Math.min(8, distanceKm / 2_500);
 }
 
 function legCost(from: Candidate | typeof NORTH_POLE, to: Candidate | typeof NORTH_POLE, config: GeneratorConfig): number {
@@ -260,7 +260,7 @@ function legCost(from: Candidate | typeof NORTH_POLE, to: Candidate | typeof NOR
 
 function detourPenalty(from: Candidate | typeof NORTH_POLE, via: Candidate, to: Candidate | typeof NORTH_POLE): number {
   const ratio = detourRatio(from, via, to);
-  return Math.max(0, ratio - 1.5) * 12;
+  return Math.min(8, Math.max(0, ratio - 1.5) * 4);
 }
 
 function routeCostForStop(order: Candidate[], plan: Timing, index: number, config: GeneratorConfig): number {
@@ -287,8 +287,8 @@ function nearestNeighborScore(place: Candidate, previous: Candidate | typeof NOR
   previousRank: number, config: GeneratorConfig): number {
   const rank = localMidnightRank(place);
   const arrival = previousDeparture + scheduledTravelMilliseconds(previous, place, config);
-  const backtrackPenalty = Math.max(0, previousRank - rank - 60) * 2;
-  const skippedWindowPenalty = Math.max(0, rank - previousRank - 240) * 0.35;
+  const backtrackPenalty = Math.max(0, previousRank - rank - 60) * 0.02;
+  const skippedWindowPenalty = Math.max(0, rank - previousRank - 240) * 0.01;
   return legCost(previous, place, config) + backtrackPenalty + skippedWindowPenalty + localArrivalPenalty(place, arrival);
 }
 
