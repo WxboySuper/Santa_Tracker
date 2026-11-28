@@ -296,7 +296,7 @@ function localArrivalFailures(node: RouteNode, place: Candidate): string[] {
   const offset = place.utcOffsetMinutes;
   if (offset === undefined) return [`${node.location.name}: missing snapshot UTC offset`];
   const status = localWindowStatus({ instant: Date.parse(arrival), offsetMinutes: offset });
-  return status === 'RED' ? [`${node.location.name}: local arrival is outside 22:30–05:30`] : [];
+  return status === 'RED' ? [`${node.location.name}: local arrival is outside 22:30ï¿½05:30`] : [];
 }
 
 function displayOffsetFailures(node: RouteNode, place: Candidate): string[] {
@@ -328,7 +328,7 @@ function addTimezoneChecks(context: RouteAuditContext, view: AuditView, checks: 
   });
   addCheck(checks, 'Timezone and local arrival window', failures.length === 0,
     failures.length ? failures.slice(0, 6).join('; ')
-      : `${view.delivery.length} stops match country zones; ${outsideWindow} arrivals fall outside 22:30–05:30 local.`);
+      : `${view.delivery.length} stops match country zones; ${outsideWindow} arrivals fall outside 22:30ï¿½05:30 local.`);
 }
 
 type LocalArrivalAssessment = { node: RouteNode; place?: Candidate; status?: string };
@@ -811,15 +811,15 @@ function addCombCheck(view: AuditView, checks: AuditCheck[]): void {
     `${reversals} reversals in the longest consecutive run of legs over 1,500 km and 20 degrees latitude; three or more indicates a comb route.`);
 }
 
-function expectedCountryPair(view: AuditView, leg: AuditLeg): string | undefined {
+function expectedCountryPair(view: AuditView, leg: AuditLeg, reason: string): string | undefined {
   const index = deliveryIndex(view, leg);
   const destination = view.places[index];
   if (!destination) return undefined;
-  if (leg.kind === 'launch') return 'polar launch to ' + destination.country;
   const origin = view.places[index - 1];
   if (!origin) return undefined;
-  if (origin.country === destination.country) return 'within ' + destination.country;
-  return origin.country + ' to ' + destination.country;
+  if (origin.country !== destination.country) return origin.country + ' to ' + destination.country;
+  if (reason.startsWith('ocean crossing ')) return origin.country + ' to ' + destination.country;
+  return 'within ' + destination.country;
 }
 
 function hasInsertionProof(leg: AuditLeg, reason: string): boolean {
@@ -851,7 +851,7 @@ function hasReasonForRouteContext(view: AuditView, leg: AuditLeg, reason: string
   if (isLongLegWithoutReason(leg, reason)) return false;
   if (leg.kind === 'return') return reason.startsWith('polar return from ');
   if (leg.kind === 'launch') return reason.startsWith('polar launch to ');
-  const expected = expectedCountryPair(view, leg);
+  const expected = expectedCountryPair(view, leg, reason);
   return expected !== undefined && reason.includes(expected) && legServesMandatoryCoverage(view, leg, reason);
 }
 
@@ -923,7 +923,7 @@ function addEastwardCheck(context: RouteAuditContext, view: AuditView, legs: Aud
   const eastward = legs.filter((leg) => leg.eastward > 1 && leg.kind !== 'launch');
   const failures = eastward.filter((leg) => !plausibleEastwardReason(view, leg, context))
     .map((leg) => `${leg.fromName} -> ${leg.toName}: missing or implausible reason over ${human(leg.km)} km`);
-  const details = eastward.map((leg) => `${leg.fromName} -> ${leg.toName} (${Math.round(leg.eastward)}° east, ${human(leg.km)} km, reason ${leg.toNode?.transit_to_here?.eastward_reason ?? 'none'})`);
+  const details = eastward.map((leg) => `${leg.fromName} -> ${leg.toName} (${Math.round(leg.eastward)}ï¿½ east, ${human(leg.km)} km, reason ${leg.toNode?.transit_to_here?.eastward_reason ?? 'none'})`);
   addCheck(checks, 'Eastward legs', failures.length === 0,
     `${eastward.length ? details.join('; ') : 'no eastward legs'}${failures.length ? `. Failures: ${failures.join('; ')}` : ''}.`);
 }
