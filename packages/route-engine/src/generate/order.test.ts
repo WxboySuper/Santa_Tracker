@@ -278,13 +278,21 @@ describe('midnight sweep ordering', () => {
       timezone: 'America/Los_Angeles', category: 'populated' };
     const regional: Candidate = { id: 'east-coast', name: 'East Coast', country: 'US', lat: 38, lng: -96,
       timezone: 'America/Chicago', category: 'populated' };
-    const config = { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: true, p90LegSpeedMaxKmh: 10_000,
+    const nearby: Candidate = { id: 'nearby', name: 'Nearby', country: 'US', lat: 38, lng: -121.8,
+      timezone: 'America/Los_Angeles', category: 'populated' };
+    const config = { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: true, localLegSpeedKmh: 5_000,
+      p90LegSpeedMaxKmh: 10_000,
       targetLegSpeedKmh: 25_000, maxLegSpeedKmh: 25_000 };
+    const shortDistance = haversineKm(origin, nearby);
+    const shortTravel = scheduledTravelMilliseconds(origin, nearby, config);
     const regionalDistance = haversineKm(origin, regional);
     const regionalTravel = scheduledTravelMilliseconds(origin, regional, config);
     const polarDistance = haversineKm(NORTH_POLE, origin);
     const polarTravel = scheduledTravelMilliseconds(NORTH_POLE, origin, config);
 
+    expect(shortDistance).toBeLessThan(400);
+    expect(shortDistance / (shortTravel / 3_600_000)).toBeGreaterThan(4_800);
+    expect(shortDistance / (shortTravel / 3_600_000)).toBeLessThanOrEqual(5_000);
     expect(regionalDistance).toBeGreaterThan(1_500);
     expect(regionalDistance).toBeLessThan(4_000);
     expect(regionalDistance / (regionalTravel / 3_600_000)).toBeLessThanOrEqual(10_000);

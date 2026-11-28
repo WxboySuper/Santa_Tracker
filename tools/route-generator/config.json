@@ -7,7 +7,7 @@
     "special": 5.5,
     "populated": 0
   },
-  "localLegSpeedKmh": 15000,
+  "localLegSpeedKmh": 5000,
   "targetLegSpeedKmh": 25000,
   "maxLegSpeedKmh": 25000,
   "p90LegSpeedMaxKmh": 15000,

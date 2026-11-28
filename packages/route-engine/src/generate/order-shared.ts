@@ -19,6 +19,7 @@ const EARTH_RADIUS_KM = 6_371;
 const FAST_CROSSING_KM = 1_500;
 const FAST_OCEAN_CROSSING_KM = 3_500;
 const MAX_SPEED_CROSSING_KM = 4_000;
+const SLOW_REGIONAL_HOP_KM = 400;
 const OCEAN_ISLAND_COUNTRIES = new Set([
   'AS', 'AW', 'AX', 'BB', 'BL', 'BM', 'BQ', 'BS', 'CC', 'CK', 'CX', 'CW', 'DM', 'FO', 'GD', 'GG', 'GL',
   'GP', 'GU', 'HM', 'IM', 'IO', 'IS', 'JE', 'JM', 'KN', 'KY', 'LC', 'MF', 'MH', 'MP', 'MQ', 'MS',
@@ -84,7 +85,7 @@ function requiresMaximumCrossingSpeed(distanceKm: number, oceanCrossing: boolean
 }
 
 function requiresP90CrossingSpeed(distanceKm: number): boolean {
-  return distanceKm >= FAST_CROSSING_KM;
+  return distanceKm >= SLOW_REGIONAL_HOP_KM;
 }
 
 export function scheduledTravelMilliseconds(from: Candidate | LatLng, to: Candidate | LatLng, config: GeneratorConfig): number {
