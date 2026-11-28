@@ -767,24 +767,28 @@ function meridionalDirections(places: Candidate[]): (number | undefined)[] {
   return directions;
 }
 
-function northSouthReversals(directions: (number | undefined)[]): number {
+function maxNorthSouthReversals(directions: (number | undefined)[]): number {
   let reversals = 0;
+  let maximum = 0;
   let previous: number | undefined;
   for (const direction of directions) {
     if (direction === undefined) {
+      maximum = Math.max(maximum, reversals);
+      reversals = 0;
       previous = undefined;
       continue;
     }
     if (previous !== undefined && direction !== previous) reversals++;
     previous = direction;
+    maximum = Math.max(maximum, reversals);
   }
-  return reversals;
+  return maximum;
 }
 
 function addCombCheck(view: AuditView, checks: AuditCheck[]): void {
-  const reversals = northSouthReversals(meridionalDirections(view.places));
+  const reversals = maxNorthSouthReversals(meridionalDirections(view.places));
   addCheck(checks, 'Repeated north-south reversals', reversals < 3,
-    `${reversals} reversals between consecutive legs longer than 1,500 km and 20 degrees latitude; three or more indicates a comb route.`);
+    `${reversals} reversals in the longest consecutive run of legs over 1,500 km and 20 degrees latitude; three or more indicates a comb route.`);
 }
 
 function addLongLegReasonCheck(legs: AuditLeg[], checks: AuditCheck[]): void {
