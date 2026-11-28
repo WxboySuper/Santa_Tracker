@@ -197,10 +197,10 @@ describe('auditRouteDocument', () => {
     expect(fastLeg.find((check) => check.name === 'Leg speed')?.pass).toBe(false);
   });
 
-  it('passes the 85 percent preferred-night arrival threshold', () => {
+  it('passes the 97 percent preferred-night arrival threshold', () => {
     const hours = Array.from({ length: 10 }, (_, index) => ({
       id: `night-${index}`, name: `Night ${index}`, lng: -120 + index,
-      arrivalUtc: index === 9 ? '2026-12-25T12:00:00.000Z' : '2026-12-25T02:00:00.000Z',
+      arrivalUtc: `2026-12-25T02:${String(index).padStart(2, '0')}:00.000Z`,
     }));
     const result = auditFixture(routeFixture(hours), true);
     expect(result.find((check) => check.name === 'Preferred local-night coverage')?.pass).toBe(true);
@@ -220,22 +220,22 @@ describe('auditRouteDocument', () => {
     expect(result.reports.find((report) => report.name === 'Territory coverage')?.detail).toContain('skipped 1 (PN)');
   });
 
-  it('fails below the 85 percent preferred-night arrival threshold', () => {
+  it('fails below the 97 percent preferred-night arrival threshold', () => {
     const hours = Array.from({ length: 10 }, (_, index) => ({
       id: `night-${index}`, name: `Night ${index}`, lng: -120 + index,
-      arrivalUtc: index < 8 ? '2026-12-25T02:00:00.000Z' : '2026-12-25T12:00:00.000Z',
+      arrivalUtc: index < 9 ? '2026-12-25T02:00:00.000Z' : '2026-12-25T05:15:00.000Z',
     }));
     const result = auditFixture(routeFixture(hours), true);
     expect(result.find((check) => check.name === 'Preferred local-night coverage')?.pass).toBe(false);
   });
 
-  it('accepts allowed shoulders and rejects arrivals outside the hard window', () => {
+  it('allows shoulder arrivals inside the hard window and rejects arrivals outside it', () => {
     const preferredAndShoulder = Array.from({ length: 10 }, (_, index) => ({
       id: `night-${index}`, name: `Night ${index}`, lng: -120 + index,
       arrivalUtc: index === 9 ? '2026-12-24T22:45:00.000Z' : '2026-12-25T02:00:00.000Z',
     }));
     const shoulder = auditFixture(routeFixture(preferredAndShoulder), true);
-    expect(shoulder.find((check) => check.name === 'Preferred local-night coverage')?.pass).toBe(true);
+    expect(shoulder.find((check) => check.name === 'Preferred local-night coverage')?.pass).toBe(false);
     expect(shoulder.find((check) => check.name === 'Timezone and local arrival window')?.pass).toBe(true);
     const outsideShoulder = auditFixture(routeFixture([{ id: 'outside', name: 'Outside shoulder', lng: -100,
       arrivalUtc: '2026-12-24T22:29:00.000Z' }]), true);

@@ -15,6 +15,8 @@ const IMPROVEMENT_EPSILON = 0.01;
 const MAX_TOUR_IMPROVEMENT_ROUNDS = 100;
 const MAX_COUNTRY_STOPS = Math.floor(550 * 0.12);
 const MAX_US_CA_STOPS = Math.floor(550 * 0.20);
+const MIN_PREFERRED_LOCAL_NIGHT_SHARE = 0.97;
+const MAX_UNJUSTIFIED_DELIVERY_LEG_KM = 4_000;
 // Soft total-stop targets allocate more of the optional budget to larger
 // populations. Countries outside this list keep one representative plus one
 // optional stop by default; the hard country share cap still applies.
@@ -575,7 +577,7 @@ function insertionImpact(order: Candidate[], place: Candidate, insertion: Insert
   }
   const currentShare = plan.greenCount / Math.max(1, order.length);
   const projectedShare = greenCount / (order.length + 1);
-  if (projectedShare < 0.85 && projectedShare <= currentShare) return undefined;
+  if (projectedShare < MIN_PREFERRED_LOCAL_NIGHT_SHARE && projectedShare <= currentShare) return undefined;
   return { returnDelayMs: upstreamShift, greenCount };
 }
 
@@ -649,7 +651,18 @@ function insertionIsFeasible(order: Candidate[], proposal: RankedInsertion, plan
   if (impact === undefined || !isInsertionWithinBudget(plan, impact)) return false;
   const proposedOrder = [...order];
   proposedOrder.splice(proposal.insertion.index, 0, proposal.place);
-  return remoteTerritoryLegsWithinLimit(proposedOrder);
+  return remoteTerritoryLegsWithinLimit(proposedOrder) && longDeliveryLegsServeMandatoryCoverage(proposedOrder);
+}
+
+function longDeliveryLegsServeMandatoryCoverage(order: Candidate[]): boolean {
+  for (let index = 1; index < order.length; index++) {
+    const origin = order[index - 1]!;
+    const destination = order[index]!;
+    if (haversineKm(origin, destination) <= MAX_UNJUSTIFIED_DELIVERY_LEG_KM) continue;
+    if (origin.mandatoryCoverageStop || destination.mandatoryCoverageStop) continue;
+    return false;
+  }
+  return true;
 }
 
 function remoteTerritoryLegsWithinLimit(order: Candidate[]): boolean {
@@ -727,7 +740,8 @@ function routeCost(order: Candidate[], config: GeneratorConfig): number | undefi
   if (!remoteTerritoryLegsWithinLimit(order)) return undefined;
   const plan = timing(order, config);
   if (!plan || !isWithinBudget(plan)) return undefined;
-  if (plan.greenCount / order.length < 0.85) return undefined;
+  if (plan.greenCount / order.length < MIN_PREFERRED_LOCAL_NIGHT_SHARE) return undefined;
+  if (!longDeliveryLegsServeMandatoryCoverage(order)) return undefined;
 
   let score = 0;
   for (let index = 0; index < order.length; index++) {
@@ -854,8 +868,8 @@ function assertRouteTargets(final: Timing): void {
   if (count < MIN_STOPS || count > MAX_STOPS) {
     throw new Error(`Route has ${count} stops; the required range is ${MIN_STOPS} to ${MAX_STOPS}.`);
   }
-  if (greenShare < 0.85) {
-    throw new Error(`Only ${(greenShare * 100).toFixed(1)}% of ${count} stops arrive from 23:00 to 05:00 local; at least 85% is required.`);
+  if (greenShare < MIN_PREFERRED_LOCAL_NIGHT_SHARE) {
+    throw new Error(`Only ${(greenShare * 100).toFixed(1)}% of ${count} stops arrive from 23:00 to 05:00 local; at least 97% is required.`);
   }
 }
 
