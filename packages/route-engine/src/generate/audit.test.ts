@@ -5,7 +5,7 @@ import type { Candidate, GeneratorConfig } from './types';
 
 type AuditTestConfig = GeneratorConfig & { requiredStopIds: string[]; requiredCountries: string[] };
 
-function routeFixture(points: { id: string; name: string; lng: number; country?: string; offset?: number; reason?: string; population?: number; category?: string; arrivalUtc?: string; tier?: string; duration?: number; transitSeconds?: number }[]): { document: unknown; selected: Candidate[] } {
+function routeFixture(points: { id: string; name: string; lng: number; country?: string; offset?: number; reason?: string; routeReason?: string; population?: number; category?: string; arrivalUtc?: string; tier?: string; duration?: number; transitSeconds?: number }[]): { document: unknown; selected: Candidate[] } {
   const selected = points.map((point) => ({ id: point.id, name: point.name, country: point.country ?? 'US', timezone: 'Etc/UTC', utcOffsetMinutes: point.offset ?? 0,
     category: point.category ?? 'populated', population: point.population ?? 1000, lat: 0, lng: point.lng }));
   const start = { id: 'start', type: 'START', location: { name: 'North Pole', region: 'Arctic', lat: 80, lng: 180 }, schedule: { arrival_utc: null, departure_utc: '2026-12-24T10:00:00.000Z' }, stop_experience: {}, transit_to_here: null };
@@ -14,7 +14,8 @@ function routeFixture(points: { id: string; name: string; lng: number; country?:
     location: { name: point.name, region: 'Test', country_code: point.country ?? 'US', timezone: 'Etc/UTC', timezone_offset: 0, lat: 0, lng: point.lng },
     schedule: { arrival_utc: point.arrivalUtc ?? `2026-12-24T23:${String(20 + index * 10).padStart(2, '0')}:00.000Z`, departure_utc: point.arrivalUtc ? new Date(Date.parse(point.arrivalUtc) + 30_000).toISOString() : `2026-12-24T23:${String(20 + index * 10).padStart(2, '0')}:30.000Z` },
     stop_experience: { presents: 1, presents_delivered_at_stop: 1, camera_zoom: 1, weather_condition: 'clear', stop_tier: point.tier ?? 'town', duration_seconds: point.duration ?? 10 },
-    transit_to_here: { duration_seconds: point.transitSeconds ?? 0, distance_km: 1, speed_kmh: 100, ...(point.reason ? { eastward_reason: point.reason } : {}) },
+    transit_to_here: { duration_seconds: point.transitSeconds ?? 0, distance_km: 1, speed_kmh: 100,
+      ...(point.reason ? { eastward_reason: point.reason } : {}), ...(point.routeReason ? { route_reason: point.routeReason } : {}) },
     notes: 'https://www.wikidata.org/wiki/Q1',
   }));
   const end = { ...start, id: 'end', type: 'END', schedule: { arrival_utc: '2026-12-25T01:00:00.000Z', departure_utc: '2026-12-25T01:00:00.000Z' }, transit_to_here: { duration_seconds: 0, distance_km: 1, speed_kmh: 100, eastward_reason: 'return' } };
@@ -202,6 +203,15 @@ describe('auditRouteDocument', () => {
       { id: 'a', name: 'A', lng: -100 }, { id: 'b', name: 'B', lng: -99.7 },
     ]));
     expect(separated.find((check) => check.name === 'Vetoes, coordinates, duplicates, and separation')?.pass).toBe(true);
+  });
+
+  it('accepts a recorded mandatory country-coverage spacing exception', () => {
+    const fixture = routeFixture([
+      { id: 'a', name: 'Required country A', lng: 0, routeReason: 'mandatory-country-coverage-spacing-exception' },
+      { id: 'b', name: 'Required country B', lng: 0.05 },
+      { id: 'c', name: 'Other stop', lng: 0.5 },
+    ]);
+    expect(auditFixture(fixture).find((check) => check.name === 'Vetoes, coordinates, duplicates, and separation')?.pass).toBe(true);
   });
 
   it('keeps the committed old draft as an eastward regression case', async () => {

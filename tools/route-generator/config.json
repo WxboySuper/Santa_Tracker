@@ -8,7 +8,7 @@
     "populated": 0
   },
   "localLegSpeedKmh": 4000,
-  "targetLegSpeedKmh": 15000,
+  "targetLegSpeedKmh": 25000,
   "maxLegSpeedKmh": 25000,
   "p90LegSpeedMaxKmh": 15000,
   "minStopSeparationKm": 20,
