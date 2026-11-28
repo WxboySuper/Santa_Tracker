@@ -351,6 +351,28 @@ function minimumSeparationKm(places: Candidate[]): number {
   return minimum;
 }
 
+function hasMandatoryCoverageSpacingException(node: RouteNode | undefined): boolean {
+  const reason = node?.transit_to_here?.route_reason;
+  return reason?.includes('mandatory-country-coverage-spacing-exception') ?? false;
+}
+
+function unrecordedSpacingFailures(view: AuditView, minimumDistance: number): string[] {
+  const failures: string[] = [];
+  for (let left = 0; left < view.places.length; left++) {
+    for (let right = left + 1; right < view.places.length; right++) {
+      const first = view.places[left];
+      const second = view.places[right];
+      if (!first || !second) continue;
+      const distance = haversineKm(first, second);
+      if (distance >= minimumDistance) continue;
+      if (hasMandatoryCoverageSpacingException(view.delivery[left])) continue;
+      if (hasMandatoryCoverageSpacingException(view.delivery[right])) continue;
+      failures.push(`${first.name} and ${second.name} are ${human(distance)} km apart without a mandatory coverage exception`);
+    }
+  }
+  return failures;
+}
+
 function duplicateStopCount(delivery: RouteNode[]): number {
   const names = new Set(delivery.map((node) => `${node.location.name.trim().toLocaleLowerCase('en')}:${node.location.country_code}`));
   const coords = new Set(delivery.map((node) => `${node.location.lat.toFixed(5)},${node.location.lng.toFixed(5)}`));
@@ -366,16 +388,22 @@ type CoordinateAuditSummary = {
   vetoNameStops: RouteNode[];
   coordinateProblems: string[];
   duplicateCount: number;
-  minSeparation: number;
-  minimumDistance: number;
+  spacingFailures: string[];
 };
 
-function coordinateRulesPass({ vetoed, vetoNameStops, coordinateProblems, duplicateCount, minSeparation, minimumDistance }: CoordinateAuditSummary): boolean {
+function coordinateRulesPass({ vetoed, vetoNameStops, coordinateProblems, duplicateCount, spacingFailures }: CoordinateAuditSummary): boolean {
   if (vetoed.length > 0) return false;
   if (vetoNameStops.length > 0) return false;
   if (coordinateProblems.length > 0) return false;
   if (duplicateCount > 0) return false;
-  return minSeparation >= minimumDistance;
+  return spacingFailures.length === 0;
+}
+
+function separationDetail(minSeparation: number, spacingFailures: string[], view: AuditView, minimumDistance: number): string {
+  if (spacingFailures.length > 0) return spacingFailures.slice(0, 4).join('; ');
+  const base = `country bounds and cross-source name coordinates pass; no duplicates; nearest pair ${human(minSeparation)} km apart`;
+  if (view.delivery.some(hasMandatoryCoverageSpacingException)) return `${base} under a recorded mandatory country-coverage exception; all other pairs meet ${minimumDistance} km`;
+  return `${base} (minimum ${minimumDistance} km apart)`;
 }
 
 function addCoordinateChecks(context: RouteAuditContext, view: AuditView, checks: AuditCheck[]): void {
@@ -383,13 +411,14 @@ function addCoordinateChecks(context: RouteAuditContext, view: AuditView, checks
   const vetoed = vetoedRouteStops(view, context).map((node) => node.location.name);
   const duplicateCount = duplicateStopCount(view.delivery);
   const minSeparation = minimumSeparationKm(view.places);
+  const spacingFailures = unrecordedSpacingFailures(view, 20);
   const vetoNames = ['Dzhankoy', 'Kursk', 'Zelenodolsk', 'Bikini Atoll', 'Point Barrow'];
   const vetoNameStops = view.delivery.filter((node) => vetoNames.includes(node.location.name));
   const minimumDistance = 20;
-  const pass = coordinateRulesPass({ vetoed, vetoNameStops, coordinateProblems, duplicateCount, minSeparation, minimumDistance });
+  const pass = coordinateRulesPass({ vetoed, vetoNameStops, coordinateProblems, duplicateCount, spacingFailures });
   const detail = vetoed.length || vetoNameStops.length ? `Vetoed stop: ${[...vetoNames, ...vetoed].join(', ')}.`
     : coordinateProblems.length ? coordinateProblems.slice(0, 4).join('; ')
-      : `country bounds and cross-source name coordinates pass; no duplicates; nearest pair ${human(minSeparation)} km apart (minimum ${minimumDistance} km).`;
+      : `${separationDetail(minSeparation, spacingFailures, view, minimumDistance)}.`;
   addCheck(checks, 'Vetoes, coordinates, duplicates, and separation', pass, detail);
 }
 

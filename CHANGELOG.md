@@ -9,7 +9,7 @@
 ## [Unreleased] - Route generation audit model
 
 - **Orienteering spec:** Replaces the every-leg-westward sweep with mandatory country and admin-1 coverage, cheapest-marginal optional insertion, soft direction and local-time penalties, and the 28-hour return budget.
-- **Audit:** Adds long north-south reversal detection, requires a recorded reason for eastward legs over 1,500 km, and reports median, p90, maximum speed, and the longest legs with their recorded reasons.
+- **Audit:** Adds long north-south reversal detection, requires a recorded reason for eastward legs over 1,500 km, records mandatory-coverage spacing exceptions, and reports median, p90, maximum speed, and the longest legs with their recorded reasons.
 
 ## [Unreleased] - Place notes and photos in the globe's Here panel
 
