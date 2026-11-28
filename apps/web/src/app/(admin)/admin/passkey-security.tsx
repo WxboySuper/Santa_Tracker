@@ -91,7 +91,9 @@ export default function PasskeySecurity({ onSessionEnded }: { onSessionEnded: ()
   const [needsSecondCode, setNeedsSecondCode] = useState(false);
   // The first passkey turns password sign-in off and ends password sessions, including this one.
   const [mustSignInAgain, setMustSignInAgain] = useState(false);
-  const supported = typeof window === "undefined" || browserSupportsWebAuthn();
+  // Checked after mount so the server render and the first client render agree.
+  const [supported, setSupported] = useState(true);
+  useEffect(() => setSupported(browserSupportsWebAuthn()), []);
 
   const refresh = useCallback(async () => {
     const result = await loadPasskeys();
@@ -104,7 +106,7 @@ export default function PasskeySecurity({ onSessionEnded }: { onSessionEnded: ()
     void refresh();
   }, [refresh]);
 
-  async function run<T>(action: () => Promise<AdminResult<T>>, done: (value: T) => string, refreshAfter = true) {
+  async function run<T>(action: () => Promise<AdminResult<T>>, done: (value: T) => string, refreshAfter: (value: T) => boolean = () => true) {
     setBusy(true);
     setMessage("");
     const result = await action();
@@ -114,16 +116,18 @@ export default function PasskeySecurity({ onSessionEnded }: { onSessionEnded: ()
       return;
     }
     setMessage(result.ok ? done(result.value) : result.error);
-    if (refreshAfter || !result.ok) await refresh();
+    if (!result.ok || refreshAfter(result.value)) await refresh();
   }
 
+  // Only the first registration returns recovery codes, so the server's answer, not the loaded list, says which one this was.
   function add() {
-    const first = !summary?.passkeys.length;
+    const isFirst = (value: { recoveryCodes: string[] }) => value.recoveryCodes.length > 0;
     void run(registerPasskey, value => {
-      if (value.recoveryCodes.length) setCodes(value.recoveryCodes);
-      setMustSignInAgain(first);
-      return first ? "Passkey added. Save your recovery codes, then sign in again with the passkey." : "Passkey added.";
-    }, !first);
+      if (!isFirst(value)) return "Passkey added.";
+      setCodes(value.recoveryCodes);
+      setMustSignInAgain(true);
+      return "Passkey added. Save your recovery codes, then sign in again with the passkey.";
+    }, value => !isFirst(value));
   }
 
   function remove(id: string) {
@@ -152,7 +156,7 @@ export default function PasskeySecurity({ onSessionEnded }: { onSessionEnded: ()
         </p>
       )}
       <div className={mustSignInAgain ? "hidden" : "mt-3 flex flex-wrap gap-2"}>
-        <button type="button" disabled={busy || !supported} onClick={add} className="rounded bg-red-600 px-4 py-1.5 text-sm font-semibold hover:bg-red-700 disabled:opacity-40">
+        <button type="button" disabled={busy || !supported || !summary} onClick={add} className="rounded bg-red-600 px-4 py-1.5 text-sm font-semibold hover:bg-red-700 disabled:opacity-40">
           {hasPasskey ? "Add another passkey" : "Set up a passkey"}
         </button>
         {hasPasskey && (

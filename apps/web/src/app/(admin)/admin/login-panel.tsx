@@ -41,11 +41,11 @@ const METHOD_LINKS: { method: Method; label: string }[] = [
   { method: "recovery", label: "Use a recovery code" },
 ];
 
-function OtherMethods({ current, onSwitch }: { current: Method; onSwitch: (method: Method) => void }) {
+function OtherMethods({ current, busy, onSwitch }: { current: Method; busy: boolean; onSwitch: (method: Method) => void }) {
   return (
     <div className="mt-6 flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/70">
       {METHOD_LINKS.filter(link => link.method !== current).map(link => (
-        <button key={link.method} type="button" onClick={() => onSwitch(link.method)} className="underline">{link.label}</button>
+        <button key={link.method} type="button" disabled={busy} onClick={() => onSwitch(link.method)} className="underline disabled:opacity-40">{link.label}</button>
       ))}
     </div>
   );
@@ -73,6 +73,7 @@ export default function LoginPanel({ onAuthenticated }: LoginPanelProps) {
   const [busy, setBusy] = useState(false);
 
   async function attempt(action: () => Promise<AdminResult<null>>) {
+    const startedWith = method;
     setBusy(true);
     setStatus("");
     const result = await action();
@@ -81,7 +82,7 @@ export default function LoginPanel({ onAuthenticated }: LoginPanelProps) {
       onAuthenticated();
       return;
     }
-    if (method === "passkey" && result.status === 409) {
+    if (startedWith === "passkey" && result.status === 409) {
       setMethod("password");
       setStatus("No passkey is set up yet. Sign in with the password, then add one.");
       return;
@@ -100,7 +101,7 @@ export default function LoginPanel({ onAuthenticated }: LoginPanelProps) {
         <h1 className="mb-4 text-2xl font-bold">Admin sign-in</h1>
         <MethodForm method={method} busy={busy} attempt={action => { void attempt(action); }} />
         {status && <p role="alert" className="mt-4 text-sm">{status}</p>}
-        <OtherMethods current={method} onSwitch={switchTo} />
+        <OtherMethods current={method} busy={busy} onSwitch={switchTo} />
       </div>
     </div>
   );
