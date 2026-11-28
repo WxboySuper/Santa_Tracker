@@ -5,6 +5,7 @@ import type { RouteNode } from "./locations";
 export function routeNodesToContractRoute(nodes: RouteNode[], season = 2026): { route: Route; timedNodes: RouteNode[] } {
   const timedNodes: RouteNode[] = [];
   const stops = nodes.flatMap((node, index) => {
+    if (node.type === "END") return [];
     const arrivalIso = node.schedule?.arrival_utc;
     const departureIso = node.schedule?.departure_utc;
     if (!arrivalIso || !departureIso) return [];

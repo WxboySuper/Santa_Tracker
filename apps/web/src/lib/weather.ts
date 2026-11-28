@@ -150,7 +150,7 @@ function getBindings(): { weather: WeatherKV | null; budget: FallbackBudget | nu
   } catch { return { weather: null, budget: null }; }
 }
 
-function getWeatherPoint(request: Request): WeatherPoint | null {
+export function getWeatherPoint(request: Request): WeatherPoint | null {
   const params = new URL(request.url).searchParams;
   const lat = parseCoordinate({ value: params.get("lat"), range: { min: -90, max: 90 } });
   const lon = parseCoordinate({ value: params.get("lon"), range: { min: -180, max: 180 } });

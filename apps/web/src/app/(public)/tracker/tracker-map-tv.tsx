@@ -5,6 +5,7 @@ import { validateStoredPlace } from "@/lib/tracker-place";
 import type { RouteNode } from "@/lib/locations";
 import type { SantaPosition } from "@/lib/tracker-position";
 import { deriveTvDashboard } from "@/lib/tracker-tv";
+import { useTrackerNow } from "@/lib/use-tracker-now";
 import { ArrivalNoticeCard, playArrivalNoticeChime } from "./tracker-map-immersive";
 
 type Translator = ReturnType<typeof createTranslator>;
@@ -14,7 +15,7 @@ type ArrivalDisplayInput = { place: ChosenPlace; arrival: Date | null; routeComp
 
 /** Renders the read-only route dashboard and keeps the display awake when supported. */
 export function TvTrackerDashboard({ locale, nodes, position, translator }: { locale: string; nodes: RouteNode[]; position: SantaPosition | null; translator: Translator }) {
-  const [now, setNow] = useState(() => new Date());
+  const now = useTrackerNow();
   const [place, setPlace] = useState<ChosenPlace | null>(null);
   const [chimes, setChimes] = useState(false);
   const [arrivalNotice, setArrivalNotice] = useState<RouteNode | null>(null);
@@ -30,10 +31,6 @@ export function TvTrackerDashboard({ locale, nodes, position, translator }: { lo
     locale,
   }), [locale, nodes, now, place, position]);
 
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
   useEffect(() => readSavedPlace(nodes, setPlace), [nodes]);
   useEffect(() => showArrivalOnStopChange(position?.journey.currentIndex ?? null, previousStop, nodes, setArrivalNotice), [nodes, position]);
   useEffect(() => { chimesEnabled.current = chimes; }, [chimes]);

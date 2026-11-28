@@ -1,34 +1,36 @@
-import { execSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
-import { haversineKm } from '../geo';
+import { auditRouteDocument } from './audit';
+import { loadGeneratorInputs } from '../../../../tools/route-generator/generate-core';
 
-type GeneratedNode = {
-  location: { lat: number; lng: number };
-  comment: string;
-  schedule: { arrival_utc: string; departure_utc: string };
-};
+describe('superseded 2026 route draft', () => {
+  it('is rejected for eastward legs and geographic detours', async () => {
+    const inputs = await loadGeneratorInputs({ seed: 2026 });
+    const text = await readFile(new URL('../../../../docs/planning/route-2026-draft/route.json', import.meta.url), 'utf8');
+    const document = JSON.parse(text) as unknown;
+    const routeNodes = (document as { route_nodes?: { type?: string; candidate_id?: unknown }[] }).route_nodes ?? [];
+    const candidateIds = new Set(routeNodes
+      .filter((node) => node.type === 'DELIVERY')
+      .map((node) => node.candidate_id)
+      .filter((candidateId): candidateId is string => typeof candidateId === 'string'));
+    const selected = inputs.pool.filter((place) => candidateIds.has(place.id));
+    const result = auditRouteDocument(document, {
+      config: inputs.config,
+      pool: inputs.pool,
+      selected,
+      zonesByCountry: inputs.tables.zonesByCountry,
+      utcOffsetsByTimezone: inputs.tables.utcOffsetsByTimezone,
+      countryBoundsByCode: inputs.tables.countryBoundsByCode,
+      report: { continentBalance: {}, subregionBalance: {} },
+      vetoIds: [...inputs.overrides.veto ?? []],
+      worldPlaces: inputs.pool,
+    });
 
-describe('route:generate integration', () => {
-  it('generates the full 2026 seed under the configured leg ceiling and exact quotas', async () => {
-    execSync('pnpm route:generate -- --seed 2026', { stdio: 'pipe' });
-    const document = JSON.parse(await readFile('tools/route-generator/out/santa_route.json', 'utf8')) as { route_nodes: GeneratedNode[] };
-    const nodes = document.route_nodes;
-    const speedLimit = 25_000;
-    const maxSpeed = Math.max(...nodes.slice(1).map((node, index) => {
-      const prior = nodes[index];
-      if (!prior) throw new Error('Missing prior route node');
-      const distanceKm = haversineKm(prior.location, node.location);
-      const travelHours = (Date.parse(node.schedule.arrival_utc) - Date.parse(prior.schedule.departure_utc)) / 3_600_000;
-      return distanceKm / travelHours;
-    }));
-    const categoryCounts = nodes.reduce<Record<string, number>>((counts, node) => {
-      counts[node.comment] = (counts[node.comment] ?? 0) + 1;
-      return counts;
-    }, {});
-
-    expect(nodes).toHaveLength(160);
-    expect(maxSpeed).toBeLessThanOrEqual(speedLimit);
-    expect(categoryCounts).toEqual({ hub: 48, cultural: 40, underserved: 32, nature: 24, special: 16 });
-  }, 30_000);
+    const eastward = result.checks.find((entry) => entry.name === 'Eastward legs');
+    const detours = result.checks.find((entry) => entry.name === 'Detours');
+    expect(eastward?.pass, eastward?.detail).toBe(false);
+    expect(eastward?.detail).toContain('Helsinki -> Istanbul');
+    expect(detours?.pass, detours?.detail).toBe(false);
+    expect(result.reports.find((report) => report.name === 'Path length')?.detail).toContain('243,959 km');
+  }, 120_000);
 });

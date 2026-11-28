@@ -104,12 +104,15 @@ const LegacyTransitSchema = z.object({
 
 export const LegacyRouteNodeSchema = z.object({
   comment: z.string().nullable().optional(),
+  candidate_id: z.string().min(1).optional(),
   // Legacy IDs include repeated underscores. The canonical ID schema remains strict.
   id: z.string().min(1),
   type: z.string().min(1),
   location: z.object({
     name: z.string().min(1),
     region: z.string().min(1),
+    country_code: z.string().regex(/^[A-Z]{2}$/).optional(),
+    timezone: z.string().min(1).optional(),
     lat: z.number().min(-90).max(90),
     // The old route stores unwrapped longitudes for antimeridian continuity.
     lng: z.number().min(-360).max(360),

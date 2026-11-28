@@ -5,6 +5,7 @@ import { estimateArrival, type ChosenPlace } from "@/lib/tracker-arrival";
 import { CURATED_CITIES, validateStoredPlace } from "@/lib/tracker-place";
 import type { RouteNode } from "@/lib/locations";
 import type { SantaPosition } from "@/lib/tracker-position";
+import { useTrackerNow } from "@/lib/use-tracker-now";
 
 /** Translator type shared by the immersive overlay controls. */
 type Translator = ReturnType<typeof createTranslator>;
@@ -15,16 +16,12 @@ type CityOption = ChosenPlace & { lat: number; lng: number };
 
 /** Renders live journey details and the three local ways to choose a place. */
 export function ImmersiveTrackerOverlays({ locale, nodes, position, current, translator, controlsVisible }: ImmersiveTrackerProps) {
-  const [now, setNow] = useState(() => new Date());
+  const now = useTrackerNow();
   const [arrivalNotice, setArrivalNotice] = useState<RouteNode | null>(null);
   const [chimes, setChimes] = useState(false);
   const previousStop = useRef<number | null>(null);
   const chimesEnabled = useRef(false);
   const updateChimes = useCallback((enabled: boolean) => { chimesEnabled.current = enabled; setChimes(enabled); }, []);
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
   useEffect(() => {
     const index = position?.journey.currentIndex ?? null;
     const arrived = stopAfterChange(index, previousStop.current, nodes);

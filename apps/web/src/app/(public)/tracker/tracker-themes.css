@@ -1,0 +1,734 @@
+/*
+ * Tracker themes. Shared chrome (nav, toolbar, card shell, text view, demo player) reads the --tt-* variables;
+ * each theme sets those and adds its own card details and decorations.
+ */
+
+/* ---------- shared ---------- */
+.tt-root {
+  --tt-font: system-ui, sans-serif;
+  --tt-display: var(--tt-font);
+  --tt-map-bg: #eee;
+  --tt-panel: #fff;
+  --tt-ink: #111;
+  --tt-soft: #555;
+  --tt-accent: #c00;
+  --tt-accent-ink: #fff;
+  --tt-accent-text: var(--tt-accent);
+  --tt-border: 1px solid #ccc;
+  --tt-radius: 12px;
+  --tt-shadow: 0 4px 16px rgb(0 0 0 / 20%);
+  --tt-focus: #fcd34d;
+  --tt-top: 1rem;
+  --tt-bottom: 1.5rem;
+
+  font-family: var(--tt-font);
+}
+
+.tt-root .tracker-stage:not(.tracker-immersive, .tracker-tv) > div[role='application'] {
+  position: relative;
+  background: var(--tt-map-bg);
+}
+
+.tt-nav {
+  position: fixed;
+  top: var(--tt-top);
+  left: 1rem;
+  z-index: 40;
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: var(--tt-border);
+  border-radius: var(--tt-radius);
+  background: var(--tt-panel);
+  box-shadow: var(--tt-shadow);
+  font-family: var(--tt-display);
+}
+
+.tt-nav-link {
+  padding: 0.3rem 0.85rem;
+  border-radius: calc(var(--tt-radius) - 4px);
+  color: var(--tt-soft);
+}
+
+.tt-nav-link:hover { color: var(--tt-ink); }
+
+.tt-nav-active,
+.tt-nav-active:hover {
+  background: var(--tt-accent);
+  color: var(--tt-accent-ink);
+}
+
+.tt-toolbar {
+  position: absolute;
+  top: var(--tt-top);
+  right: 1rem;
+  z-index: 20;
+  display: flex;
+  gap: 0.35rem;
+}
+
+.tt-toolbar-group {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.tt-tool {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: var(--tt-border);
+  border-radius: var(--tt-radius);
+  background: var(--tt-panel);
+  box-shadow: var(--tt-shadow);
+  color: var(--tt-ink);
+  cursor: pointer;
+}
+
+.tt-tool:hover { color: var(--tt-accent); }
+
+.tt-nav-link:focus-visible,
+.tt-tool:focus-visible {
+  outline: 3px solid var(--tt-focus);
+  outline-offset: 2px;
+}
+
+.tt-card {
+  position: absolute;
+  left: 1rem;
+  bottom: calc(var(--tt-bottom) + var(--tt-dock, 0rem));
+  z-index: 20;
+  width: min(21rem, calc(100vw - 2rem));
+  padding: 0.9rem 1.1rem 1rem;
+  border: var(--tt-border);
+  border-radius: var(--tt-radius);
+  background: var(--tt-panel);
+  box-shadow: var(--tt-shadow);
+  color: var(--tt-ink);
+}
+
+.tt-eyebrow {
+  margin: 0;
+  color: var(--tt-accent-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tt-title {
+  margin: 0.15rem 0 0.35rem;
+  font-family: var(--tt-display);
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.tt-countdown { font-variant-numeric: tabular-nums; }
+
+.tt-sub {
+  margin: 0.1rem 0 0;
+  color: var(--tt-soft);
+  font-size: 0.9rem;
+}
+
+.tt-progress {
+  height: 0.5rem;
+  margin-top: 0.75rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tt-ink) 15%, transparent);
+}
+
+.tt-progress span {
+  display: block;
+  height: 100%;
+  background: var(--tt-accent);
+  transition: width 400ms ease;
+}
+
+.tt-root .ol-zoom {
+  top: calc(var(--tt-top) + 3.5rem);
+  left: 1rem;
+}
+
+.tt-root .ol-zoom button {
+  border: var(--tt-border);
+  background: var(--tt-panel);
+  color: var(--tt-ink);
+}
+
+/* Text view, shared by every theme. */
+.tt-textview {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  padding: 6.5rem 1.5rem 14rem;
+  background: var(--tt-map-bg);
+  color: var(--tt-ink);
+}
+
+.tt-textview:focus-visible {
+  outline: 4px solid var(--tt-focus);
+  outline-offset: -4px;
+}
+
+.tt-textview > dl,
+.tt-textview > div {
+  max-width: 34rem;
+  margin: 0 auto 1rem;
+  padding: 1.25rem 1.5rem;
+  border: var(--tt-border);
+  border-radius: var(--tt-radius);
+  background: var(--tt-panel);
+  box-shadow: var(--tt-shadow);
+}
+
+.tt-textview dt,
+.tt-textview h2 {
+  color: var(--tt-accent-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tt-textview dd {
+  margin: 0.1rem 0 0.8rem;
+  font-size: 1.1rem;
+}
+
+.tt-textview dd.text-2xl {
+  font-family: var(--tt-display);
+  font-size: 1.7rem;
+}
+
+.tt-textview li {
+  padding: 0.3rem 0;
+  border-bottom: 1px dashed color-mix(in srgb, var(--tt-ink) 25%, transparent);
+}
+
+/* ---------- Quiet night / Quiet day: plain type, soft panels, nothing shouting ---------- */
+.tt-night,
+.tt-day {
+  --tt-font: "Inter", system-ui, sans-serif;
+  --tt-radius: 10px;
+  --tt-shadow: 0 1px 2px rgb(0 0 0 / 12%), 0 8px 24px rgb(0 0 0 / 10%);
+}
+
+.tt-night {
+  --tt-map-bg: #151b24;
+  --tt-panel: rgb(28 35 46 / 88%);
+  --tt-ink: #eef1f5;
+  --tt-soft: #9aa5b4;
+  --tt-accent: #f3d9a4;
+  --tt-accent-ink: #151b24;
+  --tt-accent-text: #9aa5b4;
+  --tt-border: 1px solid rgb(255 255 255 / 8%);
+  --tt-focus: #f3d9a4;
+}
+
+.tt-day {
+  --tt-map-bg: #d9e2e7;
+  --tt-panel: rgb(255 255 255 / 92%);
+  --tt-ink: #1f2329;
+  --tt-soft: #5f6670;
+  --tt-accent: #b4233a;
+  --tt-accent-ink: #fff;
+  --tt-accent-text: #5f6670;
+  --tt-border: 1px solid rgb(0 0 0 / 6%);
+  --tt-focus: #b4233a;
+}
+
+.tt-night .tt-card,
+.tt-day .tt-card {
+  width: min(19rem, calc(100vw - 2rem));
+  backdrop-filter: blur(8px);
+}
+
+.tt-night .tt-eyebrow,
+.tt-day .tt-eyebrow {
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.tt-night .tt-title,
+.tt-day .tt-title {
+  margin: 0.1rem 0 0.2rem;
+  font-size: 1.45rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.tt-night .tt-next,
+.tt-day .tt-next {
+  margin: 0.6rem 0 0;
+  font-size: 0.9rem;
+}
+
+.tt-night .tt-foot,
+.tt-day .tt-foot {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.75rem;
+  color: var(--tt-soft);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tt-night .tt-progress,
+.tt-day .tt-progress {
+  flex: 1;
+  height: 2px;
+  margin: 0;
+}
+
+.tt-night .tt-tool,
+.tt-day .tt-tool {
+  width: 2.4rem;
+  height: 2.4rem;
+}
+
+/* ---------- 1. Arcade ---------- */
+.tt-arcade {
+  --tt-font: "Fredoka", system-ui, sans-serif;
+  --tt-map-bg: #3ec1d3;
+  --tt-panel: #fff;
+  --tt-ink: #2b2240;
+  --tt-soft: #4a3f66;
+  --tt-accent: #ff4d6d;
+  --tt-accent-ink: #2b2240;
+  --tt-accent-text: #c2183f;
+  --tt-border: 3px solid #2b2240;
+  --tt-radius: 16px;
+  --tt-shadow: 0 5px 0 #2b2240;
+  --tt-focus: #ffd23f;
+}
+
+.tt-arcade .tt-title { font-size: 2.1rem; }
+
+.tt-arcade .tt-badge {
+  position: absolute;
+  top: -0.9rem;
+  right: -0.8rem;
+  padding: 0.15rem 0.6rem;
+  border: 3px solid #2b2240;
+  border-radius: 12px;
+  background: #ffd23f;
+  box-shadow: 0 4px 0 #2b2240;
+  font-size: 1rem;
+  font-weight: 700;
+  transform: rotate(6deg);
+}
+
+.tt-arcade .tt-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tt-arcade .tt-chip {
+  padding: 0.1rem 0.6rem;
+  border: 2px solid #2b2240;
+  border-radius: 999px;
+  background: #7ee8c5;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.tt-arcade .tt-chip-alt { background: #ffd23f; }
+
+.tt-arcade .tt-progress {
+  height: 0.9rem;
+  border: 2.5px solid #2b2240;
+  background: #fff;
+}
+
+.tt-arcade .tt-progress span { background: repeating-linear-gradient(-45deg, #ff4d6d 0 8px, #ff7a90 8px 16px); }
+
+/* ---------- 2. Night radar ---------- */
+.tt-radar {
+  --tt-font: "JetBrains Mono", ui-monospace, monospace;
+  --tt-display: "Space Grotesk", system-ui, sans-serif;
+  --tt-map-bg: #060b14;
+  --tt-panel: rgb(6 11 20 / 88%);
+  --tt-ink: #d7e6f5;
+  --tt-soft: #6f8fb0;
+  --tt-accent: #ffb020;
+  --tt-accent-ink: #060b14;
+  --tt-border: 1px solid #2a4a6e;
+  --tt-radius: 2px;
+  --tt-shadow: none;
+  --tt-focus: #ffb020;
+  --tt-bottom: 2.75rem;
+}
+
+.tt-radar .tracker-stage > div[role='application']::after {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgb(42 74 110 / 18%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(42 74 110 / 18%) 1px, transparent 1px);
+  background-size: 64px 64px;
+  content: '';
+  pointer-events: none;
+}
+
+.tt-radar .tt-card {
+  inset: 4.5rem 1rem auto auto;
+  width: min(19rem, calc(100vw - 2rem));
+  font-size: 0.78rem;
+}
+
+.tt-radar .tt-eyebrow { color: var(--tt-soft); }
+
+.tt-radar .tt-title {
+  color: #fff;
+  font-size: 1.45rem;
+}
+
+.tt-radar .tt-rows { margin: 0.5rem 0 0; }
+
+.tt-radar .tt-rows div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.3rem 0;
+  border-top: 1px solid #13253a;
+}
+
+.tt-radar .tt-rows dt {
+  color: var(--tt-soft);
+  text-transform: uppercase;
+}
+
+.tt-radar .tt-rows dd {
+  margin: 0;
+  color: var(--tt-accent);
+  text-align: right;
+}
+
+.tt-radar .tt-live {
+  position: absolute;
+  top: 4.4rem;
+  left: 1rem;
+  z-index: 20;
+  margin: 0;
+  color: #d7e6f5;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.tt-radar .tt-live b {
+  margin-right: 0.5rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 2px;
+  background: #e11d48;
+  color: #fff;
+}
+
+.tt-radar .ol-zoom { top: 6.5rem; }
+
+.tt-radar .tt-ticker {
+  position: absolute;
+  right: 0;
+  bottom: var(--tt-dock, 0);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  gap: 1.75rem;
+  align-items: center;
+  height: 2rem;
+  margin: 0;
+  padding-left: 0.75rem;
+  overflow: hidden;
+  background: #ffb020;
+  color: #060b14;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tt-radar .tt-ticker b {
+  padding: 0.1rem 0.4rem;
+  background: #060b14;
+  color: #ffb020;
+  text-transform: uppercase;
+}
+
+/* ---------- 3. Linocut print ---------- */
+.tt-lino {
+  --tt-font: "Oswald", "Arial Narrow", sans-serif;
+  --tt-map-bg: #f3ede2;
+  --tt-panel: #141414;
+  --tt-ink: #f3ede2;
+  --tt-soft: #cfc6b5;
+  --tt-accent: #b81d30;
+  --tt-accent-ink: #f3ede2;
+  --tt-accent-text: #ff5a6e;
+  --tt-border: 0;
+  --tt-radius: 0;
+  --tt-shadow: none;
+  --tt-focus: #ff5a6e;
+  --tt-bottom: 0;
+}
+
+.tt-lino .tracker-stage > div[role='application']::after {
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(35deg, rgb(20 20 20 / 4%) 0 1px, transparent 1px 6px);
+  content: '';
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.tt-lino .tt-card {
+  left: 0;
+  width: min(24rem, 100vw);
+  padding: 1rem 1.25rem 1.2rem;
+}
+
+.tt-lino .tt-eyebrow { letter-spacing: 0.3em; }
+
+.tt-lino .tt-title {
+  font-size: 3.2rem;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.tt-lino .tt-sub {
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tt-lino .tt-progress {
+  height: 0.4rem;
+  border-radius: 0;
+  background: #3a3a3a;
+}
+
+.tt-lino .tt-stamp {
+  position: absolute;
+  top: -2.6rem;
+  right: 1rem;
+  padding: 0.15rem 0.6rem;
+  border: 3px solid #b81d30;
+  background: #f3ede2;
+  color: #b81d30;
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: rotate(-5deg);
+}
+
+.tt-lino .tt-textview dd,
+.tt-lino .tt-textview li { color: #f3ede2; }
+
+/* ---------- 4. Travel poster ---------- */
+.tt-poster {
+  --tt-font: "Josefin Sans", "Century Gothic", sans-serif;
+  --tt-map-bg: #1d3557;
+  --tt-panel: #f4ead5;
+  --tt-ink: #1d3557;
+  --tt-soft: #4a6584;
+  --tt-accent: #e76f51;
+  --tt-accent-ink: #10203a;
+  --tt-accent-text: #b23f22;
+  --tt-border: 0;
+  --tt-radius: 999px;
+  --tt-shadow: 0 6px 18px rgb(0 0 0 / 35%);
+  --tt-focus: #f2c078;
+}
+
+.tt-poster .tt-band {
+  position: absolute;
+  top: 1.1rem;
+  left: 50%;
+  z-index: 15;
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+  margin: 0;
+  padding: 0.45rem 1.1rem;
+  border-radius: 999px;
+  background: #1d3557;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 35%);
+  color: #f4ead5;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.tt-poster .tt-band span { font-size: 0.7rem; }
+
+.tt-poster .tt-band b {
+  color: #f2c078;
+  font-size: 1.35rem;
+  letter-spacing: 0.12em;
+}
+
+.tt-poster .tt-card {
+  width: auto;
+  padding: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.tt-poster .tt-pass { display: flex; }
+
+.tt-poster .tt-pass-main {
+  width: 15.5rem;
+  padding: 0.75rem 1rem;
+}
+
+.tt-poster .tt-eyebrow {
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+}
+
+.tt-poster .tt-pass-route {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  margin: 0.4rem 0;
+}
+
+.tt-poster .tt-pass-route b {
+  display: block;
+  font-size: 1.9rem;
+  line-height: 1;
+}
+
+.tt-poster .tt-pass-route span {
+  display: block;
+  max-width: 6rem;
+  overflow: hidden;
+  color: var(--tt-soft);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tt-poster .tt-pass-route i {
+  flex: 1;
+  border-top: 2px dotted #1d3557;
+}
+
+.tt-poster .tt-pass-cols {
+  display: flex;
+  gap: 1rem;
+  margin: 0;
+}
+
+.tt-poster .tt-pass-cols dt {
+  color: var(--tt-soft);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.tt-poster .tt-pass-cols dd {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.tt-poster .tt-pass-stub {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 5rem;
+  padding: 0.6rem;
+  border-left: 2px dashed #c9b996;
+  color: var(--tt-soft);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.tt-poster .tt-pass-stub b {
+  color: #b23f22;
+  font-size: 1.5rem;
+  letter-spacing: 0;
+}
+
+.tt-poster .tt-barcode {
+  width: 100%;
+  height: 1.6rem;
+  margin-top: 0.4rem;
+  background: repeating-linear-gradient(90deg, #1d3557 0 2px, transparent 2px 4px, #1d3557 4px 5px, transparent 5px 8px);
+}
+
+/* ---------- 5. Christmas jumper ---------- */
+.tt-knit {
+  --tt-font: "Silkscreen", ui-monospace, monospace;
+  --tt-map-bg: #b3202a;
+  --tt-panel: #f7ecd8;
+  --tt-ink: #2d1414;
+  --tt-soft: #5a2a1a;
+  --tt-accent: #b3202a;
+  --tt-border: 0;
+  --tt-radius: 0;
+  --tt-shadow: inset -4px -4px 0 #d9c3a0;
+  --tt-focus: #3c9a5f;
+  --tt-top: 2.4rem;
+  --tt-bottom: 2.6rem;
+}
+
+.tt-knit .tracker-stage > div[role='application']::after {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><path d='M0 0 L5 7 L10 0' stroke='black' stroke-opacity='0.16' stroke-width='1.4' fill='none'/></svg>");
+  content: '';
+  pointer-events: none;
+}
+
+.tt-knit .tt-fairisle {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 15;
+  height: 1.6rem;
+  border-block: 3px solid #f7ecd8;
+  background: #1f5c3a url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='22' height='22'><g fill='%23f7ecd8'><rect x='10' y='3' width='2' height='16'/><rect x='3' y='10' width='16' height='2'/><rect x='6' y='6' width='2' height='2'/><rect x='14' y='6' width='2' height='2'/><rect x='6' y='14' width='2' height='2'/><rect x='14' y='14' width='2' height='2'/></g></svg>") repeat-x center;
+  pointer-events: none;
+}
+
+.tt-knit .tt-fairisle-top { top: 0; }
+
+.tt-knit .tt-fairisle-bottom { bottom: var(--tt-dock, 0); }
+
+.tt-knit .tt-title {
+  font-size: 1.5rem;
+  text-transform: uppercase;
+}
+
+.tt-knit .tt-sub {
+  font-size: 0.72rem;
+  line-height: 1.7;
+}
+
+.tt-knit .tt-eyebrow {
+  font-size: 0.68rem;
+  font-weight: 400;
+}
+
+.tt-knit .tt-stitches {
+  margin: 0.4rem 0 0;
+  color: #b3202a;
+  letter-spacing: 0.1em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tt-progress span { transition: none; }
+}

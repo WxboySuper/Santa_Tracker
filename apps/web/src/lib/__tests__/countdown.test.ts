@@ -23,6 +23,13 @@ describe("countdownTarget", () => {
     expect(getCountdownParts(countdownTarget(lastMoment), lastMoment).done).toBe(true);
   });
 
+  it("keeps a 27-hour route inside the 28-hour flight window", () => {
+    const routeEnd = takeoff + 27 * 60 * 60 * 1000;
+    expect(FLIGHT_WINDOW_MS).toBe(28 * 60 * 60 * 1000);
+    expect(routeEnd).toBeLessThan(takeoff + FLIGHT_WINDOW_MS);
+    expect(countdownTarget(new Date(routeEnd))).toBe(takeoff);
+  });
+
   it("rolls over to next year once the window closes", () => {
     const after = new Date(takeoff + FLIGHT_WINDOW_MS);
     expect(countdownTarget(after)).toBe(Date.UTC(2027, 11, 24, 10, 0, 0));

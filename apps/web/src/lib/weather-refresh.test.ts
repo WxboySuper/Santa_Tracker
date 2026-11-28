@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { refreshWeather, weatherRoutePoints, WEATHER_BATCH_SIZE, isWeatherRefreshOpen } from "./weather-refresh";
 import type { RouteNode } from "./locations";
+import { FLIGHT_WINDOW_MS } from "./countdown";
 import { fetchWeatherBatch, getWeatherResponse, weatherCellKey, type WeatherKV } from "./weather";
 
 const takeoff = Date.UTC(2026, 11, 24, 10);
@@ -29,11 +30,11 @@ describe("scheduled weather refresh", () => {
     await expect(refreshWeather(takeoff, fixtureRoute(), undefined)).rejects.toThrow("Missing WEATHER_CACHE binding");
   });
 
-  it("gates the cron to the half-hour before takeoff through the 26-hour replay window", () => {
+  it("gates the cron to the half-hour before takeoff through the end of the flight window", () => {
     expect(isWeatherRefreshOpen(takeoff - 30 * 60_000)).toBe(true);
     expect(isWeatherRefreshOpen(takeoff - 30 * 60_000 - 1)).toBe(false);
-    expect(isWeatherRefreshOpen(takeoff + 26 * 60 * 60_000 - 1)).toBe(true);
-    expect(isWeatherRefreshOpen(takeoff + 26 * 60 * 60_000)).toBe(false);
+    expect(isWeatherRefreshOpen(takeoff + FLIGHT_WINDOW_MS - 1)).toBe(true);
+    expect(isWeatherRefreshOpen(takeoff + FLIGHT_WINDOW_MS)).toBe(false);
   });
 
   it("splits provider URLs at 50 unique grid cells", async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { claim, coordinatesFromGeometry, countryIdFor, timezoneCorrection, validEarthPoint } from '../../../../tools/route-generator/refresh-validation.mjs';
+import { claim, coordinatesFromGeometry, countryIdFor, timezoneCorrection, timezoneForCandidate, validEarthPoint } from '../../../../tools/route-generator/refresh-validation.mjs';
 
 describe('route refresh data validation', () => {
   it('returns no claim for missing or malformed entities', () => {
@@ -28,5 +28,6 @@ describe('route refresh data validation', () => {
     expect(countryIdFor(historicalSite, administrative)).toBe('QLibya');
     expect(timezoneCorrection('Q5788')).toBe('Asia/Amman');
     expect(timezoneCorrection('Q191504')).toBeUndefined();
+    expect(timezoneForCandidate({ id: 'Q5788', country: 'JO', lookedUpTimezone: 'Asia/Gaza', lat: 30.3, lng: 35.4 })).toBe('Asia/Amman');
   });
 });

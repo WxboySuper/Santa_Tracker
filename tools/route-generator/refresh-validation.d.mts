@@ -3,3 +3,7 @@ export function countryIdFor(entity: { claims?: Record<string, unknown[]> } | un
 export function coordinatesFromGeometry(geometry: unknown): { lat: number; lng: number } | undefined;
 export function validEarthPoint(point: unknown): boolean;
 export function timezoneCorrection(id: string): string | undefined;
+export function countryCodeForName(value: string): string;
+export function timezoneForCandidate(options: { id: string; country: string; lookedUpTimezone: string; lat: number; lng: number }): string;
+export function christmasUtcOffset(timezone: string): number;
+export function withinCountryBounds(country: string, lat: number, lng: number): boolean;

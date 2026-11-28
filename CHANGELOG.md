@@ -1,5 +1,31 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Local-night route pacing and audit limits
+
+- **Route ordering:** Keeps mandatory country and admin-1 coverage while advancing through timezone bands with local night. Optional stops are weighted by population and importance, with 12% per-country and 20% combined US+Canada share caps.
+- **Local arrivals:** Requires at least 97% of stops from 23:00 to 05:00 local and rejects arrivals outside 22:30 to 05:30. `GREEN`, `YELLOW`, and `RED` labels now follow the recorded local arrival.
+- **Audit:** Detects repeated long north-south reversals, checks sovereign-state coverage, country shares, and local-night coverage, requires reasons for eastward legs over 1,500 km, records mandatory spacing exceptions, and reports speed percentiles and long-leg reasons.
+- **Audit tests:** Names the orienteering-specific audit config type explicitly, so the rework branch typechecks without depending on a later route PR.
+- **Legacy route audit:** Audits the committed superseded route against its candidate rows directly, so changed generator caps cannot fail the audit test before the audit runs.
+- **Coverage policy:** Requires sovereign states and the US, Canadian, and Australian admin-1 units. Territories stay optional, and the audit lists which were visited or skipped.
+- **Remote territories:** Allows a remote or sparse territory only when both adjacent route legs are 3,000 km or less; the audit checks this limit.
+
+## [Unreleased] - Current tracker CSS bundle budgets
+
+- **CSS budgets:** Sets the public bundle cap to 22 KiB and the 3D cap to 9.5 KiB, just above the current measured 20.6 KiB and 8.5 KiB assets, so the advisory report can keep checking future growth.
+
+## [Unreleased] - Place notes and photos in the globe's Here panel
+
+- **Here panel:** Shows the stop card for the place Santa is over: a sourced cultural note with its source link, and on wider screens a Wikimedia photo with author and license credit. Cards are matched by the route stop's `candidate_id`.
+- **Stop cards API:** `GET /api/stop-cards` serves the cards from `content/stop-cards.json`. Production serves only owner-approved cards; development and the demo also serve drafts.
+- **Weather in development:** `/api/weather` calls the provider directly outside production, so the demo shows weather. Production keeps the bounded, route-only path.
+- **Tests:** The weather window test follows `FLIGHT_WINDOW_MS` instead of a fixed 26 hours.
+
+## [Unreleased] - Weather in the globe's Here panel
+
+- **Weather:** The globe's Here panel shows current conditions where Santa is, from `/api/weather`, with the Open-Meteo credit its CC BY 4.0 licence requires. Fahrenheit for US-style browser regions, Celsius elsewhere. Requests wait 1.5 seconds on a stop and prefetch the next stop, so fast replays don't spend the provider's rate limit.
+- **First leg:** On the leg out of the North Pole, the globe panels now say Santa just left the North Pole, instead of showing the finished-journey card.
+
 ## [Unreleased] - Admin passkey setup and sign-in screens
 
 - **Sign-in:** The admin sign-in screen offers a passkey first, the password until a passkey exists, and a recovery code as the way back in. If no passkey is set up, a passkey attempt switches to the password form and says why. Throttled attempts show the wait time.

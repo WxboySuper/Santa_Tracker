@@ -4,28 +4,71 @@ function invalidUtcOffset(hours: number, minutes: number): boolean {
   return hours === 14 && minutes !== 0;
 }
 
-export function parseUtcOffset(rawOffset: string, timezone: string): number {
+export function parseUtcOffset(options: { rawOffset: string; timezone: string }): number {
+  const { rawOffset, timezone } = options;
   const normalized = rawOffset.replace(/^(GMT|UTC)/, '').trim() || '+00:00';
   const match = /^([+-])\s*(\d{1,2})(?::?(\d{2}))?(?::\d{2})?$/.exec(normalized);
   if (!match) throw new Error(`Invalid UTC offset for ${timezone}: ${rawOffset}`);
   const hours = Number(match[2]);
   const minutes = Number(match[3] ?? 0);
-  if (invalidUtcOffset(hours, minutes)) {
-    throw new Error(`Invalid UTC offset for ${timezone}: ${rawOffset}`);
-  }
+  if (invalidUtcOffset(hours, minutes)) throw new Error(`Invalid UTC offset for ${timezone}: ${rawOffset}`);
   return (match[1] === '-' ? -1 : 1) * (hours * 60 + minutes);
 }
 
-export function christmasOffset(timezone: string): number {
+/** Use the committed Dec 25 offset during generation. The IANA lookup is only a test or refresh fallback. */
+export function christmasOffset(options: { timezone: string; snapshotOffsetMinutes?: number }): number {
+  const { timezone, snapshotOffsetMinutes } = options;
+  if (snapshotOffsetMinutes !== undefined) return snapshotOffsetMinutes;
   const parts = new Intl.DateTimeFormat('en-US', { timeZone: timezone, timeZoneName: 'longOffset' }).formatToParts(Date.UTC(2026, 11, 25));
   const rawOffset = parts.find((part) => part.type === 'timeZoneName')?.value;
   if (rawOffset == null) throw new Error(`Missing UTC offset for ${timezone}`);
-  return parseUtcOffset(rawOffset, timezone);
+  return parseUtcOffset({ rawOffset, timezone });
 }
 
-export function localMinute(iso: string, timezone: string): number {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(iso));
+function localParts(options: { iso: string; timezone: string }): { year: number; month: number; day: number; hour: number; minute: number } {
+  const { iso, timezone } = options;
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date(iso));
   const value = (key: string): number => Number(parts.find((part) => part.type === key)?.value);
-  if (value('month') !== 12 || value('day') !== 25) return -1;
-  return value('hour') * 60 + value('minute');
+  return { year: value('year'), month: value('month'), day: value('day'), hour: value('hour'), minute: value('minute') };
+}
+
+/** Returns minutes after local midnight, or -1 when the arrival is not December 25. */
+function isDecemberTwentyFifth(year: number, month: number, day: number): boolean {
+  return year === 2026 && month === 12 && day === 25;
+}
+
+function minuteOfDay(hour: number, minute: number): number {
+  return hour * 60 + minute;
+}
+
+function localMinuteFromOffset(options: { iso: string; offsetMinutes: number }): number {
+  const { iso, offsetMinutes } = options;
+  const local = new Date(Date.parse(iso) + offsetMinutes * 60_000);
+  if (!isDecemberTwentyFifth(local.getUTCFullYear(), local.getUTCMonth() + 1, local.getUTCDate())) return -1;
+  return minuteOfDay(local.getUTCHours(), local.getUTCMinutes());
+}
+
+function localMinuteFromTimezone(options: { iso: string; timezone: string }): number {
+  const local = localParts(options);
+  if (!isDecemberTwentyFifth(local.year, local.month, local.day)) return -1;
+  return minuteOfDay(local.hour, local.minute);
+}
+
+export function localMinute(options: { iso: string; timezoneOrOffset: string | number }): number {
+  const { iso, timezoneOrOffset } = options;
+  if (typeof timezoneOrOffset === 'number') return localMinuteFromOffset({ iso, offsetMinutes: timezoneOrOffset });
+  return localMinuteFromTimezone({ iso, timezone: timezoneOrOffset });
+}
+
+export function localDate(options: { iso: string; timezone: string }): string {
+  const local = localParts(options);
+  return `${local.year.toString().padStart(4, '0')}-${local.month.toString().padStart(2, '0')}-${local.day.toString().padStart(2, '0')}`;
 }

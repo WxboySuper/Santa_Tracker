@@ -1,0 +1,120 @@
+/* Route demo player, drawn in the active tracker theme (the --tt-* variables), bottom right. */
+.route-demo-bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 60;
+  display: grid;
+  grid-template-areas:
+    'pick pick'
+    'ctl scrub';
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem;
+  align-items: center;
+  height: var(--tt-dock, 5.75rem);
+  padding: 0.45rem 1rem;
+  border-top: var(--tt-border, 1px solid #ccc);
+  background: var(--tt-panel, #fff);
+  color: var(--tt-ink, #111);
+  font-family: var(--tt-font, system-ui, sans-serif);
+  font-size: 0.82rem;
+  box-sizing: border-box;
+}
+
+.route-demo-pickers {
+  display: flex;
+  flex-wrap: wrap;
+  grid-area: pick;
+  gap: 0.25rem 1.25rem;
+}
+
+.route-demo-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  align-items: center;
+}
+
+.route-demo-picker span {
+  margin-right: 0.3rem;
+  color: var(--tt-soft, #555);
+}
+
+.route-demo-picker button[aria-pressed='true'],
+.route-demo-speed[aria-pressed='true'] {
+  background: var(--tt-accent, #c00);
+  color: var(--tt-accent-ink, #fff);
+}
+
+.route-demo-row {
+  grid-area: ctl;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.route-demo-bar button {
+  min-width: 2.1rem;
+  min-height: 2rem;
+  padding: 0 0.55rem;
+  border-radius: min(var(--tt-radius, 12px), 10px);
+  color: inherit;
+  cursor: pointer;
+}
+
+.route-demo-bar button:hover { color: var(--tt-accent, #c00); }
+
+.route-demo-play {
+  min-width: 2.4rem;
+  background: var(--tt-accent, #c00);
+  color: var(--tt-accent-ink, #fff);
+}
+
+.route-demo-step {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.route-demo-speeds {
+  display: flex;
+  gap: 0.1rem;
+  margin-left: 0.35rem;
+}
+
+.route-demo-speed { font-variant-numeric: tabular-nums; }
+
+.route-demo-clock {
+  margin-left: 0.5rem;
+  color: var(--tt-soft, #555);
+  font-variant-numeric: tabular-nums;
+}
+
+.route-demo-scrub {
+  grid-area: scrub;
+  width: 100%;
+  accent-color: var(--tt-accent, #c00);
+}
+
+.route-demo-bar button:focus-visible,
+.route-demo-scrub:focus-visible {
+  outline: 3px solid var(--tt-focus, #fcd34d);
+  outline-offset: 2px;
+}
+
+/* Every layout shows where Santa is, so the docked player keeps only the controls. */
+.route-demo-readout {
+  display: none;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.75rem;
+  color: var(--tt-soft, #555);
+}
+
+.route-demo-readout strong { color: var(--tt-ink, #111); }
+
+.route-demo-count {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
