@@ -73,9 +73,9 @@ function isHeadlineLandmark(place: Candidate, curated: boolean): boolean {
 
 export function stopDurationSeconds(tier: StopTier): number {
   switch (tier) {
-    case 'major': return 60;
-    case 'city': return 30;
-    case 'town': return 10;
+    case 'major': return 30;
+    case 'city': return 20;
+    case 'town': return 5;
     case 'hop': return 3;
   }
 }

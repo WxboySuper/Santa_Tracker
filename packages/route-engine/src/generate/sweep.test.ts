@@ -124,7 +124,7 @@ describe('christmasArrival', () => {
     expect(stopTier(candidate({ population: 5_000 }))).toBe('town');
     expect(stopTier(candidate({ population: 0 }))).toBe('hop');
     expect(['major', 'city', 'town', 'hop'].map((tier) => stopDurationSeconds(tier as 'major' | 'city' | 'town' | 'hop')))
-      .toEqual([60, 30, 10, 3]);
+      .toEqual([30, 20, 5, 3]);
   });
 
   it('reads standard ICU long-offset forms', () => {

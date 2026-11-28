@@ -273,6 +273,24 @@ describe('midnight sweep ordering', () => {
     expect(longDistance / (longTravel / 3_600_000)).toBeGreaterThan(14_000);
   });
 
+  it('uses the p90 speed for regional legs and the target speed for long crossings', () => {
+    const origin: Candidate = { id: 'west-coast', name: 'West Coast', country: 'US', lat: 38, lng: -122,
+      timezone: 'America/Los_Angeles', category: 'populated' };
+    const regional: Candidate = { id: 'east-coast', name: 'East Coast', country: 'US', lat: 38, lng: -96,
+      timezone: 'America/Chicago', category: 'populated' };
+    const config = { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: true, p90LegSpeedMaxKmh: 10_000,
+      targetLegSpeedKmh: 25_000, maxLegSpeedKmh: 25_000 };
+    const regionalDistance = haversineKm(origin, regional);
+    const regionalTravel = scheduledTravelMilliseconds(origin, regional, config);
+    const polarDistance = haversineKm(NORTH_POLE, origin);
+    const polarTravel = scheduledTravelMilliseconds(NORTH_POLE, origin, config);
+
+    expect(regionalDistance).toBeGreaterThan(1_500);
+    expect(regionalDistance).toBeLessThan(4_000);
+    expect(regionalDistance / (regionalTravel / 3_600_000)).toBeLessThanOrEqual(10_000);
+    expect(polarDistance / (polarTravel / 3_600_000)).toBeGreaterThan(24_000);
+  });
+
   it('selects the feasible subset when the per-country cap prevents full-pool inclusion', () => {
     const places: Candidate[] = Array.from({ length: 13 }, (_, index) => ({
       id: `same-country-${index}`,

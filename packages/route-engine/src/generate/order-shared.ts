@@ -18,6 +18,7 @@ import { NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type Gene
 const EARTH_RADIUS_KM = 6_371;
 const FAST_CROSSING_KM = 1_500;
 const FAST_OCEAN_CROSSING_KM = 3_500;
+const MAX_SPEED_CROSSING_KM = 4_000;
 const OCEAN_ISLAND_COUNTRIES = new Set([
   'AS', 'AW', 'AX', 'BB', 'BL', 'BM', 'BQ', 'BS', 'CC', 'CK', 'CX', 'CW', 'DM', 'FO', 'GD', 'GG', 'GL',
   'GP', 'GU', 'HM', 'IM', 'IO', 'IS', 'JE', 'JM', 'KN', 'KY', 'LC', 'MF', 'MH', 'MP', 'MQ', 'MS',
@@ -60,12 +61,30 @@ function isOceanCrossing(from: Candidate | LatLng, to: Candidate | LatLng, dista
 function planningSpeed(from: Candidate | LatLng, to: Candidate | LatLng, distanceKm: number, config: GeneratorConfig): number {
   const oceanCrossing = isOceanCrossing(from, to, distanceKm);
   if (config.useOrienteering) {
-    const target = distanceKm >= FAST_CROSSING_KM || oceanCrossing ? config.targetLegSpeedKmh : config.localLegSpeedKmh;
-    return Math.min(target, config.maxLegSpeedKmh);
+    return orienteeringPlanningSpeed(distanceKm, oceanCrossing, config);
   }
   if (oceanCrossing && distanceKm >= FAST_OCEAN_CROSSING_KM) return Math.min(config.targetLegSpeedKmh, config.maxLegSpeedKmh);
   const target = oceanCrossing ? config.targetLegSpeedKmh : config.localLegSpeedKmh;
   return Math.min(target, config.maxLegSpeedKmh, config.p90LegSpeedMaxKmh);
+}
+
+function orienteeringPlanningSpeed(distanceKm: number, oceanCrossing: boolean, config: GeneratorConfig): number {
+  if (requiresMaximumCrossingSpeed(distanceKm, oceanCrossing)) {
+    return Math.min(config.targetLegSpeedKmh, config.maxLegSpeedKmh);
+  }
+  if (requiresP90CrossingSpeed(distanceKm)) {
+    return Math.min(config.p90LegSpeedMaxKmh, config.maxLegSpeedKmh);
+  }
+  return Math.min(config.localLegSpeedKmh, config.maxLegSpeedKmh);
+}
+
+function requiresMaximumCrossingSpeed(distanceKm: number, oceanCrossing: boolean): boolean {
+  if (distanceKm >= MAX_SPEED_CROSSING_KM) return true;
+  return oceanCrossing;
+}
+
+function requiresP90CrossingSpeed(distanceKm: number): boolean {
+  return distanceKm >= FAST_CROSSING_KM;
 }
 
 export function scheduledTravelMilliseconds(from: Candidate | LatLng, to: Candidate | LatLng, config: GeneratorConfig): number {
