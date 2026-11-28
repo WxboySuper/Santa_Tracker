@@ -5,6 +5,7 @@ import { validateRoute } from '../validate';
 import type { RouteOverrides } from './overrides';
 import { chooseCandidates, normalizeCandidateCodes } from './candidates';
 import { scheduledTravelMilliseconds, sweepOrder } from './order';
+import { orienteeringOrder } from './orienteering';
 import { buildReport } from './report';
 import { christmasArrival, eastwardLegReason, isEastwardDelta, isInChristmasWindow, isInSouthernChristmasWindow, localClock, longitudeDelta, stopDurationSeconds } from './sweep';
 import { InvalidCandidateTimezoneError, isInvalidCandidateTimezoneError } from './timezone-error';
@@ -503,7 +504,7 @@ export function generateRoute(pool: Candidate[], config: GeneratorConfig, overri
   const normalized = normalizeCandidateTimezones(selection.candidates, overrides);
   const chosen = normalized.candidates;
   if (chosen.length === 0) throw new Error('No eligible route candidates remain after timezone validation');
-  const ordered = sweepOrder(chosen, config);
+  const ordered = config.useOrienteering ? orienteeringOrder(chosen, config) : sweepOrder(chosen, config);
   const built = buildDocument(ordered, config, tables);
   const report = validateBuiltRoute({ route: built.route, coordinates: built.coordinates, routeEndUtc: built.routeEndUtc,
     ordered, pool: normalizedPool, config, invalidCandidateIds: [...selection.invalidCandidateIds, ...normalized.invalidCandidateIds],

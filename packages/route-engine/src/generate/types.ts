@@ -40,6 +40,7 @@ export type GeneratorConfig = {
   maxStopsPerCountry: number;
   underservedCountries: string[];
   generatedAt: string;
+  useOrienteering: boolean;
 };
 
 export type GeneratedRoute = {
@@ -127,4 +128,5 @@ export const DEFAULT_GENERATOR_LIMITS: GeneratorConfig = {
   maxStopsPerCountry: 12,
   underservedCountries: [],
   generatedAt: '2026-11-23T00:00:00.000Z',
+  useOrienteering: true,
 };
