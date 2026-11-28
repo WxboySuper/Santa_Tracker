@@ -6,6 +6,8 @@ import { candidateTiming, categoryPreference, hasFeasibleTiming, longitudeDelta 
 import { timingAndDetourAllows } from './order';
 import { acceptRouteProposal } from './order-path';
 
+const LEGACY_GENERATOR_CONFIG = { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: false };
+
 const testPlaces: Candidate[] = [
   { id: 'ki', name: 'Kiritimati', country: 'KI', lat: 1.87, lng: -157.4, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, category: 'populated', population: 7_380 },
   { id: 'fj', name: 'Nadi', country: 'FJ', lat: -17.8, lng: 177.4, timezone: 'Pacific/Fiji', utcOffsetMinutes: 720, category: 'populated', population: 42_284 },
@@ -153,8 +155,8 @@ describe('midnight sweep ordering', () => {
       timezone: 'Australia/Brisbane', utcOffsetMinutes: 600, category: 'populated', population: 500_000 };
     const to: Candidate = { id: 'offset-anomaly', name: 'Southern atoll', country: 'KI', lat: -80, lng: 162,
       timezone: 'Pacific/Norfolk', utcOffsetMinutes: 720, category: 'populated', population: 10_000 };
-    const planned = candidateTiming({ place: to, prior: from, priorDeparture: Date.parse('2026-12-24T14:00:00.000Z'),
-      index: 2, config: DEFAULT_GENERATOR_LIMITS });
+    const planned = candidateTiming({ place: to, prior: from, priorDeparture: Date.parse('2026-12-24T13:30:00.000Z'),
+      index: 2, config: LEGACY_GENERATOR_CONFIG });
     expect(planned).toBeDefined();
     expect(longitudeDelta(from, to)).toBeGreaterThan(1);
     expect(eastwardLegReason({
@@ -249,9 +251,26 @@ describe('midnight sweep ordering', () => {
       timezone: 'Asia/Shanghai', utcOffsetMinutes: 480, category: 'populated', population: 21_000_000,
     };
     const distance = haversineKm(hongKong, beijing);
-    const travel = scheduledTravelMilliseconds(hongKong, beijing, DEFAULT_GENERATOR_LIMITS);
+    const travel = scheduledTravelMilliseconds(hongKong, beijing, LEGACY_GENERATOR_CONFIG);
     expect(distance).toBeGreaterThan(1_500);
     expect(distance / (travel / 3_600_000)).toBeLessThanOrEqual(DEFAULT_GENERATOR_LIMITS.localLegSpeedKmh);
+  });
+
+  it('uses local speed for short hops and the capped target for long orienteering legs', () => {
+    const origin = testPlaces[2]!;
+    const nearby = { ...origin, id: 'nearby-hop', lng: origin.lng + 1 };
+    const distant = { ...origin, id: 'regional-leg', lng: origin.lng + 25 };
+    const shortDistance = haversineKm(origin, nearby);
+    const longDistance = haversineKm(origin, distant);
+    const orienteeringConfig = { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: true };
+    const shortTravel = scheduledTravelMilliseconds(origin, nearby, orienteeringConfig);
+    const longTravel = scheduledTravelMilliseconds(origin, distant, orienteeringConfig);
+
+    const shortSpeed = shortDistance / (shortTravel / 3_600_000);
+    expect(shortSpeed).toBeGreaterThan(3_900);
+    expect(shortSpeed).toBeLessThan(4_100);
+    expect(longDistance / (longTravel / 3_600_000)).toBeLessThanOrEqual(DEFAULT_GENERATOR_LIMITS.p90LegSpeedMaxKmh);
+    expect(longDistance / (longTravel / 3_600_000)).toBeGreaterThan(14_000);
   });
 
   it('selects the feasible subset when the per-country cap prevents full-pool inclusion', () => {
@@ -291,9 +310,9 @@ describe('midnight sweep ordering', () => {
   it('keeps local hops under p90 and permits fast long ocean crossings below the hard cap', () => {
     const local = haversineKm(testPlaces[2]!, testPlaces[3]!);
     const ocean = haversineKm(testPlaces[0]!, testPlaces[3]!);
-    const localTravel = scheduledTravelMilliseconds(testPlaces[2]!, testPlaces[3]!, DEFAULT_GENERATOR_LIMITS);
-    const oceanTravel = scheduledTravelMilliseconds(testPlaces[0]!, testPlaces[3]!, DEFAULT_GENERATOR_LIMITS);
-    const fastOceanConfig = { ...DEFAULT_GENERATOR_LIMITS, targetLegSpeedKmh: 25_000 };
+    const localTravel = scheduledTravelMilliseconds(testPlaces[2]!, testPlaces[3]!, LEGACY_GENERATOR_CONFIG);
+    const oceanTravel = scheduledTravelMilliseconds(testPlaces[0]!, testPlaces[3]!, LEGACY_GENERATOR_CONFIG);
+    const fastOceanConfig = { ...LEGACY_GENERATOR_CONFIG, targetLegSpeedKmh: 25_000 };
     const fastOceanTravel = scheduledTravelMilliseconds(testPlaces[0]!, testPlaces[3]!, fastOceanConfig);
     expect(localTravel % 1000).toBe(0);
     expect(oceanTravel % 1000).toBe(0);
@@ -319,20 +338,20 @@ describe('midnight sweep ordering', () => {
     };
     const lateDeparture = Date.parse('2026-12-25T13:40:00.000Z');
     const plannedIntermediate = candidateTiming({ place: intermediate, prior, priorDeparture: lateDeparture, index: 2,
-      config: DEFAULT_GENERATOR_LIMITS });
+      config: LEGACY_GENERATOR_CONFIG });
     expect(plannedIntermediate).toBeDefined();
     if (!plannedIntermediate) throw new Error('Expected a feasible intermediate stop');
 
     const directReturn = plannedIntermediate.departure
-      + scheduledTravelMilliseconds(intermediate, NORTH_POLE, DEFAULT_GENERATOR_LIMITS);
+      + scheduledTravelMilliseconds(intermediate, NORTH_POLE, LEGACY_GENERATOR_CONFIG);
     expect(directReturn).toBeLessThanOrEqual(Date.parse('2026-12-25T14:00:00.000Z'));
 
     const plannedFinal = candidateTiming({ place: final, prior: intermediate,
-      priorDeparture: plannedIntermediate.departure, index: 3, config: DEFAULT_GENERATOR_LIMITS });
+      priorDeparture: plannedIntermediate.departure, index: 3, config: LEGACY_GENERATOR_CONFIG });
     expect(plannedFinal).toBeDefined();
     if (!plannedFinal) throw new Error('Expected a feasible final stop');
     const actualReturn = plannedFinal.departure
-      + scheduledTravelMilliseconds(final, NORTH_POLE, DEFAULT_GENERATOR_LIMITS);
+      + scheduledTravelMilliseconds(final, NORTH_POLE, LEGACY_GENERATOR_CONFIG);
     expect(actualReturn).toBeLessThanOrEqual(Date.parse('2026-12-25T14:00:00.000Z'));
     expect(actualReturn).toBeGreaterThan(directReturn);
   });

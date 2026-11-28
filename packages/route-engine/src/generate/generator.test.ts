@@ -12,7 +12,7 @@ const candidates: Candidate[] = [
   { id: 'pacific-d', name: 'Pacific D', country: 'NZ', lat: 80, lng: 110, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, population: 100, category: 'hub' },
 ];
 
-const config = { ...DEFAULT_GENERATOR_LIMITS, maxStopsPerCountry: 6, minStopSeparationKm: 20 };
+const config = { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: false, maxStopsPerCountry: 6, minStopSeparationKm: 20 };
 
 describe('generateRoute midnight sweep', () => {
   it('creates reproducible route output with westward ordering', () => {

@@ -59,9 +59,11 @@ function isOceanCrossing(from: Candidate | LatLng, to: Candidate | LatLng, dista
 
 function planningSpeed(from: Candidate | LatLng, to: Candidate | LatLng, distanceKm: number, config: GeneratorConfig): number {
   const oceanCrossing = isOceanCrossing(from, to, distanceKm);
-  if (oceanCrossing && distanceKm >= FAST_OCEAN_CROSSING_KM) {
-    return Math.min(config.targetLegSpeedKmh, config.maxLegSpeedKmh);
+  if (config.useOrienteering) {
+    const target = distanceKm >= FAST_CROSSING_KM || oceanCrossing ? config.targetLegSpeedKmh : config.localLegSpeedKmh;
+    return Math.min(target, config.maxLegSpeedKmh, config.p90LegSpeedMaxKmh);
   }
+  if (oceanCrossing && distanceKm >= FAST_OCEAN_CROSSING_KM) return Math.min(config.targetLegSpeedKmh, config.maxLegSpeedKmh);
   const target = oceanCrossing ? config.targetLegSpeedKmh : config.localLegSpeedKmh;
   return Math.min(target, config.maxLegSpeedKmh, config.p90LegSpeedMaxKmh);
 }

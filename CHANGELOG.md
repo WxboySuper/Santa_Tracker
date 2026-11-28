@@ -1,5 +1,11 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Time-window orienteering route generator
+
+- **Ordering:** Seeds every candidate country and required US, Canadian, and Australian admin-1 unit, improves the tour with 2-opt and or-opt, then inserts optional stops by marginal route cost.
+- **Schedule:** Keeps the 28-hour return, 25,000 km/h ceiling, and 20 km separation hard. Westward travel and 23:00 to 05:00 local arrivals now add soft penalties.
+- **Reports:** Records reasons for eastward legs over 1,500 km and legs over 4,000 km; the review page shows those reasons beside leg speeds and distances.
+
 ## [Unreleased] - Place notes and photos in the globe's Here panel
 
 - **Here panel:** Shows the stop card for the place Santa is over: a sourced cultural note with its source link, and on wider screens a Wikimedia photo with author and license credit. Cards are matched by the route stop's `candidate_id`.
