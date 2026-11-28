@@ -206,6 +206,20 @@ describe('auditRouteDocument', () => {
     expect(result.find((check) => check.name === 'Preferred local-night coverage')?.pass).toBe(true);
   });
 
+  it('counts sovereign states as required and reports optional territories', () => {
+    const fixture = routeFixture([{ id: 'us-stop', name: 'US stop', country: 'US', lng: -100 }]);
+    const pitcairn = { ...fixture.selected[0]!, id: 'pn-stop', name: 'Adamstown', country: 'PN' };
+    const result = auditRouteDocument(fixture.document, {
+      config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] },
+      pool: [...fixture.selected, pitcairn], selected: fixture.selected,
+      zonesByCountry: { US: ['Etc/UTC'], PN: ['Pacific/Pitcairn'] }, utcOffsetsByTimezone: { 'Etc/UTC': 0, 'Pacific/Pitcairn': -480 },
+      countryBoundsByCode: { US: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 }, PN: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 } },
+      report: { continentBalance: {}, subregionBalance: {} }, vetoIds: [],
+    });
+    expect(result.checks.find((check) => check.name === 'Sovereign-state coverage')?.pass).toBe(true);
+    expect(result.reports.find((report) => report.name === 'Territory coverage')?.detail).toContain('skipped 1 (PN)');
+  });
+
   it('fails below the 85 percent preferred-night arrival threshold', () => {
     const hours = Array.from({ length: 10 }, (_, index) => ({
       id: `night-${index}`, name: `Night ${index}`, lng: -120 + index,

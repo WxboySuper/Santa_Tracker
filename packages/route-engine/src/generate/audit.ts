@@ -1,6 +1,7 @@
 import { LegacyRouteFixtureSchema } from '@santa-tracker/contracts';
 import { haversineKm, legSpeedKmh } from '../geo';
 import { classifyRegion } from './regions';
+import { isSovereignState } from './coverage';
 import { localWindowStatus } from './sweep';
 import { hasSpecificLongLegReason } from './route-reasons';
 import { NORTH_POLE, TAKEOFF_UTC, type Candidate, type GeneratorConfig, type RouteReport } from './types';
@@ -603,6 +604,11 @@ function addSelectionChecks(context: RouteAuditContext, view: AuditView, checks:
   addCoordinateChecks(context, view, checks);
   addExperienceCheck(view, checks);
   addStopTierCheck(view, checks);
+  const required = [...new Set(context.pool.map((place) => place.country).filter(isSovereignState))].sort();
+  const visited = new Set(view.places.map((place) => place.country));
+  const missing = required.filter((code) => !visited.has(code));
+  addCheck(checks, 'Sovereign-state coverage', missing.length === 0,
+    `${required.length - missing.length}/${required.length} sovereign states visited${missing.length ? `; missing ${missing.join(', ')}` : ''}.`);
 }
 
 function addFlightWindowCheck(context: RouteAuditContext, view: AuditView, checks: AuditCheck[]): void {
@@ -937,12 +943,16 @@ function addDistanceReport(legs: AuditLeg[], reports: { name: string; detail: st
 
 function addCoverageReports(view: AuditView, context: RouteAuditContext, legs: AuditLeg[], reports: { name: string; detail: string }[]): void {
   const countries = [...new Set(view.delivery.map((node) => node.location.country_code).filter((code): code is string => !!code))].sort();
+  const territories = [...new Set(context.pool.map((place) => place.country).filter((code) => !isSovereignState(code)))].sort();
+  const visitedTerritories = territories.filter((code) => countries.includes(code));
+  const skippedTerritories = territories.filter((code) => !countries.includes(code));
   const continents: Record<string, number> = {};
   for (const place of view.places) {
     const continent = classifyRegion(place).continent;
     continents[continent] = (continents[continent] ?? 0) + 1;
   }
   reports.push({ name: 'Coverage', detail: `${view.delivery.length} stops; ${countries.length} countries/territories (${countries.join(', ')}); per-continent ${Object.entries(continents).sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => `${name} ${count}`).join(', ')}.` });
+  reports.push({ name: 'Territory coverage', detail: `Visited ${visitedTerritories.length}/${territories.length} optional territories (${visitedTerritories.join(', ') || 'none'}); skipped ${skippedTerritories.length} (${skippedTerritories.join(', ') || 'none'}).` });
   const worldPlaces = context.worldPlaces ?? context.pool;
   const populationTotal = worldPlaces.reduce((sum, place) => sum + Math.max(0, place.population ?? 0), 0);
   const coveredPopulation = worldPlaces.reduce((sum, place) => sum + (view.places.some((stop) => haversineKm(stop, place) <= 500) ? Math.max(0, place.population ?? 0) : 0), 0);
