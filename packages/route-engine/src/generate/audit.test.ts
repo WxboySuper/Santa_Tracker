@@ -3,6 +3,8 @@ import { auditRouteDocument, coordinateAuditFailures } from './audit';
 import { DEFAULT_GENERATOR_LIMITS } from './types';
 import type { Candidate, GeneratorConfig } from './types';
 
+type AuditTestConfig = GeneratorConfig & { requiredStopIds: string[]; requiredCountries: string[] };
+
 function routeFixture(points: { id: string; name: string; lng: number; country?: string; offset?: number; reason?: string; population?: number; category?: string; arrivalUtc?: string; tier?: string; duration?: number; transitSeconds?: number }[]): { document: unknown; selected: Candidate[] } {
   const selected = points.map((point) => ({ id: point.id, name: point.name, country: point.country ?? 'US', timezone: 'Etc/UTC', utcOffsetMinutes: point.offset ?? 0,
     category: point.category ?? 'populated', population: point.population ?? 1000, lat: 0, lng: point.lng }));
@@ -21,7 +23,7 @@ function routeFixture(points: { id: string; name: string; lng: number; country?:
 
 function auditFixture(fixture: ReturnType<typeof routeFixture>, useOrienteering = false) {
   const result = auditRouteDocument(fixture.document, {
-    config: { ...DEFAULT_GENERATOR_LIMITS, useOrienteering, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as GeneratorConfig & { useOrienteering: boolean },
+    config: { ...DEFAULT_GENERATOR_LIMITS, useOrienteering, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as AuditTestConfig,
     pool: fixture.selected, selected: fixture.selected, zonesByCountry: { US: ['Etc/UTC'] }, utcOffsetsByTimezone: { 'Etc/UTC': 0 },
     countryBoundsByCode: { US: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 }, CA: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 } }, report: { continentBalance: {}, subregionBalance: {} }, vetoIds: [],
   });
@@ -36,7 +38,7 @@ describe('auditRouteDocument', () => {
         weights: { hub: 100 },
         requiredStopIds: ['required-stop'],
         requiredCountries: ['US'],
-      },
+      } as AuditTestConfig,
       pool: [],
       selected: [],
       zonesByCountry: {},
@@ -86,7 +88,7 @@ describe('auditRouteDocument', () => {
         schedule: { arrival_utc: '2026-12-24T23:50:00.000Z', departure_utc: '2026-12-24T23:51:00.000Z' },
       },
     ] }, {
-      config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 }, requiredStopIds: ['required-stop'], requiredCountries: ['US'] },
+      config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 }, requiredStopIds: ['required-stop'], requiredCountries: ['US'] } as AuditTestConfig,
       pool: [],
       selected: [],
       zonesByCountry: {},
@@ -183,7 +185,7 @@ describe('auditRouteDocument', () => {
     nodes[5]!.location.lat = 0;
     fixture.selected.forEach((place, index) => { place.lat = index % 2 === 0 ? 0 : 40; });
     const result = auditRouteDocument(fixture.document, {
-      config: { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: true, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as GeneratorConfig & { useOrienteering: boolean },
+      config: { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: true, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as AuditTestConfig,
       pool: fixture.selected, selected: fixture.selected, zonesByCountry: { US: ['Etc/UTC'] }, utcOffsetsByTimezone: { 'Etc/UTC': 0 },
       countryBoundsByCode: { US: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 } }, report: { continentBalance: {}, subregionBalance: {} }, vetoIds: [],
     });
@@ -211,7 +213,7 @@ describe('auditRouteDocument', () => {
       utcOffsetMinutes: node.location.timezone_offset * 60, category: node.comment ?? 'populated', lat: node.location.lat, lng: node.location.lng,
     }));
     const result = auditRouteDocument(document, {
-      config: { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: false, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as GeneratorConfig & { useOrienteering: boolean },
+      config: { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: false, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as AuditTestConfig,
       pool: selected, selected, zonesByCountry: {}, utcOffsetsByTimezone: {}, countryBoundsByCode: {},
       report: { continentBalance: {}, subregionBalance: {} }, vetoIds: [],
     });

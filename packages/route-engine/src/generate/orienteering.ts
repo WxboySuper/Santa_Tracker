@@ -194,7 +194,7 @@ function improveTour(seed: Candidate[], config: GeneratorConfig): Candidate[] {
   const neighborSeed = midnightBiasedNearestNeighbor(seed, config);
   let current = routeCost(neighborSeed, config) < routeCost(seed, config) ? neighborSeed : [...seed];
   let score = routeCost(current, config);
-  const maxRounds = 3;
+  const maxRounds = 6;
   for (let round = 0; round < maxRounds; round++) {
     let best = current;
     let bestScore = score;
