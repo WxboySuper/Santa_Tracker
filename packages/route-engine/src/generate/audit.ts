@@ -973,6 +973,9 @@ function addDistanceReport(legs: AuditLeg[], reports: { name: string; detail: st
 
 function addCoverageReports(view: AuditView, context: RouteAuditContext, legs: AuditLeg[], reports: { name: string; detail: string }[]): void {
   const countries = [...new Set(view.delivery.map((node) => node.location.country_code).filter((code): code is string => !!code))].sort();
+  const requiredStates = [...new Set(context.pool.map((place) => place.country).filter(isSovereignState))].sort();
+  const visitedStates = countries.filter(isSovereignState);
+  const missingStates = requiredStates.filter((code) => !visitedStates.includes(code));
   const territories = [...new Set(context.pool.map((place) => place.country).filter((code) => !isSovereignState(code)))].sort();
   const visitedTerritories = territories.filter((code) => countries.includes(code));
   const skippedTerritories = territories.filter((code) => !countries.includes(code));
@@ -981,7 +984,7 @@ function addCoverageReports(view: AuditView, context: RouteAuditContext, legs: A
     const continent = classifyRegion(place).continent;
     continents[continent] = (continents[continent] ?? 0) + 1;
   }
-  reports.push({ name: 'Coverage', detail: `${view.delivery.length} stops; ${countries.length} countries/territories (${countries.join(', ')}); per-continent ${Object.entries(continents).sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => `${name} ${count}`).join(', ')}.` });
+  reports.push({ name: 'Coverage', detail: `${view.delivery.length} stops; sovereign states ${visitedStates.length}/${requiredStates.length}${missingStates.length ? `, missing ${missingStates.join(', ')}` : ''}; per-continent ${Object.entries(continents).sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => `${name} ${count}`).join(', ')}.` });
   reports.push({ name: 'Territory coverage', detail: `Visited ${visitedTerritories.length}/${territories.length} optional territories (${visitedTerritories.join(', ') || 'none'}); skipped ${skippedTerritories.length} (${skippedTerritories.join(', ') || 'none'}).` });
   const worldPlaces = context.worldPlaces ?? context.pool;
   const populationTotal = worldPlaces.reduce((sum, place) => sum + Math.max(0, place.population ?? 0), 0);
