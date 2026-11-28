@@ -39,7 +39,7 @@ export function longLegReason(
   to: Candidate | LatLng,
   options: LongLegReasonOptions = {},
 ): string | undefined {
-  if (haversineKm(from, to) <= 4_000) return undefined;
+  if (haversineKm(from, to) <= 3_000) return undefined;
   if (!('country' in from)) {
     if (!('country' in to)) return 'polar launch';
     return 'polar launch to ' + to.country + insertionDescription(options);
