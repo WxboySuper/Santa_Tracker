@@ -19,7 +19,7 @@ function routeFixture(points: { id: string; name: string; lng: number; country?:
       schedule: {
         arrival_utc: arrival,
         departure_utc: new Date(Date.parse(arrival) + 30_000).toISOString(),
-        time_window_status: point.status ?? localWindowStatus(Date.parse(arrival), point.offset ?? 0),
+        time_window_status: point.status ?? localWindowStatus({ instant: Date.parse(arrival), offsetMinutes: point.offset ?? 0 }),
       },
       stop_experience: { presents_delivered_at_stop: 1, camera_zoom: 1, weather_condition: 'clear', stop_tier: point.tier ?? 'town', duration_seconds: point.duration ?? 10 },
       transit_to_here: { duration_seconds: point.transitSeconds ?? 0, distance_km: 1, speed_kmh: 100,

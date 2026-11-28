@@ -280,7 +280,7 @@ function buildDeliveryNode({ place, displayName, index, config, tables, priorLoc
       arrival_utc: new Date(stopArrival).toISOString(),
       departure_utc: new Date(stopDeparture).toISOString(),
       local_arrival_time: localTimeLabel(place, stopArrival),
-      time_window_status: localWindowStatus(stopArrival, candidateOffset(place)),
+      time_window_status: localWindowStatus({ instant: stopArrival, offsetMinutes: candidateOffset(place) }),
     },
     stop_experience: { duration_seconds: durationSeconds, stop_tier: tier, camera_zoom: 14, weather_condition: 'clear', presents_delivered_at_stop: 1 },
     transit_to_here: transit({

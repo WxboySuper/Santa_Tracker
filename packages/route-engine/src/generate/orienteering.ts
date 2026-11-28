@@ -236,7 +236,7 @@ function timing(order: Candidate[], config: GeneratorConfig): Timing | undefined
     const scheduled = scheduledLocalArrival(place, earliest);
     if (!scheduled) return undefined;
     const { arrival, waitMs } = scheduled;
-    const status = localWindowStatus(arrival, place.utcOffsetMinutes ?? 0);
+    const status = localWindowStatus({ instant: arrival, offsetMinutes: place.utcOffsetMinutes ?? 0 });
     if (status === 'GREEN') greenCount++;
     const tier = stopTier(place);
     const durationSeconds = stopDurationSeconds(tier);
@@ -255,12 +255,12 @@ function timing(order: Candidate[], config: GeneratorConfig): Timing | undefined
 }
 
 function isInsideHardWindow(place: Candidate, arrival: number): boolean {
-  return localWindowStatus(arrival, place.utcOffsetMinutes ?? 0) !== 'RED';
+  return localWindowStatus({ instant: arrival, offsetMinutes: place.utcOffsetMinutes ?? 0 }) !== 'RED';
 }
 
 function localArrivalPenalty(place: Candidate, arrival: number): number {
   if (!isInsideHardWindow(place, arrival)) return Number.POSITIVE_INFINITY;
-  return localWindowPenaltyMinutes(arrival, place.utcOffsetMinutes ?? 0) * 0.1;
+  return localWindowPenaltyMinutes({ instant: arrival, offsetMinutes: place.utcOffsetMinutes ?? 0 }) * 0.1;
 }
 
 function isMorningShoulder(minute: number): boolean {
@@ -273,7 +273,7 @@ function isWaitUntilPreferredWindow(minute: number): boolean {
 
 function scheduledLocalArrival(place: Candidate, earliest: number): { arrival: number; waitMs: number } | undefined {
   const offset = place.utcOffsetMinutes ?? 0;
-  const status = localWindowStatus(earliest, offset);
+  const status = localWindowStatus({ instant: earliest, offsetMinutes: offset });
   if (status === 'GREEN') return { arrival: earliest, waitMs: 0 };
   const local = new Date(earliest + offset * 60_000);
   const minute = local.getUTCHours() * 60 + local.getUTCMinutes();
@@ -543,7 +543,7 @@ function isInsertionWithinBudget(plan: Timing, impact: InsertionImpact): boolean
 }
 
 function insertionImpact(order: Candidate[], place: Candidate, insertion: Insertion, plan: Timing): InsertionImpact | undefined {
-  const placeStatus = localWindowStatus(insertion.arrival, place.utcOffsetMinutes ?? 0);
+  const placeStatus = localWindowStatus({ instant: insertion.arrival, offsetMinutes: place.utcOffsetMinutes ?? 0 });
   if (placeStatus === 'RED') return undefined;
   let greenCount = plan.greenCount + Number(placeStatus === 'GREEN');
   let upstreamShift = insertion.extraMs;
@@ -555,8 +555,8 @@ function insertionImpact(order: Candidate[], place: Candidate, insertion: Insert
     const scheduled = scheduledLocalArrival(next, oldEarliest + upstreamShift);
     if (!scheduled) return undefined;
     const shiftedArrival = scheduled.arrival;
-    const oldStatus = localWindowStatus(oldArrival, offset);
-    const shiftedStatus = localWindowStatus(shiftedArrival, offset);
+    const oldStatus = localWindowStatus({ instant: oldArrival, offsetMinutes: offset });
+    const shiftedStatus = localWindowStatus({ instant: shiftedArrival, offsetMinutes: offset });
     greenCount += Number(shiftedStatus === 'GREEN') - Number(oldStatus === 'GREEN');
     upstreamShift = shiftedArrival - oldArrival;
   }
