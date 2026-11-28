@@ -115,11 +115,14 @@ describe('auditRouteDocument', () => {
     expect(check?.detail).toContain('ZZ');
   });
 
-  it('allows short eastward hops and requires recorded reasons for longer eastward legs', () => {
+  it('allows short eastward hops without a recorded reason', () => {
     const unexplained = auditFixture(routeFixture([
     { id: 'a', name: 'A', lng: -100 }, { id: 'b', name: 'B', lng: -90 },
     ]));
     expect(unexplained.find((check) => check.name === 'Eastward legs')?.pass).toBe(true);
+  });
+
+  it('requires a reason for long eastward legs', () => {
     const longUnexplained = auditFixture(routeFixture([
       { id: 'a', name: 'A', lng: -100 }, { id: 'b', name: 'B', lng: -75 },
     ]));
@@ -128,6 +131,9 @@ describe('auditRouteDocument', () => {
       { id: 'a', name: 'A', lng: -100 }, { id: 'b', name: 'B', lng: -75, reason: 'soft-orienteering' },
     ]), true);
     expect(softChoice.find((check) => check.name === 'Eastward legs')?.pass).toBe(true);
+  });
+
+  it('accepts only plausible offset-anomaly reasons', () => {
     const anomaly = auditFixture(routeFixture([
       { id: 'a', name: 'A', lng: -100, offset: -300 }, { id: 'b', name: 'B', lng: -75, offset: 300, reason: 'offset-anomaly' },
     ]));
@@ -136,7 +142,13 @@ describe('auditRouteDocument', () => {
       { id: 'a', name: 'A', lng: -100, offset: 300 }, { id: 'b', name: 'B', lng: -75, offset: -300, reason: 'offset-anomaly' },
     ]));
     expect(wrongAnomaly.find((check) => check.name === 'Eastward legs')?.pass).toBe(false);
+    const smallOffsetReset = auditFixture(routeFixture([
+      { id: 'a', name: 'A', lng: 74, offset: 360 }, { id: 'b', name: 'B', lng: 83, offset: 345, reason: 'offset-anomaly' },
+    ]));
+    expect(smallOffsetReset.find((check) => check.name === 'Eastward legs')?.pass).toBe(true);
+  });
 
+  it('accepts a date-line reason only before the sweep crosses the date line', () => {
     const dateline = auditFixture(routeFixture([
       { id: 'a', name: 'A', lng: 170, offset: 780 }, { id: 'b', name: 'B', lng: -170, offset: 840, reason: 'dateline' },
     ]));
@@ -181,19 +193,38 @@ describe('auditRouteDocument', () => {
     expect(fastLeg.find((check) => check.name === 'Leg speed')?.pass).toBe(false);
   });
 
-  it('requires 90 percent local-night arrivals and matching status labels', () => {
+  it('passes the 85 percent preferred-night arrival threshold', () => {
     const hours = Array.from({ length: 10 }, (_, index) => ({
       id: `night-${index}`, name: `Night ${index}`, lng: -120 + index,
       arrivalUtc: index === 9 ? '2026-12-25T12:00:00.000Z' : '2026-12-25T02:00:00.000Z',
     }));
     const result = auditFixture(routeFixture(hours), true);
     expect(result.find((check) => check.name === 'Preferred local-night coverage')?.pass).toBe(true);
+  });
 
-    const belowThreshold = auditFixture(routeFixture(hours.map((point, index) => ({
-      ...point, arrivalUtc: index >= 2 ? '2026-12-25T12:00:00.000Z' : point.arrivalUtc,
-    }))), true);
-    expect(belowThreshold.find((check) => check.name === 'Preferred local-night coverage')?.pass).toBe(false);
+  it('fails below the 85 percent preferred-night arrival threshold', () => {
+    const hours = Array.from({ length: 10 }, (_, index) => ({
+      id: `night-${index}`, name: `Night ${index}`, lng: -120 + index,
+      arrivalUtc: index < 8 ? '2026-12-25T02:00:00.000Z' : '2026-12-25T12:00:00.000Z',
+    }));
+    const result = auditFixture(routeFixture(hours), true);
+    expect(result.find((check) => check.name === 'Preferred local-night coverage')?.pass).toBe(false);
+  });
 
+  it('accepts allowed shoulders and rejects arrivals outside the hard window', () => {
+    const preferredAndShoulder = Array.from({ length: 10 }, (_, index) => ({
+      id: `night-${index}`, name: `Night ${index}`, lng: -120 + index,
+      arrivalUtc: index === 9 ? '2026-12-24T22:45:00.000Z' : '2026-12-25T02:00:00.000Z',
+    }));
+    const shoulder = auditFixture(routeFixture(preferredAndShoulder), true);
+    expect(shoulder.find((check) => check.name === 'Preferred local-night coverage')?.pass).toBe(true);
+    expect(shoulder.find((check) => check.name === 'Timezone and local arrival window')?.pass).toBe(true);
+    const outsideShoulder = auditFixture(routeFixture([{ id: 'outside', name: 'Outside shoulder', lng: -100,
+      arrivalUtc: '2026-12-24T22:29:00.000Z' }]), true);
+    expect(outsideShoulder.find((check) => check.name === 'Timezone and local arrival window')?.pass).toBe(false);
+  });
+
+  it('rejects a window label that disagrees with the recorded local time', () => {
     const mislabeled = auditFixture(routeFixture([{ id: 'label', name: 'Wrong label', lng: -100,
       arrivalUtc: '2026-12-25T12:00:00.000Z', status: 'GREEN' }]), true);
     expect(mislabeled.find((check) => check.name === 'Local time-window status labels')?.pass).toBe(false);

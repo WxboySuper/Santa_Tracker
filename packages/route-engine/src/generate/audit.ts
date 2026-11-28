@@ -293,7 +293,7 @@ function localArrivalFailures(node: RouteNode, place: Candidate): string[] {
   const offset = place.utcOffsetMinutes;
   if (offset === undefined) return [`${node.location.name}: missing snapshot UTC offset`];
   const status = localWindowStatus({ instant: Date.parse(arrival), offsetMinutes: offset });
-  return status === 'RED' ? [`${node.location.name}: local arrival is outside 20:00–08:00`] : [];
+  return status === 'RED' ? [`${node.location.name}: local arrival is outside 22:30–05:30`] : [];
 }
 
 function displayOffsetFailures(node: RouteNode, place: Candidate): string[] {
@@ -325,7 +325,7 @@ function addTimezoneChecks(context: RouteAuditContext, view: AuditView, checks: 
   });
   addCheck(checks, 'Timezone and local arrival window', failures.length === 0,
     failures.length ? failures.slice(0, 6).join('; ')
-      : `${view.delivery.length} stops match country zones; ${outsideWindow} arrivals fall outside 20:00–08:00 local.`);
+      : `${view.delivery.length} stops match country zones; ${outsideWindow} arrivals fall outside 22:30–05:30 local.`);
 }
 
 type LocalArrivalAssessment = { node: RouteNode; place?: Candidate; status?: string };
@@ -346,9 +346,9 @@ function isPreferredNightStatus(assessment: LocalArrivalAssessment): boolean {
 function addPreferredNightCoverageCheck(view: AuditView, checks: AuditCheck[], assessments: LocalArrivalAssessment[]): void {
   const green = assessments.filter(isPreferredNightStatus).length;
   const share = assessments.length > 0 ? green / assessments.length : 0;
-  const pass = view.matched && assessments.length === view.delivery.length && share >= 0.9;
+  const pass = view.matched && assessments.length === view.delivery.length && share >= 0.85;
   addCheck(checks, 'Preferred local-night coverage', pass,
-    `${green}/${assessments.length} stops (${(share * 100).toFixed(1)}%) arrive from 22:00 to 06:00 local; minimum 90%.`);
+    `${green}/${assessments.length} stops (${(share * 100).toFixed(1)}%) arrive from 23:00 to 05:00 local; minimum 85%.`);
 }
 
 function hasMismatchedWindowLabel(assessment: LocalArrivalAssessment): boolean {
@@ -772,24 +772,28 @@ function meridionalDirections(places: Candidate[]): (number | undefined)[] {
   return directions;
 }
 
-function northSouthReversals(directions: (number | undefined)[]): number {
+function maxNorthSouthReversals(directions: (number | undefined)[]): number {
   let reversals = 0;
+  let maximum = 0;
   let previous: number | undefined;
   for (const direction of directions) {
     if (direction === undefined) {
+      maximum = Math.max(maximum, reversals);
+      reversals = 0;
       previous = undefined;
       continue;
     }
     if (previous !== undefined && direction !== previous) reversals++;
     previous = direction;
+    maximum = Math.max(maximum, reversals);
   }
-  return reversals;
+  return maximum;
 }
 
 function addCombCheck(view: AuditView, checks: AuditCheck[]): void {
-  const reversals = northSouthReversals(meridionalDirections(view.places));
+  const reversals = maxNorthSouthReversals(meridionalDirections(view.places));
   addCheck(checks, 'Repeated north-south reversals', reversals < 3,
-    `${reversals} reversals between consecutive legs longer than 1,500 km and 20 degrees latitude; three or more indicates a comb route.`);
+    `${reversals} reversals in the longest consecutive run of legs over 1,500 km and 20 degrees latitude; three or more indicates a comb route.`);
 }
 
 function addLongLegReasonCheck(legs: AuditLeg[], checks: AuditCheck[]): void {
@@ -812,7 +816,16 @@ function plausibleOffsetAnomaly(view: AuditView, leg: AuditLeg): boolean {
   const destination = view.places[index]?.utcOffsetMinutes;
   if (origin === undefined) return false;
   if (destination === undefined) return false;
-  return destination > origin;
+  const offsetJump = destination - origin;
+  return isSmallOffsetReset(offsetJump) || isUnexpectedOffsetAdvance(offsetJump, leg.eastward);
+}
+
+function isSmallOffsetReset(offsetJump: number): boolean {
+  return offsetJump < 0 && offsetJump >= -120;
+}
+
+function isUnexpectedOffsetAdvance(offsetJump: number, eastwardDegrees: number): boolean {
+  return offsetJump > eastwardDegrees * 4 + 10;
 }
 
 function destinationIsBeforeSweep(view: AuditView, index: number): boolean {
