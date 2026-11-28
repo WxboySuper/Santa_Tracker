@@ -763,19 +763,23 @@ function longMeridionalDirection(from: Candidate | undefined, to: Candidate | un
   return Math.sign(latitudeChange);
 }
 
-function meridionalDirections(places: Candidate[]): number[] {
-  const directions: number[] = [];
+function meridionalDirections(places: Candidate[]): (number | undefined)[] {
+  const directions: (number | undefined)[] = [];
   for (let index = 1; index < places.length; index++) {
     const direction = longMeridionalDirection(places[index - 1], places[index]);
-    if (direction !== undefined) directions.push(direction);
+    directions.push(direction);
   }
   return directions;
 }
 
-function northSouthReversals(directions: number[]): number {
+function northSouthReversals(directions: (number | undefined)[]): number {
   let reversals = 0;
-  let previous = directions[0];
-  for (const direction of directions.slice(1)) {
+  let previous: number | undefined;
+  for (const direction of directions) {
+    if (direction === undefined) {
+      previous = undefined;
+      continue;
+    }
     if (previous !== undefined && direction !== previous) reversals++;
     previous = direction;
   }
@@ -785,7 +789,7 @@ function northSouthReversals(directions: number[]): number {
 function addCombCheck(view: AuditView, checks: AuditCheck[]): void {
   const reversals = northSouthReversals(meridionalDirections(view.places));
   addCheck(checks, 'Repeated north-south reversals', reversals < 3,
-    `${reversals} reversals across legs longer than 1,500 km and 20 degrees latitude; three or more indicates a comb route.`);
+    `${reversals} reversals between consecutive legs longer than 1,500 km and 20 degrees latitude; three or more indicates a comb route.`);
 }
 
 function addLongLegReasonCheck(legs: AuditLeg[], checks: AuditCheck[]): void {

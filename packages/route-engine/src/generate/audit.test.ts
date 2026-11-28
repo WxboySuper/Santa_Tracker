@@ -235,6 +235,24 @@ describe('auditRouteDocument', () => {
     expect(result.checks.find((check) => check.name === 'Reasons for legs over 4,000 km')?.pass).toBe(false);
   });
 
+  it('does not join distant north-south swings across short local legs', () => {
+    const points = [
+      { id: 'a', name: 'A', lng: 0 }, { id: 'b', name: 'B', lng: 1 },
+      { id: 'c', name: 'C', lng: 2 }, { id: 'd', name: 'D', lng: 3 },
+      { id: 'e', name: 'E', lng: 4 }, { id: 'f', name: 'F', lng: 5 },
+    ];
+    const fixture = routeFixture(points);
+    const nodes = (fixture.document as { route_nodes: { location: { lat: number } }[] }).route_nodes;
+    [0, 40, 40.1, 0, 0.1, 40].forEach((latitude, index) => { nodes[index + 1]!.location.lat = latitude; });
+    fixture.selected.forEach((place, index) => { place.lat = [0, 40, 40.1, 0, 0.1, 40][index]!; });
+    const result = auditRouteDocument(fixture.document, {
+      config: { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: true, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as AuditTestConfig,
+      pool: fixture.selected, selected: fixture.selected, zonesByCountry: { US: ['Etc/UTC'] }, utcOffsetsByTimezone: { 'Etc/UTC': 0 },
+      countryBoundsByCode: { US: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 } }, report: { continentBalance: {}, subregionBalance: {} }, vetoIds: [],
+    });
+    expect(result.checks.find((check) => check.name === 'Repeated north-south reversals')?.pass).toBe(true);
+  });
+
   it('enforces the owner-updated 20 km minimum stop separation', () => {
     const tooClose = auditFixture(routeFixture([
       { id: 'a', name: 'A', lng: -100 }, { id: 'b', name: 'B', lng: -99.9 },
