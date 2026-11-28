@@ -1,5 +1,11 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Regenerate the 2026 route artifacts
+
+- **Route draft:** Rebuilds `route.json` and `review.html` from the deterministic orienteering tour, including mandatory country/admin-1 coverage, per-leg direction and long-leg reasons, speed percentiles, and the 28-hour schedule report.
+- **Presents:** Keeps the existing per-stop presents allocation and updates it for the regenerated route.
+- **Maps:** Adds world and North America route maps with a direction arrow on each leg.
+
 ## [Unreleased] - Place notes and photos in the globe's Here panel
 
 - **Here panel:** Shows the stop card for the place Santa is over: a sourced cultural note with its source link, and on wider screens a Wikimedia photo with author and license credit. Cards are matched by the route stop's `candidate_id`.
