@@ -24,6 +24,7 @@
 - **Route ordering:** Keeps mandatory country and admin-1 coverage while advancing through timezone bands with local night. Optional stops are weighted by population and importance, with 12% per-country and 20% combined US+Canada share caps.
 - **Local arrivals:** Requires at least 85% of stops from 23:00 to 05:00 local and rejects arrivals outside 22:30 to 05:30. `GREEN`, `YELLOW`, and `RED` labels now follow the recorded local arrival.
 - **Audit:** Detects repeated long north-south reversals, checks country shares and local-night coverage, requires reasons for eastward legs over 1,500 km, records mandatory spacing exceptions, and reports speed percentiles and long-leg reasons.
+- **Audit tests:** Names the orienteering-specific audit config type explicitly, so the rework branch typechecks without depending on a later route PR.
 
 ## [Unreleased] - Place notes and photos in the globe's Here panel
 
@@ -36,6 +37,19 @@
 
 - **Weather:** The globe's Here panel shows current conditions where Santa is, from `/api/weather`, with the Open-Meteo credit its CC BY 4.0 licence requires. Fahrenheit for US-style browser regions, Celsius elsewhere. Requests wait 1.5 seconds on a stop and prefetch the next stop, so fast replays don't spend the provider's rate limit.
 - **First leg:** On the leg out of the North Pole, the globe panels now say Santa just left the North Pole, instead of showing the finished-journey card.
+
+## [Unreleased] - Admin passkey setup and sign-in screens
+
+- **Sign-in:** The admin sign-in screen offers a passkey first, the password until a passkey exists, and a recovery code as the way back in. If no passkey is set up, a passkey attempt switches to the password form and says why. Throttled attempts show the wait time.
+- **Sign-in security panel:** The dashboard lists registered passkeys and the recovery codes left, adds a passkey on this device, removes a passkey (never the last one) and replaces the recovery codes, asking for confirmation before destructive steps.
+- **Recovery codes:** New codes are shown once, with copy and download buttons. The panel stays open until the owner ticks that they have saved them. After the first passkey, password sessions end, so the panel sends the owner back to sign in with the passkey.
+- **Recovery sessions:** A session that signed in with one recovery code is asked for a second code before it can change passkeys, as the API requires.
+- **Client:** `lib/admin-passkey-client.ts` wraps the passkey API with `@simplewebauthn/browser` 14 and the CSRF header, and turns failures into messages fit to show. Unit tests cover code trimming, throttling messages, network failures, response filtering and the second-code check.
+- **Race and hydration safety:** The sign-in method links are disabled while a sign-in is in flight, and the passkey fallback uses the method the attempt started with. Setup waits until the passkey list has loaded, and whether a registration was the first comes from the server returning recovery codes. Passkey support is checked after mount, so server and client renders match.
+- **Field isolation:** The password and recovery-code fields are separate form instances, so a typed password never carries into the recovery-code field.
+- **Single-use codes and errors:** The second-code form blocks a repeat submit while a code is being checked. After a failed change, the list reloads quietly, so the change's own error stays on screen.
+- **Recovery code download:** The .txt download attaches its link to the page and frees the file URL a second later, so Firefox and Safari save it too.
+- **Docs:** Corrects the auth-state storage key in `docs/ADMIN_PASSKEY_AUTH.md` to `admin-auth/state.json`.
 
 ## [Unreleased] - Admin passkeys and recovery (#295)
 
