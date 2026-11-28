@@ -39,20 +39,31 @@ type ActualLegOptions = {
   gapMinutes: number;
   eastwardDegrees: number;
   eastwardReason?: RouteLegReport['eastwardReason'];
+  routeReason?: string;
 };
 
 function actualLeg(options: ActualLegOptions): RouteLegReport {
-  const { from, to, fromName, toName, elapsedDurationSeconds, kind, gapMinutes, eastwardDegrees, eastwardReason } = options;
+  const { from, to, fromName, toName, elapsedDurationSeconds, kind, gapMinutes, eastwardDegrees, eastwardReason, routeReason } = options;
   const km = haversineKm(from, to);
   // Measure the schedule's leg interval. Window holding can only lower its
   // average speed; transit duration remains the separate in-flight estimate.
   const kmh = legSpeedKmh(from, to, elapsedDurationSeconds) ?? 0;
   const leg: RouteLegReport = { from: fromName, to: toName, km, kmh, gapMinutes, kind, eastwardDegrees };
-  if (isEastwardDelta(eastwardDegrees)) {
-    if (!eastwardReason) throw new Error(`Unjustified eastward leg from ${fromName} to ${toName}`);
-  }
+  if (isEastwardDelta(eastwardDegrees) && km > 1_500 && !eastwardReason) throw new Error(`Unrecorded eastward leg from ${fromName} to ${toName}`);
   if (eastwardReason) leg.eastwardReason = eastwardReason;
+  if (routeReason) leg.routeReason = routeReason;
   return leg;
+}
+
+function longLegReason(from: Candidate | LatLng, to: Candidate | LatLng, distanceKm: number): string | undefined {
+  if (distanceKm <= 4_000) return undefined;
+  if (!('country' in from)) return 'polar-launch';
+  if (!('country' in to)) return 'polar-return';
+  const origin = classifyRegion(from);
+  const destination = classifyRegion(to);
+  if (origin.continent !== destination.continent || origin.pacificIsland || destination.pacificIsland) return 'ocean-crossing';
+  if (from.country !== to.country) return 'cross-border-coverage';
+  return 'long-regional-transfer';
 }
 
 function percentile(values: number[], fraction: number): number {
@@ -71,7 +82,7 @@ function routeHours(route: Route): RouteReport['hourly'] {
   }));
 }
 
-function deliveryLegs(places: Candidate[], route: Route): RouteLegReport[] {
+function deliveryLegs(places: Candidate[], route: Route, config: GeneratorConfig): RouteLegReport[] {
   const legs: RouteLegReport[] = [];
   for (let index = 1; index < places.length; index++) {
     const from = requireValue(places[index - 1], `Missing origin for delivery leg ${index}`);
@@ -80,11 +91,13 @@ function deliveryLegs(places: Candidate[], route: Route): RouteLegReport[] {
     const toStop = requireValue(route.stops[index], `Missing destination stop for delivery leg ${index}`);
     const arrival = Date.parse(toStop.arrivalIso);
     const eastward = longitudeDelta(from, to);
-    const reason = eastwardLegReason({ from, to, destinationIndex: index, arrivalUtc: arrival });
+    const knownReason = eastwardLegReason({ from, to, destinationIndex: index, arrivalUtc: arrival });
+    const reason = knownReason ?? (config.useOrienteering && isEastwardDelta(eastward) && haversineKm(from, to) > 1_500
+      ? 'soft-orienteering' : undefined);
     legs.push(actualLeg({ from, to, fromName: from.name, toName: to.name,
       elapsedDurationSeconds: (arrival - Date.parse(fromStop.departureIso)) / 1000,
       kind: 'delivery', gapMinutes: (arrival - Date.parse(fromStop.arrivalIso)) / 60_000,
-      eastwardDegrees: eastward, eastwardReason: reason }));
+      eastwardDegrees: eastward, eastwardReason: reason, routeReason: longLegReason(from, to, haversineKm(from, to)) }));
   }
   return legs;
 }
@@ -96,7 +109,7 @@ function launchLeg(first: Candidate, firstStop: Route['stops'][number]): RouteLe
   return actualLeg({ from: NORTH_POLE, to: first, fromName: 'North Pole', toName: first.name,
     elapsedDurationSeconds: (arrival - Date.parse(TAKEOFF_UTC)) / 1000,
     kind: 'launch', gapMinutes: (arrival - Date.parse(TAKEOFF_UTC)) / 60_000,
-    eastwardDegrees: eastward, eastwardReason: reason });
+    eastwardDegrees: eastward, eastwardReason: reason, routeReason: longLegReason(NORTH_POLE, first, haversineKm(NORTH_POLE, first)) });
 }
 
 function returnLeg(last: Candidate, lastStop: Route['stops'][number], routeEnd: number): RouteLegReport {
@@ -104,7 +117,8 @@ function returnLeg(last: Candidate, lastStop: Route['stops'][number], routeEnd: 
   return actualLeg({ from: last, to: NORTH_POLE, fromName: last.name, toName: 'North Pole',
     elapsedDurationSeconds: (routeEnd - Date.parse(lastStop.departureIso)) / 1000,
     kind: 'return', gapMinutes: (routeEnd - Date.parse(lastStop.departureIso)) / 60_000,
-    eastwardDegrees: eastward, eastwardReason: isEastwardDelta(eastward) ? 'return' : undefined });
+    eastwardDegrees: eastward, eastwardReason: isEastwardDelta(eastward) ? 'return' : undefined,
+    routeReason: longLegReason(last, NORTH_POLE, haversineKm(last, NORTH_POLE)) });
 }
 
 function detourAt(places: Candidate[], index: number, countryCounts: Map<string, number>): RouteDetourReport {
@@ -201,7 +215,7 @@ function buildRouteLegs(places: Candidate[], route: Route, config: GeneratorConf
   const lastStop = requireValue(route.stops.at(-1), 'Missing final route stop');
   const lastDeparture = Date.parse(lastStop.departureIso);
   const routeEnd = lastDeparture + scheduledTravelMilliseconds(last, NORTH_POLE, config);
-  const legs = [launchLeg(first, firstStop), ...deliveryLegs(places, route),
+  const legs = [launchLeg(first, firstStop), ...deliveryLegs(places, route, config),
     returnLeg(last, lastStop, routeEnd)];
   return { legs, lastDeparture, routeEnd };
 }

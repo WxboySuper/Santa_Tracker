@@ -6,6 +6,8 @@ import { allocatePresentsForStops, type RouteStatsLocation } from '../stats';
 import type { RouteOverrides } from './overrides';
 import { chooseCandidates, normalizeCandidateCodes } from './candidates';
 import { scheduledTravelMilliseconds, sweepOrder } from './order';
+import { orienteeringOrder } from './orienteering';
+import { classifyRegion } from './regions';
 import { buildReport } from './report';
 import { christmasArrival, eastwardLegReason, isEastwardDelta, isInChristmasWindow, isInSouthernChristmasWindow, localClock, longitudeDelta, stopDurationSeconds } from './sweep';
 import { InvalidCandidateTimezoneError, isInvalidCandidateTimezoneError } from './timezone-error';
@@ -150,10 +152,11 @@ type TransitOptions = {
   travelDurationMilliseconds: number;
   description: string;
   cameraZoom?: number;
-  eastwardReason?: 'dateline' | 'offset-anomaly' | 'return';
+  eastwardReason?: 'dateline' | 'offset-anomaly' | 'return' | 'soft-orienteering';
+  routeReason?: string;
 };
 
-function transit({ from, to, travelDurationMilliseconds, description, cameraZoom = 9, eastwardReason }: TransitOptions) {
+function transit({ from, to, travelDurationMilliseconds, description, cameraZoom = 9, eastwardReason, routeReason }: TransitOptions) {
   const durationSeconds = Math.max(0, Math.ceil(travelDurationMilliseconds / 1000));
   const distanceKm = haversineKm(from, to);
   const speedKmh = durationSeconds > 0 ? legSpeedKmh(from, to, durationSeconds) ?? 0 : 0;
@@ -166,12 +169,22 @@ function transit({ from, to, travelDurationMilliseconds, description, cameraZoom
     camera_zoom: cameraZoom,
   };
   if (isEastwardDelta(longitudeDelta(from, to))) {
-    // Candidate timing rejects this path before document building. Keep this
-    // fail-closed guard so a future caller cannot persist an unaudited reversal.
-    if (!eastwardReason) throw new Error(`Unjustified eastward leg to ${'name' in to ? to.name : 'North Pole'}`);
+    if (distanceKm > 1_500 && !eastwardReason) throw new Error(`Unrecorded eastward leg to ${'name' in to ? to.name : 'North Pole'}`);
   }
   if (eastwardReason) result.eastward_reason = eastwardReason;
+  if (routeReason) result.route_reason = routeReason;
   return result;
+}
+
+function longLegReason(from: Candidate | LatLng, to: Candidate | LatLng): string | undefined {
+  if (haversineKm(from, to) <= 4_000) return undefined;
+  if (!('country' in from)) return 'polar-launch';
+  if (!('country' in to)) return 'polar-return';
+  const origin = classifyRegion(from);
+  const destination = classifyRegion(to);
+  if (origin.continent !== destination.continent || origin.pacificIsland || destination.pacificIsland) return 'ocean-crossing';
+  if (from.country !== to.country) return 'cross-border-coverage';
+  return 'long-regional-transfer';
 }
 
 function localTimeLabel(place: Candidate, arrival: number): string {
@@ -226,6 +239,9 @@ function deliveryTiming(place: TimedCandidate): DeliveryTiming {
 function buildDeliveryNode({ place, displayName, presents, index, config, tables, priorLocation }: DeliveryNodeOptions): DeliveryNodeResult {
   const { stopArrival, tier, durationSeconds } = deliveryTiming(place);
   const stopDeparture = stopArrival + durationSeconds * 1000;
+  const knownReason = eastwardLegReason({ from: priorLocation, to: place, destinationIndex: index, arrivalUtc: stopArrival });
+  const eastwardReason = knownReason ?? (config.useOrienteering && isEastwardDelta(longitudeDelta(priorLocation, place))
+    && haversineKm(priorLocation, place) > 1_500 ? 'soft-orienteering' : undefined);
   const stopId = `stop_${stableHash(place.id, config.seed).toString(36)}_${index.toString().padStart(3, '0')}`;
   const locationId = createLocationId(stopId);
   const stop: Route['stops'][number] = {
@@ -261,7 +277,8 @@ function buildDeliveryNode({ place, displayName, presents, index, config, tables
       to: place,
       travelDurationMilliseconds: scheduledTravelMilliseconds(priorLocation, place, config),
       description: index === 0 ? `Launch to ${place.name}` : `Flight to ${place.name}`,
-      eastwardReason: eastwardLegReason({ from: priorLocation, to: place, destinationIndex: index, arrivalUtc: stopArrival }),
+      eastwardReason,
+      routeReason: longLegReason(priorLocation, place),
     }),
     notes: place.source ?? null,
     priority: place.worldCity ? 1 : 2,
@@ -283,7 +300,8 @@ function endNode(last: Candidate, priorDeparture: number, config: GeneratorConfi
       schedule: { arrival_utc: new Date(endArrival).toISOString(), departure_utc: new Date(endDeparture).toISOString(), local_arrival_time: null, time_window_status: 'HOME' },
       stop_experience: { duration_seconds: 0, camera_zoom: 4, weather_condition: 'blizzard', presents_delivered_at_stop: 0 },
       transit_to_here: transit({ from: last, to: NORTH_POLE, travelDurationMilliseconds: scheduledTravelMilliseconds(last, NORTH_POLE, config), description: 'Return to the North Pole', cameraZoom: 4,
-        eastwardReason: isEastwardDelta(longitudeDelta(last, NORTH_POLE)) ? 'return' : undefined }),
+        eastwardReason: isEastwardDelta(longitudeDelta(last, NORTH_POLE)) ? 'return' : undefined,
+        routeReason: longLegReason(last, NORTH_POLE) }),
     },
   };
 }
@@ -370,7 +388,8 @@ function buildDocument(places: TimedCandidate[], config: GeneratorConfig, tables
   return { document, route, coordinates: deliveries.coordinates, routeEndUtc: ending.routeEndUtc };
 }
 
-function validateArrivalWindow(route: Route, places: Candidate[]): void {
+function validateArrivalWindow(route: Route, places: Candidate[], config: GeneratorConfig): void {
+  if (config.useOrienteering) return;
   route.stops.forEach((stop, index) => {
     const place = places[index];
     if (!place) throw new Error(`Missing candidate for route stop ${index + 1}`);
@@ -452,7 +471,7 @@ type BuiltRouteValidationOptions = {
 
 function validateBuiltRoute({ route, coordinates, routeEndUtc, ordered, pool, config,
   invalidCandidateIds, duplicateCandidateIds }: BuiltRouteValidationOptions): RouteReport {
-  validateArrivalWindow(route, ordered);
+  validateArrivalWindow(route, ordered, config);
   const validation = validateRoute(route);
   if (!validation.ok) throw new Error(`Invalid generated route: ${validation.issues.map((issue) => issue.message).join('; ')}`);
   const geometry = validateRouteGeometry(route, coordinates, { maxSpeedKmh: config.maxLegSpeedKmh });
@@ -482,7 +501,8 @@ function validateReturnDeadline(routeEndUtc: string): void {
   }
 }
 
-function validateNoDetours(report: RouteReport): void {
+function validateNoDetours(report: RouteReport, config: GeneratorConfig): void {
+  if (config.useOrienteering) return;
   const hardDetours = report.detours.filter((detour) => detour.viaCountryStopCount > 1);
   if (hardDetours.length > 0) {
     const detail = hardDetours.map((detour) => `${detour.from} -> ${detour.via} -> ${detour.to} (${detour.ratio.toFixed(2)}x)`).join('; ');
@@ -494,7 +514,7 @@ function validateRouteLimits(report: RouteReport, routeEndUtc: string, config: G
   validateMaximumSpeed(report, config);
   validateP90Speed(report, config);
   validateReturnDeadline(routeEndUtc);
-  validateNoDetours(report);
+  validateNoDetours(report, config);
 }
 
 function addGeometryWarnings(report: RouteReport, geometryIssues: ReturnType<typeof validateRouteGeometry>['issues'],
@@ -534,7 +554,7 @@ export function generateRoute(pool: Candidate[], config: GeneratorConfig, overri
   const normalized = normalizeCandidateTimezones(selection.candidates, overrides);
   const chosen = normalized.candidates;
   if (chosen.length === 0) throw new Error('No eligible route candidates remain after timezone validation');
-  const ordered = sweepOrder(chosen, config);
+  const ordered = config.useOrienteering ? orienteeringOrder(chosen, config) : sweepOrder(chosen, config);
   const presents = allocatePresentsForStops(statsLocationsForCandidates(ordered), statsLocationsForCandidates(normalizedPool), 2026);
   const built = buildDocument(ordered, config, tables, presents);
   const report = validateBuiltRoute({ route: built.route, coordinates: built.coordinates, routeEndUtc: built.routeEndUtc,

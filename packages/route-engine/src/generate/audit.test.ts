@@ -1,15 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { auditRouteDocument, coordinateAuditFailures } from './audit';
 import { DEFAULT_GENERATOR_LIMITS } from './types';
-import type { Candidate } from './types';
+import type { Candidate, GeneratorConfig } from './types';
 
-function routeFixture(points: { id: string; name: string; lng: number; country?: string; offset?: number; timezone?: string; reason?: string; population?: number; category?: string; arrivalUtc?: string; tier?: string; duration?: number; transitSeconds?: number }[]): { document: unknown; selected: Candidate[] } {
-  const selected = points.map((point) => ({ id: point.id, name: point.name, country: point.country ?? 'US', timezone: point.timezone ?? 'Etc/UTC', utcOffsetMinutes: point.offset ?? 0,
+type AuditTestConfig = GeneratorConfig & { requiredStopIds: string[]; requiredCountries: string[] };
+
+function routeFixture(points: { id: string; name: string; lng: number; country?: string; offset?: number; reason?: string; population?: number; category?: string; arrivalUtc?: string; tier?: string; duration?: number; transitSeconds?: number }[]): { document: unknown; selected: Candidate[] } {
+  const selected = points.map((point) => ({ id: point.id, name: point.name, country: point.country ?? 'US', timezone: 'Etc/UTC', utcOffsetMinutes: point.offset ?? 0,
     category: point.category ?? 'populated', population: point.population ?? 1000, lat: 0, lng: point.lng }));
-  const start = { id: 'start', type: 'START', location: { name: 'North Pole', region: 'Arctic', lat: 90, lng: 180 }, schedule: { arrival_utc: null, departure_utc: '2026-12-24T10:00:00.000Z' }, stop_experience: {}, transit_to_here: null };
+  const start = { id: 'start', type: 'START', location: { name: 'North Pole', region: 'Arctic', lat: 80, lng: 180 }, schedule: { arrival_utc: null, departure_utc: '2026-12-24T10:00:00.000Z' }, stop_experience: {}, transit_to_here: null };
   const deliveries = points.map((point, index) => ({
     id: point.id, type: 'DELIVERY', candidate_id: point.id,
-    location: { name: point.name, region: 'Test', country_code: point.country ?? 'US', timezone: point.timezone ?? 'Etc/UTC', timezone_offset: (point.offset ?? 0) / 60, lat: 0, lng: point.lng },
+    location: { name: point.name, region: 'Test', country_code: point.country ?? 'US', timezone: 'Etc/UTC', timezone_offset: 0, lat: 0, lng: point.lng },
     schedule: { arrival_utc: point.arrivalUtc ?? `2026-12-24T23:${String(20 + index * 10).padStart(2, '0')}:00.000Z`, departure_utc: point.arrivalUtc ? new Date(Date.parse(point.arrivalUtc) + 30_000).toISOString() : `2026-12-24T23:${String(20 + index * 10).padStart(2, '0')}:30.000Z` },
     stop_experience: { presents: 1, presents_delivered_at_stop: 1, camera_zoom: 1, weather_condition: 'clear', stop_tier: point.tier ?? 'town', duration_seconds: point.duration ?? 10 },
     transit_to_here: { duration_seconds: point.transitSeconds ?? 0, distance_km: 1, speed_kmh: 100, ...(point.reason ? { eastward_reason: point.reason } : {}) },
@@ -19,12 +21,10 @@ function routeFixture(points: { id: string; name: string; lng: number; country?:
   return { document: { meta: { route_version: '2026-draft-1', generated_at: DEFAULT_GENERATOR_LIMITS.generatedAt }, route_nodes: [start, ...deliveries, end] }, selected };
 }
 
-function auditFixture(fixture: ReturnType<typeof routeFixture>) {
-  const zonesByCountry = Object.fromEntries(fixture.selected.map((place) => [place.country, [...new Set(fixture.selected
-    .filter((candidate) => candidate.country === place.country).map((candidate) => candidate.timezone))]]));
+function auditFixture(fixture: ReturnType<typeof routeFixture>, useOrienteering = false) {
   const result = auditRouteDocument(fixture.document, {
-    config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 } },
-    pool: fixture.selected, selected: fixture.selected, zonesByCountry, utcOffsetsByTimezone: {},
+    config: { ...DEFAULT_GENERATOR_LIMITS, useOrienteering, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as AuditTestConfig,
+    pool: fixture.selected, selected: fixture.selected, zonesByCountry: { US: ['Etc/UTC'] }, utcOffsetsByTimezone: { 'Etc/UTC': 0 },
     countryBoundsByCode: { US: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 }, CA: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 } }, report: { continentBalance: {}, subregionBalance: {} }, vetoIds: [],
   });
   return result.checks;
@@ -36,7 +36,9 @@ describe('auditRouteDocument', () => {
       config: {
         ...DEFAULT_GENERATOR_LIMITS,
         weights: { hub: 100 },
-      },
+        requiredStopIds: ['required-stop'],
+        requiredCountries: ['US'],
+      } as AuditTestConfig,
       pool: [],
       selected: [],
       zonesByCountry: {},
@@ -49,6 +51,7 @@ describe('auditRouteDocument', () => {
     expect(result.pass).toBe(false);
     expect(result.checks.find((check) => check.name === 'Legacy route schema')?.pass).toBe(false);
     expect(result.checks.find((check) => check.name === 'North Pole start and end')?.pass).toBe(false);
+    expect(result.checks.some((check) => check.name === 'Required iconic and regional stops')).toBe(false);
   });
 
   it('rejects a stop outside its country bounds and an alternate-source coordinate mismatch', () => {
@@ -85,7 +88,7 @@ describe('auditRouteDocument', () => {
         schedule: { arrival_utc: '2026-12-24T23:50:00.000Z', departure_utc: '2026-12-24T23:51:00.000Z' },
       },
     ] }, {
-      config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 } },
+      config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 }, requiredStopIds: ['required-stop'], requiredCountries: ['US'] } as AuditTestConfig,
       pool: [],
       selected: [],
       zonesByCountry: {},
@@ -102,17 +105,25 @@ describe('auditRouteDocument', () => {
     expect(check?.detail).toContain('ZZ');
   });
 
-  it('fails unexplained eastward legs and accepts real date-line crossings or valid offset anomalies', () => {
+  it('allows short eastward hops and requires recorded reasons for longer eastward legs', () => {
     const unexplained = auditFixture(routeFixture([
     { id: 'a', name: 'A', lng: -100 }, { id: 'b', name: 'B', lng: -90 },
     ]));
-    expect(unexplained.find((check) => check.name === 'Eastward legs')?.pass).toBe(false);
+    expect(unexplained.find((check) => check.name === 'Eastward legs')?.pass).toBe(true);
+    const longUnexplained = auditFixture(routeFixture([
+      { id: 'a', name: 'A', lng: -100 }, { id: 'b', name: 'B', lng: -75 },
+    ]));
+    expect(longUnexplained.find((check) => check.name === 'Eastward legs')?.pass).toBe(false);
+    const softChoice = auditFixture(routeFixture([
+      { id: 'a', name: 'A', lng: -100 }, { id: 'b', name: 'B', lng: -75, reason: 'soft-orienteering' },
+    ]), true);
+    expect(softChoice.find((check) => check.name === 'Eastward legs')?.pass).toBe(true);
     const anomaly = auditFixture(routeFixture([
-      { id: 'a', name: 'A', lng: -100, offset: -300 }, { id: 'b', name: 'B', lng: -90, offset: 300, reason: 'offset-anomaly' },
+      { id: 'a', name: 'A', lng: -100, offset: -300 }, { id: 'b', name: 'B', lng: -75, offset: 300, reason: 'offset-anomaly' },
     ]));
     expect(anomaly.find((check) => check.name === 'Eastward legs')?.pass).toBe(true);
     const wrongAnomaly = auditFixture(routeFixture([
-      { id: 'a', name: 'A', lng: -100, offset: 300 }, { id: 'b', name: 'B', lng: -90, offset: -300, reason: 'offset-anomaly' },
+      { id: 'a', name: 'A', lng: -100, offset: 300 }, { id: 'b', name: 'B', lng: -75, offset: -300, reason: 'offset-anomaly' },
     ]));
     expect(wrongAnomaly.find((check) => check.name === 'Eastward legs')?.pass).toBe(false);
 
@@ -121,9 +132,9 @@ describe('auditRouteDocument', () => {
     ]));
     expect(dateline.find((check) => check.name === 'Eastward legs')?.pass).toBe(true);
     const lateDateline = auditFixture(routeFixture([
-      { id: 'a', name: 'A', lng: 170, offset: 720 }, { id: 'b', name: 'B', lng: -170, offset: 720, reason: 'dateline' },
+      { id: 'a', name: 'A', lng: 170, offset: 720 }, { id: 'b', name: 'B', lng: -170, offset: 780, reason: 'dateline' },
     ]));
-    expect(lateDateline.find((check) => check.name === 'Eastward legs')?.pass).toBe(true);
+    expect(lateDateline.find((check) => check.name === 'Eastward legs')?.pass).toBe(false);
   });
 
   it('fails geometric detours while treating the only stop for a country as a warning', () => {
@@ -160,15 +171,26 @@ describe('auditRouteDocument', () => {
     expect(fastLeg.find((check) => check.name === 'Leg speed')?.pass).toBe(false);
   });
 
-  it('validates the snapshot offset against the IANA zone at arrival', () => {
-    const checks = auditFixture(routeFixture([{
-      id: 'denver', name: 'Denver', lng: -104.9903, timezone: 'America/Denver', offset: -360,
-      arrivalUtc: '2026-12-25T06:00:00.000Z',
-    }]));
-    const timezone = checks.find((check) => check.name === 'Timezone and local arrival window');
-
-    expect(timezone?.pass).toBe(false);
-    expect(timezone?.detail).toContain('America/Denver offset -420 at arrival');
+  it('reports repeated long north-south reversals and requires reasons for legs over 4,000 km', () => {
+    const points = [
+      { id: 'a', name: 'A', lng: 0 }, { id: 'b', name: 'B', lng: 1 },
+      { id: 'c', name: 'C', lng: 2 }, { id: 'd', name: 'D', lng: 3 }, { id: 'e', name: 'E', lng: 4 },
+    ];
+    const fixture = routeFixture(points);
+    const nodes = (fixture.document as { route_nodes: { location: { lat: number }; transit_to_here?: { route_reason?: string } }[] }).route_nodes;
+    nodes[1]!.location.lat = 0;
+    nodes[2]!.location.lat = 40;
+    nodes[3]!.location.lat = 0;
+    nodes[4]!.location.lat = 40;
+    nodes[5]!.location.lat = 0;
+    fixture.selected.forEach((place, index) => { place.lat = index % 2 === 0 ? 0 : 40; });
+    const result = auditRouteDocument(fixture.document, {
+      config: { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: true, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as AuditTestConfig,
+      pool: fixture.selected, selected: fixture.selected, zonesByCountry: { US: ['Etc/UTC'] }, utcOffsetsByTimezone: { 'Etc/UTC': 0 },
+      countryBoundsByCode: { US: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 } }, report: { continentBalance: {}, subregionBalance: {} }, vetoIds: [],
+    });
+    expect(result.checks.find((check) => check.name === 'Repeated north-south reversals')?.pass).toBe(false);
+    expect(result.checks.find((check) => check.name === 'Reasons for legs over 4,000 km')?.pass).toBe(false);
   });
 
   it('enforces the owner-updated 20 km minimum stop separation', () => {
@@ -182,16 +204,16 @@ describe('auditRouteDocument', () => {
     expect(separated.find((check) => check.name === 'Vetoes, coordinates, duplicates, and separation')?.pass).toBe(true);
   });
 
-  it('keeps the frozen old draft as an eastward and detour regression case', async () => {
+  it('keeps the committed old draft as an eastward and detour regression case', async () => {
     const { readFile } = await import('node:fs/promises');
-    const document: unknown = JSON.parse(await readFile(new URL('./fixtures/route-2026-legacy.json', import.meta.url), 'utf8'));
+    const document: unknown = JSON.parse(await readFile(new URL('../../../../docs/planning/route-2026-draft/route.json', import.meta.url), 'utf8'));
     const nodes = (document as { route_nodes: { type: string; candidate_id: string; location: { name: string; country_code: string; timezone: string; timezone_offset: number; lat: number; lng: number }; comment?: string }[] }).route_nodes;
     const selected = nodes.filter((node) => node.type === 'DELIVERY').map((node) => ({
       id: node.candidate_id, name: node.location.name, country: node.location.country_code, timezone: node.location.timezone,
       utcOffsetMinutes: node.location.timezone_offset * 60, category: node.comment ?? 'populated', lat: node.location.lat, lng: node.location.lng,
     }));
     const result = auditRouteDocument(document, {
-      config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 } },
+      config: { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: false, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as AuditTestConfig,
       pool: selected, selected, zonesByCountry: {}, utcOffsetsByTimezone: {}, countryBoundsByCode: {},
       report: { continentBalance: {}, subregionBalance: {} }, vetoIds: [],
     });

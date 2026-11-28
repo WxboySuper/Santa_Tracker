@@ -102,7 +102,8 @@ const LegacyTransitSchema = z.object({
   speed_curve: z.string().min(1).nullable().optional(),
   speed_kmh: z.number().nonnegative().nullable().optional(),
   camera_zoom: z.number().int().nullable().optional(),
-  eastward_reason: z.enum(['dateline', 'offset-anomaly', 'return']).nullable().optional(),
+  eastward_reason: z.enum(['dateline', 'offset-anomaly', 'return', 'soft-orienteering']).nullable().optional(),
+  route_reason: z.string().min(1).nullable().optional(),
 });
 
 export const LegacyRouteNodeSchema = z.object({

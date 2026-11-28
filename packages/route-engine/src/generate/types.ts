@@ -3,7 +3,7 @@ import type { LatLng } from '../geo';
 import type { Admin1Coverage } from './admin1';
 
 export type StopTier = 'major' | 'city' | 'town' | 'hop';
-export type EastwardReason = 'dateline' | 'offset-anomaly' | 'return';
+export type EastwardReason = 'dateline' | 'offset-anomaly' | 'return' | 'soft-orienteering';
 
 export type Candidate = LatLng & {
   id: string;
@@ -40,6 +40,7 @@ export type GeneratorConfig = {
   maxStopsPerCountry: number;
   underservedCountries: string[];
   generatedAt: string;
+  useOrienteering: boolean;
 };
 
 export type GeneratedRoute = {
@@ -58,6 +59,7 @@ export type RouteLegReport = {
   kind: 'launch' | 'delivery' | 'return';
   eastwardDegrees: number;
   eastwardReason?: EastwardReason;
+  routeReason?: string;
 };
 
 export type RouteDetourReport = {
@@ -120,11 +122,12 @@ export const DEFAULT_GENERATOR_LIMITS: GeneratorConfig = {
   seed: 2026,
   weights: { hub: 30, cultural: 27.5, underserved: 25, nature: 12, special: 5.5, populated: 0 },
   localLegSpeedKmh: 4_000,
-  targetLegSpeedKmh: 19_000,
+  targetLegSpeedKmh: 15_000,
   maxLegSpeedKmh: 25_000,
-  p90LegSpeedMaxKmh: 20_000,
+  p90LegSpeedMaxKmh: 15_000,
   minStopSeparationKm: 20,
   maxStopsPerCountry: 12,
   underservedCountries: [],
   generatedAt: '2026-11-23T00:00:00.000Z',
+  useOrienteering: true,
 };

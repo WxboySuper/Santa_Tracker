@@ -7,10 +7,10 @@
     "special": 5.5,
     "populated": 0
   },
-  "localLegSpeedKmh": 20000,
-  "targetLegSpeedKmh": 25000,
+  "localLegSpeedKmh": 4000,
+  "targetLegSpeedKmh": 15000,
   "maxLegSpeedKmh": 25000,
-  "p90LegSpeedMaxKmh": 20000,
+  "p90LegSpeedMaxKmh": 15000,
   "minStopSeparationKm": 20,
   "maxStopsPerCountry": 12,
   "underservedCountries": [
