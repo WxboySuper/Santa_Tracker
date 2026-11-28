@@ -204,7 +204,7 @@ describe('auditRouteDocument', () => {
     expect(separated.find((check) => check.name === 'Vetoes, coordinates, duplicates, and separation')?.pass).toBe(true);
   });
 
-  it('keeps the committed old draft as an eastward and detour regression case', async () => {
+  it('keeps the committed old draft as an eastward regression case', async () => {
     const { readFile } = await import('node:fs/promises');
     const document: unknown = JSON.parse(await readFile(new URL('../../../../docs/planning/route-2026-draft/route.json', import.meta.url), 'utf8'));
     const nodes = (document as { route_nodes: { type: string; candidate_id: string; location: { name: string; country_code: string; timezone: string; timezone_offset: number; lat: number; lng: number }; comment?: string }[] }).route_nodes;
@@ -218,6 +218,14 @@ describe('auditRouteDocument', () => {
       report: { continentBalance: {}, subregionBalance: {} }, vetoIds: [],
     });
     expect(result.checks.find((check) => check.name === 'Eastward legs')?.pass).toBe(false);
-    expect(result.checks.find((check) => check.name === 'Detours')?.pass).toBe(false);
+  });
+
+  it('fails repeated-country detours in hard-rule mode', () => {
+    const fixture = routeFixture([
+      { id: 'a', name: 'Origin', lng: 0 },
+      { id: 'b', name: 'Detour', lng: 10 },
+      { id: 'c', name: 'Destination', lng: 1 },
+    ]);
+    expect(auditFixture(fixture).find((check) => check.name === 'Detours')?.pass).toBe(false);
   });
 });
