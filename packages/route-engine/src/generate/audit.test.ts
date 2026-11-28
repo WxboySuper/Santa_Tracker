@@ -179,13 +179,19 @@ describe('auditRouteDocument', () => {
     expect(fastLeg.find((check) => check.name === 'Leg speed')?.pass).toBe(false);
   });
 
-  it('requires 90 percent local-night arrivals and matching status labels', () => {
+  it('requires 85 percent preferred-night arrivals and matching status labels', () => {
     const hours = Array.from({ length: 10 }, (_, index) => ({
       id: `night-${index}`, name: `Night ${index}`, lng: -120 + index,
       arrivalUtc: index === 9 ? '2026-12-25T12:00:00.000Z' : '2026-12-25T02:00:00.000Z',
     }));
     const result = auditFixture(routeFixture(hours), true);
     expect(result.find((check) => check.name === 'Preferred local-night coverage')?.pass).toBe(true);
+
+    const shoulder = auditFixture(routeFixture(hours.map((point, index) => ({
+      ...point, arrivalUtc: index === 9 ? '2026-12-24T22:45:00.000Z' : point.arrivalUtc,
+    }))), true);
+    expect(shoulder.find((check) => check.name === 'Preferred local-night coverage')?.pass).toBe(true);
+    expect(shoulder.find((check) => check.name === 'Timezone and local arrival window')?.pass).toBe(true);
 
     const belowThreshold = auditFixture(routeFixture(hours.map((point, index) => ({
       ...point, arrivalUtc: index >= 2 ? '2026-12-25T12:00:00.000Z' : point.arrivalUtc,
@@ -196,6 +202,10 @@ describe('auditRouteDocument', () => {
       arrivalUtc: '2026-12-25T12:00:00.000Z', status: 'GREEN' }]), true);
     expect(mislabeled.find((check) => check.name === 'Local time-window status labels')?.pass).toBe(false);
     expect(mislabeled.find((check) => check.name === 'Timezone and local arrival window')?.pass).toBe(false);
+
+    const outsideShoulder = auditFixture(routeFixture([{ id: 'outside', name: 'Outside shoulder', lng: -100,
+      arrivalUtc: '2026-12-24T22:29:00.000Z' }]), true);
+    expect(outsideShoulder.find((check) => check.name === 'Timezone and local arrival window')?.pass).toBe(false);
   });
 
   it('caps single-country and combined US+CA shares', () => {
