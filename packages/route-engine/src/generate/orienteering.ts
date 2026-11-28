@@ -30,6 +30,14 @@ type MandatorySelection = {
   missing: string[];
 };
 type TourProposal = { places: Candidate[]; score: number };
+type NearestNeighborChoice = { index: number; place: Candidate; score: number };
+type NearestNeighborSearchOptions = {
+  remaining: Candidate[];
+  currentRank: number;
+  previous: Candidate | typeof NORTH_POLE;
+  previousDeparture: number;
+  config: GeneratorConfig;
+};
 type OptionalSelection = {
   route: Candidate[];
   selectedIds: Set<string>;
@@ -330,6 +338,22 @@ function isBetterNearestNeighbor(place: Candidate, score: number, bestPlace: Can
   return place.id.localeCompare(bestPlace.id) < 0;
 }
 
+function findBestNearestNeighbor({ remaining, currentRank, previous, previousDeparture, config }: NearestNeighborSearchOptions): NearestNeighborChoice | undefined {
+  let best: NearestNeighborChoice | undefined;
+  for (const [index, place] of remaining.entries()) {
+    if (localMidnightRank(place) !== currentRank) continue;
+    const score = nearestNeighborScore(place, previous, previousDeparture, config);
+    if (!Number.isFinite(score)) continue;
+    if (!isBetterNearestNeighbor(place, score, best?.place, best?.score ?? Number.POSITIVE_INFINITY)) continue;
+    best = { index, place, score };
+  }
+  return best;
+}
+
+function appendRemainingByMidnightRank(order: Candidate[], remaining: Candidate[]): void {
+  order.push(...remaining.sort((a, b) => localMidnightRank(a) - localMidnightRank(b) || a.id.localeCompare(b.id)));
+}
+
 function midnightBiasedNearestNeighbor(seed: Candidate[], config: GeneratorConfig): Candidate[] {
   const remaining = [...seed];
   const order: Candidate[] = [];
@@ -337,23 +361,12 @@ function midnightBiasedNearestNeighbor(seed: Candidate[], config: GeneratorConfi
   let previousDeparture = Date.parse(TAKEOFF_UTC);
   while (remaining.length > 0) {
     const currentRank = Math.min(...remaining.map(localMidnightRank));
-    let bestIndex = -1;
-    let bestScore = Number.POSITIVE_INFINITY;
-    let bestPlace: Candidate | undefined;
-    for (const [index, place] of remaining.entries()) {
-      if (localMidnightRank(place) !== currentRank) continue;
-      const score = nearestNeighborScore(place, previous, previousDeparture, config);
-      if (!Number.isFinite(score)) continue;
-      if (!isBetterNearestNeighbor(place, score, bestPlace, bestScore)) continue;
-      bestIndex = index;
-      bestScore = score;
-      bestPlace = place;
-    }
-    if (!bestPlace) {
-      order.push(...remaining.sort((a, b) => localMidnightRank(a) - localMidnightRank(b) || a.id.localeCompare(b.id)));
+    const best = findBestNearestNeighbor({ remaining, currentRank, previous, previousDeparture, config });
+    if (!best) {
+      appendRemainingByMidnightRank(order, remaining);
       break;
     }
-    const [next] = remaining.splice(bestIndex, 1);
+    const [next] = remaining.splice(best.index, 1);
     if (!next) break;
     const earliest = previousDeparture + scheduledTravelMilliseconds(previous, next, config);
     const scheduled = scheduledLocalArrival(next, earliest);
