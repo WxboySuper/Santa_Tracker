@@ -1,5 +1,14 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Admin passkey setup and sign-in screens
+
+- **Sign-in:** The admin sign-in screen offers a passkey first, the password until a passkey exists, and a recovery code as the way back in. If no passkey is set up, a passkey attempt switches to the password form and says why. Throttled attempts show the wait time.
+- **Sign-in security panel:** The dashboard lists registered passkeys and the recovery codes left, adds a passkey on this device, removes a passkey (never the last one) and replaces the recovery codes, asking for confirmation before destructive steps.
+- **Recovery codes:** New codes are shown once, with copy and download buttons. The panel stays open until the owner ticks that they have saved them. After the first passkey, password sessions end, so the panel sends the owner back to sign in with the passkey.
+- **Recovery sessions:** A session that signed in with one recovery code is asked for a second code before it can change passkeys, as the API requires.
+- **Client:** `lib/admin-passkey-client.ts` wraps the passkey API with `@simplewebauthn/browser` 14 and the CSRF header, and turns failures into messages fit to show. Unit tests cover code trimming, throttling messages, network failures, response filtering and the second-code check.
+- **Docs:** Corrects the auth-state storage key in `docs/ADMIN_PASSKEY_AUTH.md` to `admin-auth/state.json`.
+
 ## [Unreleased] - Admin passkeys and recovery (#295)
 
 - **WebAuthn owner authentication:** Adds passkey registration and login ceremonies, one-time recovery codes stored as hashes, and disables existing password sessions after a passkey is registered.
