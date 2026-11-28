@@ -21,8 +21,11 @@ function downloadCodes(codes: string[]) {
   const link = document.createElement("a");
   link.href = url;
   link.download = "santa-admin-recovery-codes.txt";
+  // Firefox and Safari only download from an anchor in the document, and need the URL alive until the click lands.
+  document.body.appendChild(link);
   link.click();
-  URL.revokeObjectURL(url);
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /** Shows a fresh set of recovery codes once. The owner has to confirm they saved them before the panel closes. */

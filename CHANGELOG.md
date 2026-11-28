@@ -7,6 +7,7 @@
 - **Recovery codes:** New codes are shown once, with copy and download buttons. The panel stays open until the owner ticks that they have saved them. After the first passkey, password sessions end, so the panel sends the owner back to sign in with the passkey.
 - **Recovery sessions:** A session that signed in with one recovery code is asked for a second code before it can change passkeys, as the API requires.
 - **Client:** `lib/admin-passkey-client.ts` wraps the passkey API with `@simplewebauthn/browser` 14 and the CSRF header, and turns failures into messages fit to show. Unit tests cover code trimming, throttling messages, network failures, response filtering and the second-code check.
+- **Recovery code download:** The .txt download attaches its link to the page and frees the file URL a second later, so Firefox and Safari save it too.
 - **Docs:** Corrects the auth-state storage key in `docs/ADMIN_PASSKEY_AUTH.md` to `admin-auth/state.json`.
 
 ## [Unreleased] - Admin passkeys and recovery (#295)

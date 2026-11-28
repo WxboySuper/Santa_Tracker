@@ -35,6 +35,37 @@ function SecretForm({ label, type, busy, onSubmit }: { label: string; type: "pas
   );
 }
 
+const METHOD_LINKS: { method: Method; label: string }[] = [
+  { method: "passkey", label: "Use a passkey" },
+  { method: "password", label: "Use the password" },
+  { method: "recovery", label: "Use a recovery code" },
+];
+
+function OtherMethods({ current, onSwitch }: { current: Method; onSwitch: (method: Method) => void }) {
+  return (
+    <div className="mt-6 flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/70">
+      {METHOD_LINKS.filter(link => link.method !== current).map(link => (
+        <button key={link.method} type="button" onClick={() => onSwitch(link.method)} className="underline">{link.label}</button>
+      ))}
+    </div>
+  );
+}
+
+function MethodForm({ method, busy, attempt }: { method: Method; busy: boolean; attempt: (action: () => Promise<AdminResult<null>>) => void }) {
+  if (method === "password") return <SecretForm label="Admin password" type="password" busy={busy} onSubmit={value => attempt(() => signInWithPassword(value))} />;
+  if (method === "recovery") return <SecretForm label="Recovery code" type="text" busy={busy} onSubmit={value => attempt(() => signInWithRecoveryCode(value))} />;
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={() => attempt(signInWithPasskey)}
+      className="w-full rounded bg-red-600 px-6 py-2 font-semibold hover:bg-red-700 disabled:opacity-40"
+    >
+      {busy ? "Waiting for passkey…" : "Sign in with a passkey"}
+    </button>
+  );
+}
+
 /** Passkey first; password only until a passkey exists; one recovery code as the way back in. */
 export default function LoginPanel({ onAuthenticated }: LoginPanelProps) {
   const [method, setMethod] = useState<Method>("passkey");
@@ -58,33 +89,18 @@ export default function LoginPanel({ onAuthenticated }: LoginPanelProps) {
     setStatus(result.error);
   }
 
-  const switchTo = (next: Method) => () => {
+  function switchTo(next: Method) {
     setMethod(next);
     setStatus("");
-  };
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-900 p-8 text-white">
       <div className="w-full max-w-md rounded-xl bg-white/10 p-8 backdrop-blur-md">
         <h1 className="mb-4 text-2xl font-bold">Admin sign-in</h1>
-        {method === "passkey" && (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => { void attempt(signInWithPasskey); }}
-            className="w-full rounded bg-red-600 px-6 py-2 font-semibold hover:bg-red-700 disabled:opacity-40"
-          >
-            {busy ? "Waiting for passkey…" : "Sign in with a passkey"}
-          </button>
-        )}
-        {method === "password" && <SecretForm label="Admin password" type="password" busy={busy} onSubmit={value => { void attempt(() => signInWithPassword(value)); }} />}
-        {method === "recovery" && <SecretForm label="Recovery code" type="text" busy={busy} onSubmit={value => { void attempt(() => signInWithRecoveryCode(value)); }} />}
+        <MethodForm method={method} busy={busy} attempt={action => { void attempt(action); }} />
         {status && <p role="alert" className="mt-4 text-sm">{status}</p>}
-        <div className="mt-6 flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/70">
-          {method !== "passkey" && <button type="button" onClick={switchTo("passkey")} className="underline">Use a passkey</button>}
-          {method !== "password" && <button type="button" onClick={switchTo("password")} className="underline">Use the password</button>}
-          {method !== "recovery" && <button type="button" onClick={switchTo("recovery")} className="underline">Use a recovery code</button>}
-        </div>
+        <OtherMethods current={method} onSwitch={switchTo} />
       </div>
     </div>
   );

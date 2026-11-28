@@ -14,32 +14,46 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-async function call(path: string, init: { method: "GET" | "POST" | "DELETE"; body?: unknown; csrf?: boolean }): Promise<AdminResult<Record<string, unknown>>> {
+interface CallInit {
+  method: "GET" | "POST" | "DELETE";
+  body?: unknown;
+  csrf?: boolean;
+}
+
+function requestInit(init: CallInit): RequestInit {
+  const hasBody = init.body !== undefined;
+  return {
+    method: init.method,
+    credentials: "include",
+    headers: { ...(hasBody ? { "Content-Type": "application/json" } : {}), ...(init.csrf ? adminCsrfHeaders() : {}) },
+    body: hasBody ? JSON.stringify(init.body) : undefined,
+  };
+}
+
+async function readBody(response: Response): Promise<Record<string, unknown>> {
+  try {
+    const value: unknown = await response.json();
+    return isRecord(value) ? value : {};
+  } catch {
+    return {};
+  }
+}
+
+function errorMessage(response: Response, body: Record<string, unknown>): string {
+  const error = typeof body.error === "string" ? body.error : `Request failed (${response.status})`;
+  const retry = response.headers.get("retry-after");
+  return response.status === 429 && retry ? `${error}. Try again in ${retry} s.` : error;
+}
+
+async function call(path: string, init: CallInit): Promise<AdminResult<Record<string, unknown>>> {
   let response: Response;
   try {
-    response = await fetch(path, {
-      method: init.method,
-      credentials: "include",
-      headers: {
-        ...(init.body === undefined ? {} : { "Content-Type": "application/json" }),
-        ...(init.csrf ? adminCsrfHeaders() : {}),
-      },
-      body: init.body === undefined ? undefined : JSON.stringify(init.body),
-    });
+    response = await fetch(path, requestInit(init));
   } catch {
     return { ok: false, status: 0, error: "Network error. Check the connection and try again." };
   }
-  let value: unknown;
-  try {
-    value = await response.json();
-  } catch {
-    value = null;
-  }
-  const body = isRecord(value) ? value : {};
-  if (response.ok) return { ok: true, value: body };
-  const retry = response.headers.get("retry-after");
-  const error = typeof body.error === "string" ? body.error : `Request failed (${response.status})`;
-  return { ok: false, status: response.status, error: response.status === 429 && retry ? `${error}. Try again in ${retry} s.` : error };
+  const body = await readBody(response);
+  return response.ok ? { ok: true, value: body } : { ok: false, status: response.status, error: errorMessage(response, body) };
 }
 
 function codesFrom(body: Record<string, unknown>): string[] {
@@ -54,17 +68,23 @@ function ceremonyError(error: unknown): string {
   return error instanceof Error ? error.message : "The passkey prompt failed.";
 }
 
-export async function signInWithPasskey(): Promise<AdminResult<null>> {
-  const options = await call("/api/admin/passkeys/login/options", { method: "POST", body: {} });
+/** Options from the server, the browser's passkey prompt, then the server's check of the prompt's answer. */
+async function ceremony(kind: "login" | "register", prompt: (options: unknown) => Promise<unknown>): Promise<AdminResult<Record<string, unknown>>> {
+  const csrf = kind === "register";
+  const options = await call(`/api/admin/passkeys/${kind}/options`, { method: "POST", body: {}, csrf });
   if (!options.ok) return options;
-  let assertion: unknown;
+  let answer: unknown;
   try {
-    assertion = await startAuthentication({ optionsJSON: options.value.options as PublicKeyCredentialRequestOptionsJSON });
+    answer = await prompt(options.value.options);
   } catch (error) {
     return { ok: false, status: 0, error: ceremonyError(error) };
   }
-  const verified = await call("/api/admin/passkeys/login/verify", { method: "POST", body: assertion });
-  return verified.ok ? { ok: true, value: null } : verified;
+  return call(`/api/admin/passkeys/${kind}/verify`, { method: "POST", body: answer, csrf });
+}
+
+export async function signInWithPasskey(): Promise<AdminResult<null>> {
+  const result = await ceremony("login", options => startAuthentication({ optionsJSON: options as PublicKeyCredentialRequestOptionsJSON }));
+  return result.ok ? { ok: true, value: null } : result;
 }
 
 export async function signInWithPassword(password: string): Promise<AdminResult<null>> {
@@ -91,16 +111,8 @@ export async function loadPasskeys(): Promise<AdminResult<PasskeySummary>> {
 
 /** Registers a passkey on this device. The first registration returns the recovery codes, which are shown once. */
 export async function registerPasskey(): Promise<AdminResult<{ recoveryCodes: string[] }>> {
-  const options = await call("/api/admin/passkeys/register/options", { method: "POST", body: {}, csrf: true });
-  if (!options.ok) return options;
-  let attestation: unknown;
-  try {
-    attestation = await startRegistration({ optionsJSON: options.value.options as PublicKeyCredentialCreationOptionsJSON });
-  } catch (error) {
-    return { ok: false, status: 0, error: ceremonyError(error) };
-  }
-  const verified = await call("/api/admin/passkeys/register/verify", { method: "POST", body: attestation, csrf: true });
-  return verified.ok ? { ok: true, value: { recoveryCodes: codesFrom(verified.value) } } : verified;
+  const result = await ceremony("register", options => startRegistration({ optionsJSON: options as PublicKeyCredentialCreationOptionsJSON }));
+  return result.ok ? { ok: true, value: { recoveryCodes: codesFrom(result.value) } } : result;
 }
 
 export async function removePasskey(id: string): Promise<AdminResult<null>> {
