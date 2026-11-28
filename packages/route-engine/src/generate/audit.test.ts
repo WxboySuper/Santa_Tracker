@@ -161,7 +161,7 @@ describe('auditRouteDocument', () => {
 
     const tierMismatch = auditFixture(routeFixture([{ id: 'a', name: 'A', lng: -100, population: 400_000, tier: 'town', duration: 10 }]));
     expect(tierMismatch.find((check) => check.name === 'Stop tiers and duration')?.pass).toBe(false);
-    const tierPass = auditFixture(routeFixture([{ id: 'a', name: 'A', lng: -100, population: 1_200_000, tier: 'major', duration: 60 }]));
+    const tierPass = auditFixture(routeFixture([{ id: 'a', name: 'A', lng: -100, population: 1_200_000, tier: 'major', duration: 30 }]));
     expect(tierPass.find((check) => check.name === 'Stop tiers and duration')?.pass).toBe(true);
 
     const fastLeg = auditFixture(routeFixture([
