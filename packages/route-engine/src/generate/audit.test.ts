@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { auditRouteDocument, coordinateAuditFailures } from './audit';
 import { DEFAULT_GENERATOR_LIMITS } from './types';
-import type { Candidate } from './types';
+import type { Candidate, GeneratorConfig } from './types';
 
 function routeFixture(points: { id: string; name: string; lng: number; country?: string; offset?: number; reason?: string; population?: number; category?: string; arrivalUtc?: string; tier?: string; duration?: number; transitSeconds?: number }[]): { document: unknown; selected: Candidate[] } {
   const selected = points.map((point) => ({ id: point.id, name: point.name, country: point.country ?? 'US', timezone: 'Etc/UTC', utcOffsetMinutes: point.offset ?? 0,
@@ -19,9 +19,9 @@ function routeFixture(points: { id: string; name: string; lng: number; country?:
   return { document: { meta: { route_version: '2026-draft-1', generated_at: DEFAULT_GENERATOR_LIMITS.generatedAt }, route_nodes: [start, ...deliveries, end] }, selected };
 }
 
-function auditFixture(fixture: ReturnType<typeof routeFixture>) {
+function auditFixture(fixture: ReturnType<typeof routeFixture>, useOrienteering = false) {
   const result = auditRouteDocument(fixture.document, {
-    config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] },
+    config: { ...DEFAULT_GENERATOR_LIMITS, useOrienteering, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as GeneratorConfig & { useOrienteering: boolean },
     pool: fixture.selected, selected: fixture.selected, zonesByCountry: { US: ['Etc/UTC'] }, utcOffsetsByTimezone: { 'Etc/UTC': 0 },
     countryBoundsByCode: { US: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 }, CA: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 } }, report: { continentBalance: {}, subregionBalance: {} }, vetoIds: [],
   });
@@ -103,17 +103,25 @@ describe('auditRouteDocument', () => {
     expect(check?.detail).toContain('ZZ');
   });
 
-  it('fails an unexplained eastward leg and passes an offset anomaly only when destination midnight is earlier', () => {
+  it('allows short eastward hops and requires recorded reasons for longer eastward legs', () => {
     const unexplained = auditFixture(routeFixture([
     { id: 'a', name: 'A', lng: -100 }, { id: 'b', name: 'B', lng: -90 },
     ]));
-    expect(unexplained.find((check) => check.name === 'Eastward legs')?.pass).toBe(false);
+    expect(unexplained.find((check) => check.name === 'Eastward legs')?.pass).toBe(true);
+    const longUnexplained = auditFixture(routeFixture([
+      { id: 'a', name: 'A', lng: -100 }, { id: 'b', name: 'B', lng: -75 },
+    ]));
+    expect(longUnexplained.find((check) => check.name === 'Eastward legs')?.pass).toBe(false);
+    const softChoice = auditFixture(routeFixture([
+      { id: 'a', name: 'A', lng: -100 }, { id: 'b', name: 'B', lng: -75, reason: 'soft-orienteering' },
+    ]), true);
+    expect(softChoice.find((check) => check.name === 'Eastward legs')?.pass).toBe(true);
     const anomaly = auditFixture(routeFixture([
-      { id: 'a', name: 'A', lng: -100, offset: -300 }, { id: 'b', name: 'B', lng: -90, offset: 300, reason: 'offset-anomaly' },
+      { id: 'a', name: 'A', lng: -100, offset: -300 }, { id: 'b', name: 'B', lng: -75, offset: 300, reason: 'offset-anomaly' },
     ]));
     expect(anomaly.find((check) => check.name === 'Eastward legs')?.pass).toBe(true);
     const wrongAnomaly = auditFixture(routeFixture([
-      { id: 'a', name: 'A', lng: -100, offset: 300 }, { id: 'b', name: 'B', lng: -90, offset: -300, reason: 'offset-anomaly' },
+      { id: 'a', name: 'A', lng: -100, offset: 300 }, { id: 'b', name: 'B', lng: -75, offset: -300, reason: 'offset-anomaly' },
     ]));
     expect(wrongAnomaly.find((check) => check.name === 'Eastward legs')?.pass).toBe(false);
 
@@ -161,6 +169,28 @@ describe('auditRouteDocument', () => {
     expect(fastLeg.find((check) => check.name === 'Leg speed')?.pass).toBe(false);
   });
 
+  it('reports repeated long north-south reversals and requires reasons for legs over 4,000 km', () => {
+    const points = [
+      { id: 'a', name: 'A', lng: 0 }, { id: 'b', name: 'B', lng: 1 },
+      { id: 'c', name: 'C', lng: 2 }, { id: 'd', name: 'D', lng: 3 }, { id: 'e', name: 'E', lng: 4 },
+    ];
+    const fixture = routeFixture(points);
+    const nodes = (fixture.document as { route_nodes: { location: { lat: number }; transit_to_here?: { route_reason?: string } }[] }).route_nodes;
+    nodes[1]!.location.lat = 0;
+    nodes[2]!.location.lat = 40;
+    nodes[3]!.location.lat = 0;
+    nodes[4]!.location.lat = 40;
+    nodes[5]!.location.lat = 0;
+    fixture.selected.forEach((place, index) => { place.lat = index % 2 === 0 ? 0 : 40; });
+    const result = auditRouteDocument(fixture.document, {
+      config: { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: true, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as GeneratorConfig & { useOrienteering: boolean },
+      pool: fixture.selected, selected: fixture.selected, zonesByCountry: { US: ['Etc/UTC'] }, utcOffsetsByTimezone: { 'Etc/UTC': 0 },
+      countryBoundsByCode: { US: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 } }, report: { continentBalance: {}, subregionBalance: {} }, vetoIds: [],
+    });
+    expect(result.checks.find((check) => check.name === 'Repeated north-south reversals')?.pass).toBe(false);
+    expect(result.checks.find((check) => check.name === 'Reasons for legs over 4,000 km')?.pass).toBe(false);
+  });
+
   it('enforces the owner-updated 20 km minimum stop separation', () => {
     const tooClose = auditFixture(routeFixture([
       { id: 'a', name: 'A', lng: -100 }, { id: 'b', name: 'B', lng: -99.9 },
@@ -181,7 +211,7 @@ describe('auditRouteDocument', () => {
       utcOffsetMinutes: node.location.timezone_offset * 60, category: node.comment ?? 'populated', lat: node.location.lat, lng: node.location.lng,
     }));
     const result = auditRouteDocument(document, {
-      config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] },
+      config: { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: false, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] } as GeneratorConfig & { useOrienteering: boolean },
       pool: selected, selected, zonesByCountry: {}, utcOffsetsByTimezone: {}, countryBoundsByCode: {},
       report: { continentBalance: {}, subregionBalance: {} }, vetoIds: [],
     });

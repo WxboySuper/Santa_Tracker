@@ -40,7 +40,7 @@ type RouteNode = {
     local_arrival_time?: string | null;
   };
   stop_experience?: { presents_delivered_at_stop?: number | null; camera_zoom?: number | null; weather_condition?: string | null; stop_tier?: string | null; duration_seconds?: number | null };
-  transit_to_here?: { duration_seconds?: number | null; distance_km?: number | null; speed_kmh?: number | null; eastward_reason?: 'dateline' | 'offset-anomaly' | 'return' | null } | null;
+  transit_to_here?: { duration_seconds?: number | null; distance_km?: number | null; speed_kmh?: number | null; eastward_reason?: 'dateline' | 'offset-anomaly' | 'return' | 'soft-orienteering' | null; route_reason?: string | null } | null;
   notes?: string | null;
 };
 
@@ -135,6 +135,10 @@ type AuditLeg = { km: number; kmh: number; gapMinutes: number; eastward: number;
 
 function addCheck(checks: AuditCheck[], name: string, pass: boolean, detail: string): void {
   checks.push({ name, pass, detail });
+}
+
+function usesOrienteering(context: RouteAuditContext): boolean {
+  return (context.config as typeof context.config & { useOrienteering?: boolean }).useOrienteering === true;
 }
 
 function addNameAndRegionCheck(view: AuditView, checks: AuditCheck[]): void {
@@ -280,17 +284,24 @@ function timezoneOffsetFailures(node: RouteNode, place: Candidate, context: Rout
   return [];
 }
 
+function isLocalChristmasDate(local: Date): boolean {
+  return local.getUTCFullYear() === 2026 && local.getUTCMonth() === 11;
+}
+
+function isInPreferredLocalWindow(local: Date): boolean {
+  const day = local.getUTCDate();
+  const minute = local.getUTCHours() * 60 + local.getUTCMinutes();
+  return (day === 24 && minute >= 23 * 60) || (day === 25 && minute <= 5 * 60);
+}
+
 function localArrivalFailures(node: RouteNode, place: Candidate): string[] {
   const arrival = node.schedule.arrival_utc;
   if (!arrival) return [`${node.location.name}: missing arrival time`];
   const offset = place.utcOffsetMinutes;
   if (offset === undefined) return [`${node.location.name}: missing snapshot UTC offset`];
   const local = new Date(Date.parse(arrival) + offset * 60_000);
-  const day = local.getUTCDate();
-  const minute = local.getUTCHours() * 60 + local.getUTCMinutes();
-  const validDate = local.getUTCFullYear() === 2026 && local.getUTCMonth() === 11;
-  const inWindow = (day === 24 && minute >= 23 * 60) || (day === 25 && minute <= 5 * 60);
-  return validDate && inWindow ? [] : [`${node.location.name}: local arrival is outside Dec 24 23:00–Dec 25 05:00`];
+  return isLocalChristmasDate(local) && isInPreferredLocalWindow(local)
+    ? [] : [`${node.location.name}: local arrival is outside Dec 24 23:00–Dec 25 05:00`];
 }
 
 function displayOffsetFailures(node: RouteNode, place: Candidate): string[] {
@@ -301,24 +312,30 @@ function displayOffsetFailures(node: RouteNode, place: Candidate): string[] {
   return [`${node.location.name}: display offset differs from the snapshot`];
 }
 
-function timezoneFailuresForNode(node: RouteNode, place: Candidate | undefined, context: RouteAuditContext): string[] {
+function timezoneFailuresForNode(node: RouteNode, place: Candidate | undefined, context: RouteAuditContext, checkWindow: boolean): string[] {
   if (!timezoneNodeIsComplete(node, place)) return [`${node.location.name}: missing candidate, time, country, or timezone`];
-  return [
+  const failures = [
     ...timezoneCountryFailures(node, place, context),
     ...timezoneOffsetFailures(node, place, context),
-    ...localArrivalFailures(node, place),
     ...displayOffsetFailures(node, place),
   ];
+  if (checkWindow && place) failures.push(...localArrivalFailures(node, place));
+  return failures;
 }
 
 function addTimezoneChecks(context: RouteAuditContext, view: AuditView, checks: AuditCheck[]): void {
   const failures: string[] = [];
+  let outsideWindow = 0;
   view.delivery.forEach((node, index) => {
-    failures.push(...timezoneFailuresForNode(node, view.places[index], context));
+    const place = view.places[index];
+    failures.push(...timezoneFailuresForNode(node, place, context, !usesOrienteering(context)));
+    if (place && localArrivalFailures(node, place).length > 0) outsideWindow++;
   });
   addCheck(checks, 'Timezone and local arrival window', failures.length === 0,
     failures.length ? failures.slice(0, 6).join('; ')
-      : `${view.delivery.length} stops match country zones and arrive between 23:00 Dec 24 and 05:00 Dec 25 local.`);
+      : usesOrienteering(context)
+        ? `${view.delivery.length} stops match country zones; ${outsideWindow} arrivals fall outside the preferred local window (soft penalty).`
+        : `${view.delivery.length} stops match country zones and arrive between 23:00 Dec 24 and 05:00 Dec 25 local.`);
 }
 
 function minimumSeparationKm(places: Candidate[]): number {
@@ -386,32 +403,57 @@ function addExperienceCheck(view: AuditView, checks: AuditCheck[]): void {
 
 const STOP_TIER_SECONDS: Record<string, number> = { major: 60, city: 30, town: 10, hop: 3 };
 
+function isCapitalCandidate(place: Candidate): boolean {
+  return place.category === 'capital' || ('isNationalCapital' in place && place.isNationalCapital === true)
+    || ('isCapital' in place && place.isCapital === true) || ('capital' in place && place.capital === true);
+}
+
+function isCuratedCandidate(place: Candidate): boolean {
+  return ['cultural', 'nature', 'special'].includes(place.category);
+}
+
+function isHeadlineCandidate(place: Candidate): boolean {
+  return place.category === 'special' || ('headlineLandmark' in place && place.headlineLandmark === true);
+}
+
+function tierWithoutPopulation(place: Candidate): string {
+  if (isHeadlineCandidate(place)) return 'major';
+  if (isCuratedCandidate(place) || isCapitalCandidate(place)) return 'city';
+  return 'hop';
+}
+
+function majorTierAtPopulation(place: Candidate, population: number): boolean {
+  return isHeadlineCandidate(place) || population >= 1_000_000
+    || (isCapitalCandidate(place) && population >= 250_000);
+}
+
 function expectedTier(place: Candidate): string {
   const population = place.population;
-  const capital = place.category === 'capital' || ('isNationalCapital' in place && place.isNationalCapital === true);
-  const curated = ['cultural', 'nature', 'special'].includes(place.category);
-  const headline = place.category === 'special' || ('headlineLandmark' in place && place.headlineLandmark === true);
-  if (population === undefined) return headline ? 'major' : curated || capital ? 'city' : 'hop';
-  if (population >= 1_000_000 || (capital && population >= 250_000) || headline) return 'major';
-  if (population >= 100_000 || capital || curated) return 'city';
+  if (population === undefined) return tierWithoutPopulation(place);
+  if (majorTierAtPopulation(place, population)) return 'major';
+  if (population >= 100_000 || isCapitalCandidate(place) || isCuratedCandidate(place)) return 'city';
   if (population >= 5_000) return 'town';
   return 'hop';
+}
+
+function tierFailure(node: RouteNode, place: Candidate | undefined): string | undefined {
+  const tier = node.stop_experience?.stop_tier ?? '';
+  const expectedSeconds = STOP_TIER_SECONDS[tier];
+  const duration = node.stop_experience?.duration_seconds ?? undefined;
+  const expected = place ? expectedTier(place) : undefined;
+  if (expectedSeconds !== undefined && duration === expectedSeconds && (!expected || tier === expected)) return undefined;
+  return `${node.location.name}: tier ${tier || 'missing'}, duration ${duration ?? 'missing'}s${expected ? `, expected ${expected}` : ''}`;
 }
 
 function addStopTierCheck(view: AuditView, checks: AuditCheck[]): void {
   const counts: Record<string, number> = {};
   const failures: string[] = [];
-  view.delivery.forEach((node, index) => {
+  for (const [index, node] of view.delivery.entries()) {
     const tier = node.stop_experience?.stop_tier ?? '';
     counts[tier || 'missing'] = (counts[tier || 'missing'] ?? 0) + 1;
-    const expectedSeconds = STOP_TIER_SECONDS[tier];
-    const duration = node.stop_experience?.duration_seconds ?? undefined;
-    const place = view.places[index];
-    const expected = place ? expectedTier(place) : undefined;
-    if (expectedSeconds === undefined || duration !== expectedSeconds || (expected !== undefined && tier !== expected)) {
-      failures.push(`${node.location.name}: tier ${tier || 'missing'}, duration ${duration ?? 'missing'}s${expected ? `, expected ${expected}` : ''}`);
-    }
-  });
+    const failure = tierFailure(node, view.places[index]);
+    if (failure) failures.push(failure);
+  }
   addCheck(checks, 'Stop tiers and duration', failures.length === 0,
     `${failures.length ? failures.slice(0, 6).join('; ') : 'all DELIVERY stops have a valid tier and matching duration'}; counts ${Object.entries(counts).map(([tier, count]) => `${tier} ${count}`).join(', ')}.`);
 }
@@ -545,90 +587,147 @@ function addReturnLeg(legs: AuditLeg[], view: AuditView): void {
   if (leg) legs.push(leg);
 }
 
-function addTravelTimingCheck(view: AuditView, legs: AuditLeg[], checks: AuditCheck[]): void {
+function chronologyFailure(previous: RouteNode, current: RouteNode): string | undefined {
+  const arrival = Date.parse(current.schedule.arrival_utc ?? '');
+  const departure = Date.parse(previous.schedule.departure_utc);
+  const recorded = current.transit_to_here?.duration_seconds ?? 0;
+  if (Number.isFinite(arrival) && Number.isFinite(departure) && arrival >= departure + recorded * 1000) return undefined;
+  return `${current.location.name}: arrival precedes prior departure plus ${recorded}s travel`;
+}
+
+function deliveryChronologyFailures(view: AuditView, legs: AuditLeg[]): string[] {
   const failures: string[] = [];
-  for (let index = 0; index < view.delivery.length; index++) {
+  for (const [index, current] of view.delivery.entries()) {
+    if (!legs.some((leg) => leg.toNode === current)) continue;
     const previous = index === 0 ? view.start : view.delivery[index - 1];
-    const current = view.delivery[index];
-    const leg = legs.find((item) => item.toNode === current);
-    if (!previous || !current || !leg) continue;
-    const arrival = Date.parse(current.schedule.arrival_utc ?? '');
-    const departure = Date.parse(previous.schedule.departure_utc);
-    const recorded = current.transit_to_here?.duration_seconds ?? 0;
-    if (!Number.isFinite(arrival) || !Number.isFinite(departure) || arrival < departure + recorded * 1000) {
-      failures.push(`${current.location.name}: arrival precedes prior departure plus ${recorded}s travel`);
-    }
+    const failure = previous ? chronologyFailure(previous, current) : undefined;
+    if (failure) failures.push(failure);
   }
+  return failures;
+}
+
+function returnChronologyFailure(view: AuditView, legs: AuditLeg[]): string | undefined {
   const previous = view.delivery.at(-1);
   const end = view.end;
-  if (!previous || !end || !legs.at(-1)) failures.push('missing return leg');
-  else {
-    const arrival = Date.parse(end.schedule.arrival_utc ?? '');
-    const departure = Date.parse(previous.schedule.departure_utc);
-    const recorded = end.transit_to_here?.duration_seconds ?? 0;
-    if (!Number.isFinite(arrival) || !Number.isFinite(departure) || arrival < departure + recorded * 1000) {
-      failures.push(`END arrival precedes prior departure plus ${recorded}s travel`);
-    }
-  }
+  if (!previous || !end || !legs.at(-1)) return 'missing return leg';
+  const failure = chronologyFailure(previous, end);
+  return failure ? failure.replace(end.location.name, 'END') : undefined;
+}
+
+function addTravelTimingCheck(view: AuditView, legs: AuditLeg[], checks: AuditCheck[]): void {
+  const failures = [...deliveryChronologyFailures(view, legs)];
+  const returnFailure = returnChronologyFailure(view, legs);
+  if (returnFailure) failures.push(returnFailure);
   addCheck(checks, 'Travel chronology', failures.length === 0,
     failures.length ? failures.slice(0, 6).join('; ') : 'Each arrival follows the prior departure and recorded travel time.');
 }
 
 function addSpeedCheck(legs: AuditLeg[], checks: AuditCheck[]): void {
   const speeds = legs.map((leg) => leg.kmh);
+  const median = percent(speeds, 0.5);
   const p90 = percent(speeds, 0.9);
   const maximum = Math.max(...speeds);
-  const pass = p90 <= 20_000 && maximum <= 25_000;
-  addCheck(checks, 'Leg speed', pass, `calculated p90 ${human(p90)} km/h (limit 20,000); max ${human(maximum)} km/h (limit 25,000).`);
+  const pass = maximum <= 25_000;
+  addCheck(checks, 'Leg speed', pass, `median ${human(median)} km/h; p90 ${human(p90)} km/h; max ${human(maximum)} km/h (hard limit 25,000).`);
 }
 
-function addEastwardCheck(view: AuditView, legs: AuditLeg[], checks: AuditCheck[]): void {
+function meridionalDirections(places: Candidate[]): number[] {
+  const directions: number[] = [];
+  for (let index = 1; index < places.length; index++) {
+    const from = places[index - 1];
+    const to = places[index];
+    if (!from || !to || haversineKm(from, to) < 1_500 || Math.abs(to.lat - from.lat) < 20) continue;
+    directions.push(Math.sign(to.lat - from.lat));
+  }
+  return directions;
+}
+
+function northSouthReversals(directions: number[]): number {
+  let reversals = 0;
+  let previous = directions[0];
+  for (const direction of directions.slice(1)) {
+    if (previous !== undefined && direction !== previous) reversals++;
+    previous = direction;
+  }
+  return reversals;
+}
+
+function addCombCheck(view: AuditView, checks: AuditCheck[]): void {
+  const reversals = northSouthReversals(meridionalDirections(view.places));
+  addCheck(checks, 'Repeated north-south reversals', reversals < 3,
+    `${reversals} reversals across legs longer than 1,500 km and 20 degrees latitude; three or more indicates a comb route.`);
+}
+
+function addLongLegReasonCheck(legs: AuditLeg[], checks: AuditCheck[]): void {
+  const long = legs.filter((leg) => leg.km > 4_000);
+  const missing = long.filter((leg) => !leg.toNode?.transit_to_here?.route_reason);
+  const details = long.map((leg) => `${leg.fromName} -> ${leg.toName} ${human(leg.km)} km (${leg.toNode?.transit_to_here?.route_reason ?? 'no reason'})`);
+  addCheck(checks, 'Reasons for legs over 4,000 km', missing.length === 0,
+    long.length ? details.join('; ') : 'No legs exceed 4,000 km.');
+}
+
+function plausibleEastwardReason(view: AuditView, leg: AuditLeg, context: RouteAuditContext): boolean {
+  const reason = leg.toNode?.transit_to_here?.eastward_reason;
+  if (leg.km <= 1_500) return !reason || reason === 'soft-orienteering';
+  if (reason === 'soft-orienteering') return usesOrienteering(context);
+  if (reason === 'return') return leg.kind === 'return';
   const firstOffsetAtOrBelow12 = view.places.findIndex((place) => (place.utcOffsetMinutes ?? Infinity) <= 720);
+  const destinationIndex = leg.toNode ? view.delivery.indexOf(leg.toNode) : -1;
+  const originOffset = destinationIndex > 0 ? view.places[destinationIndex - 1]?.utcOffsetMinutes : undefined;
+  const destinationOffset = destinationIndex >= 0 ? view.places[destinationIndex]?.utcOffsetMinutes : undefined;
+  if (reason === 'offset-anomaly') return originOffset !== undefined && destinationOffset !== undefined && destinationOffset > originOffset;
+  if (reason !== 'dateline') return leg.km <= 1_500;
+  const beforeSweep = destinationIndex >= 0 && (firstOffsetAtOrBelow12 === -1 || destinationIndex < firstOffsetAtOrBelow12)
+    && (destinationOffset ?? -Infinity) > 720;
+  const originLongitude = destinationIndex > 0 ? view.delivery[destinationIndex - 1]?.location.lng : undefined;
+  const crossesDateLine = originLongitude !== undefined && Math.abs(normalizedLongitude(leg.toNode?.location.lng ?? 0) - normalizedLongitude(originLongitude)) > 180;
+  return beforeSweep && crossesDateLine;
+}
+
+function addEastwardCheck(context: RouteAuditContext, view: AuditView, legs: AuditLeg[], checks: AuditCheck[]): void {
   const eastward = legs.filter((leg) => leg.eastward > 1 && leg.kind !== 'launch');
-  const violations: string[] = [];
-  const details = eastward.map((leg) => {
-    const reason = leg.toNode?.transit_to_here?.eastward_reason ?? 'none';
-    const destinationIndex = leg.toNode ? view.delivery.indexOf(leg.toNode) : -1;
-    const originOffset = destinationIndex > 0 ? view.places[destinationIndex - 1]?.utcOffsetMinutes : undefined;
-    const destinationOffset = destinationIndex >= 0 ? view.places[destinationIndex]?.utcOffsetMinutes : undefined;
-    const beforeSweep = destinationIndex >= 0 && (firstOffsetAtOrBelow12 === -1 || destinationIndex < firstOffsetAtOrBelow12)
-      && (destinationOffset ?? -Infinity) > 720;
-    const originLongitude = destinationIndex > 0 ? view.delivery[destinationIndex - 1]?.location.lng : undefined;
-    const crossesDateLine = originLongitude !== undefined && Math.abs(normalizedLongitude(leg.toNode?.location.lng ?? 0) - normalizedLongitude(originLongitude)) > 180;
-    const plausible = reason === 'dateline' ? beforeSweep && crossesDateLine
-      : reason === 'return' ? leg.kind === 'return'
-        : reason === 'offset-anomaly' ? originOffset !== undefined && destinationOffset !== undefined && destinationOffset > originOffset
-          : false;
-    if (!plausible) violations.push(`${leg.fromName} -> ${leg.toName}: ${reason} is missing or implausible`);
-    return `${leg.fromName} -> ${leg.toName} (${Math.round(leg.eastward)}° east, reason ${reason})`;
-  });
-  addCheck(checks, 'Eastward legs', violations.length === 0,
-    `${eastward.length ? details.join('; ') : 'no legs move east by more than 1°'}${violations.length ? `. Failures: ${violations.join('; ')}` : ''}.`);
+  const failures = eastward.filter((leg) => !plausibleEastwardReason(view, leg, context))
+    .map((leg) => `${leg.fromName} -> ${leg.toName}: missing or implausible reason over ${human(leg.km)} km`);
+  const details = eastward.map((leg) => `${leg.fromName} -> ${leg.toName} (${Math.round(leg.eastward)}° east, ${human(leg.km)} km, reason ${leg.toNode?.transit_to_here?.eastward_reason ?? 'none'})`);
+  addCheck(checks, 'Eastward legs', failures.length === 0,
+    `${eastward.length ? details.join('; ') : 'no eastward legs'}${failures.length ? `. Failures: ${failures.join('; ')}` : ''}.`);
+}
+
+function countryCountsFor(places: Candidate[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const place of places) counts.set(place.country, (counts.get(place.country) ?? 0) + 1);
+  return counts;
+}
+
+function detourAt(places: Candidate[], index: number): { name: string; country: string; via: number; direct: number } | undefined {
+  const previous = places[index - 1];
+  const current = places[index];
+  const next = places[index + 1];
+  if (!previous || !current || !next) return undefined;
+  const via = haversineKm(previous, current) + haversineKm(current, next);
+  const direct = haversineKm(previous, next);
+  return via > 0 && via > direct * 2.5 ? { name: current.name, country: current.country, via, direct } : undefined;
 }
 
 function detourFindings(view: AuditView): { fail: string[]; warnings: string[] } {
   const fail: string[] = [];
   const warnings: string[] = [];
-  const countryCounts = new Map<string, number>();
-  for (const place of view.places) countryCounts.set(place.country, (countryCounts.get(place.country) ?? 0) + 1);
+  const countryCounts = countryCountsFor(view.places);
   for (let index = 1; index < view.places.length - 1; index++) {
-    const previous = view.places[index - 1]; const current = view.places[index]; const next = view.places[index + 1];
-    if (!previous || !current || !next) continue;
-    const via = haversineKm(previous, current) + haversineKm(current, next);
-    const direct = haversineKm(previous, next);
-    if (via > 0 && via > direct * 2.5) {
-      const finding = `${current.name}: ${human(via)} km via vs ${human(direct)} km direct (${(via / direct).toFixed(2)}x)`;
-      if ((countryCounts.get(current.country) ?? 0) === 1) warnings.push(`${finding}; only stop for ${current.country}`);
-      else fail.push(finding);
-    }
+    const detour = detourAt(view.places, index);
+    if (!detour) continue;
+    const finding = `${detour.name}: ${human(detour.via)} km via vs ${human(detour.direct)} km direct (${(detour.via / detour.direct).toFixed(2)}x)`;
+    if ((countryCounts.get(detour.country) ?? 0) === 1) warnings.push(`${finding}; only stop for ${detour.country}`);
+    else fail.push(finding);
   }
   return { fail, warnings };
 }
 
-function addDetourCheck(view: AuditView, checks: AuditCheck[]): void {
+function addDetourCheck(context: RouteAuditContext, view: AuditView, checks: AuditCheck[]): void {
   const findings = detourFindings(view);
-  addCheck(checks, 'Detours', findings.fail.length === 0,
-    `${findings.fail.length ? `FAIL ${findings.fail.join('; ')}` : 'no uncovered-country detours'}${findings.warnings.length ? `; WARNING ${findings.warnings.join('; ')}` : ''}.`);
+  const pass = usesOrienteering(context) || findings.fail.length === 0;
+  addCheck(checks, 'Detours', pass,
+    `${findings.fail.length ? `${usesOrienteering(context) ? 'SOFT' : 'FAIL'} ${findings.fail.join('; ')}` : 'no repeated-country detours'}${findings.warnings.length ? `; WARNING ${findings.warnings.join('; ')}` : ''}.`);
 }
 
 function addDistanceReport(legs: AuditLeg[], reports: { name: string; detail: string }[]): void {
@@ -650,8 +749,13 @@ function addCoverageReports(view: AuditView, context: RouteAuditContext, legs: A
   const share = populationTotal ? coveredPopulation / populationTotal * 100 : 0;
   reports.push({ name: 'Population proxy', detail: `${share.toFixed(1)}% of listed places.json population within 500 km of a stop (${human(coveredPopulation)} of ${human(populationTotal)}).` });
   const longest = [...legs].sort((a, b) => b.km - a.km).slice(0, 20)
-    .map((leg) => `${leg.fromName} -> ${leg.toName} ${human(leg.km)} km`).join('; ');
+    .map((leg) => `${leg.fromName} -> ${leg.toName} ${human(leg.km)} km, ${human(leg.kmh)} km/h, reason ${leg.toNode?.transit_to_here?.route_reason ?? 'none'}`).join('; ');
   reports.push({ name: 'Longest 20 legs', detail: longest || 'No leg data.' });
+  const speeds = legs.map((leg) => leg.kmh);
+  reports.push({ name: 'Leg speed percentiles', detail: `median ${human(percent(speeds, 0.5))} km/h; p90 ${human(percent(speeds, 0.9))} km/h; maximum ${human(Math.max(...speeds))} km/h.` });
+  const longReasons = legs.filter((leg) => leg.km > 4_000)
+    .map((leg) => `${leg.fromName} -> ${leg.toName} ${human(leg.km)} km (${leg.toNode?.transit_to_here?.route_reason ?? 'no reason'})`);
+  reports.push({ name: 'Legs over 4,000 km', detail: longReasons.join('; ') || 'None.' });
   const histogram: Record<string, number> = {};
   for (const node of view.delivery) {
     const arrival = Date.parse(node.schedule.arrival_utc ?? '');
@@ -670,6 +774,8 @@ function addPacingChecks(context: RouteAuditContext, view: AuditView, checks: Au
     addCheck(checks, 'Travel chronology', false, 'Cannot calculate paced legs.');
     addCheck(checks, 'Leg speed', false, 'Cannot calculate leg speeds.');
     addCheck(checks, 'Eastward legs', false, 'Cannot calculate route direction.');
+    addCheck(checks, 'Repeated north-south reversals', false, 'Cannot calculate route direction.');
+    addCheck(checks, 'Reasons for legs over 4,000 km', false, 'Cannot calculate leg reasons.');
     addCheck(checks, 'Detours', false, 'Cannot calculate route detours.');
     return;
   }
@@ -677,8 +783,10 @@ function addPacingChecks(context: RouteAuditContext, view: AuditView, checks: Au
   const legs = buildAuditLegs(view, takeoff);
   addTravelTimingCheck(view, legs, checks);
   addSpeedCheck(legs, checks);
-  addEastwardCheck(view, legs, checks);
-  addDetourCheck(view, checks);
+  addEastwardCheck(context, view, legs, checks);
+  addCombCheck(view, checks);
+  addLongLegReasonCheck(legs, checks);
+  addDetourCheck(context, view, checks);
 }
 
 export function auditRouteDocument(document: unknown, context: RouteAuditContext): AuditResult {

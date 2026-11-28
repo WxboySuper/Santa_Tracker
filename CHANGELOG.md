@@ -1,5 +1,10 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Route generation audit model
+
+- **Orienteering spec:** Replaces the every-leg-westward sweep with mandatory country and admin-1 coverage, cheapest-marginal optional insertion, soft direction and local-time penalties, and the 28-hour return budget.
+- **Audit:** Adds long north-south reversal detection, requires a recorded reason for eastward legs over 1,500 km, and reports median, p90, maximum speed, and the longest legs with their recorded reasons.
+
 ## [Unreleased] - Place notes and photos in the globe's Here panel
 
 - **Here panel:** Shows the stop card for the place Santa is over: a sourced cultural note with its source link, and on wider screens a Wikimedia photo with author and license credit. Cards are matched by the route stop's `candidate_id`.
