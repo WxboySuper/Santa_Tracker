@@ -351,6 +351,18 @@ describe('auditRouteDocument', () => {
     expect(specificResult.find((check) => check.name === 'Reasons for legs over 4,000 km')?.pass).toBe(true);
   });
 
+  it('accepts an ocean-crossing reason between stops in the same sovereign state', () => {
+    const fixture = routeFixture([
+      { id: 'mainland', name: 'Mainland', lng: 0, country: 'US', routeReason: 'polar launch to US; best feasible insertion checked' },
+      { id: 'hawaii', name: 'Hawaii', lng: 50, country: 'US',
+        routeReason: 'ocean crossing US to US for mandatory sovereign-state coverage (US); best feasible insertion checked' },
+    ]);
+    fixture.selected[1]!.mandatoryCoverageStop = true;
+    const nodes = (fixture.document as { route_nodes: { transit_to_here?: { route_reason?: string } }[] }).route_nodes;
+    nodes.at(-1)!.transit_to_here = { route_reason: 'polar return from US' };
+    const result = auditFixture(fixture, true);
+    expect(result.find((check) => check.name === 'Reasons for legs over 4,000 km')?.pass).toBe(true);
+  });
   it('fails repeated-country detours in hard-rule mode', () => {
     const fixture = routeFixture([
       { id: 'a', name: 'Origin', lng: 0 },
