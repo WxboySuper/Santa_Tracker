@@ -23,6 +23,7 @@
     "@santa-tracker/localization": "workspace:*",
     "@santa-tracker/route-engine": "workspace:*",
     "@santa-tracker/ui": "workspace:*",
+    "@simplewebauthn/browser": "^14.0.0",
     "@simplewebauthn/server": "^14.1.0",
     "@vinext/cloudflare": "latest",
     "jose": "^6.2.18",
