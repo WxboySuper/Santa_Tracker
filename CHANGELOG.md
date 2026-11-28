@@ -18,6 +18,7 @@
 - **Ordering:** Seeds every sovereign state and required US, Canadian, and Australian admin-1 unit; all non-sovereign territories remain optional. Remote or sparse territories can enter only when both adjacent legs are at most 3,000 km. Optional stops use marginal travel cost, population, and country targets. Each country stays below 12%, with US and Canada combined below 20%.
 - **Schedule:** Targets 23:00–05:00 local arrivals for at least 85% of stops and rejects arrivals outside 22:30–05:30. Uses 5,000 km/h for short hops, 15,000 km/h for regional legs, and the 25,000 km/h ceiling for ocean crossings or longer gaps. Stop dwell is 30 seconds for major places, 20 for cities, 5 for towns, and 3 for hops. Mandatory country representatives record a spacing exception only when every candidate is within 20 km of a selected mandatory stop.
 - **Reports:** Records reasons for eastward legs over 1,500 km and all legs over 3,000 km. Delivery legs over 4,000 km must name the specific mandatory sovereign-state or admin-1 coverage they serve, and confirm the long-leg reinsertion check.
+- **Audit clarity:** Separates mandatory-coverage reason matching from route-context checks, keeping the long-leg audit method below the CodeScene complexity threshold.
 
 ## [Unreleased] - Local-night route pacing and audit limits
 
@@ -25,6 +26,7 @@
 - **Local arrivals:** Requires at least 85% of stops from 23:00 to 05:00 local and rejects arrivals outside 22:30 to 05:30. `GREEN`, `YELLOW`, and `RED` labels now follow the recorded local arrival.
 - **Audit:** Detects repeated long north-south reversals, checks country shares and local-night coverage, requires reasons for eastward legs over 1,500 km, records mandatory spacing exceptions, and reports speed percentiles and long-leg reasons.
 - **Audit tests:** Names the orienteering-specific audit config type explicitly, so the rework branch typechecks without depending on a later route PR.
+- **Legacy route audit:** Audits the committed superseded route against its candidate rows directly, so changed generator caps cannot fail the audit test before the audit runs.
 - **Coverage policy:** Requires sovereign states and the US, Canadian, and Australian admin-1 units. Territories stay optional, and the audit lists which were visited or skipped.
 - **Remote territories:** Allows a remote or sparse territory only when both adjacent route legs are 3,000 km or less; the audit checks this limit.
 

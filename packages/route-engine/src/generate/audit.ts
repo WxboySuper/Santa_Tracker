@@ -832,24 +832,26 @@ function hasInsertionProof(leg: AuditLeg, reason: string): boolean {
   return reason.includes('best feasible insertion checked');
 }
 
+function mandatoryCoverageLabel(place: Candidate): string {
+  const admin1Unit = admin1UnitFor(place);
+  return admin1Unit
+    ? `mandatory admin-1 coverage (${admin1Unit})`
+    : `mandatory sovereign-state coverage (${place.country})`;
+}
+
+function legServesMandatoryCoverage(view: AuditView, leg: AuditLeg, reason: string): boolean {
+  const index = deliveryIndex(view, leg);
+  const endpoints = [view.places[index], view.places[index - 1]];
+  return endpoints.some((place) => place?.mandatoryCoverageStop === true
+    && reason.includes(mandatoryCoverageLabel(place)));
+}
+
 function hasReasonForRouteContext(view: AuditView, leg: AuditLeg, reason: string | undefined): boolean {
-  if (!hasSpecificLongLegReason(reason)) return false;
-  if (!reason || !hasInsertionProof(leg, reason)) return false;
+  if (!reason || !hasSpecificLongLegReason(reason) || !hasInsertionProof(leg, reason)) return false;
   if (leg.kind === 'return') return reason.startsWith('polar return from ');
   if (leg.kind === 'launch') return reason.startsWith('polar launch to ');
   const expected = expectedCountryPair(view, leg);
-  if (expected === undefined || !reason.includes(expected)) return false;
-  const index = deliveryIndex(view, leg);
-  const destination = view.places[index];
-  const origin = view.places[index - 1];
-  const mandatory = [destination, origin].filter((place): place is Candidate => place?.mandatoryCoverageStop === true);
-  return mandatory.some((place) => {
-    const admin1Unit = admin1UnitFor(place);
-    const coverage = admin1Unit
-      ? `mandatory admin-1 coverage (${admin1Unit})`
-      : `mandatory sovereign-state coverage (${place.country})`;
-    return reason.includes(coverage);
-  });
+  return expected !== undefined && reason.includes(expected) && legServesMandatoryCoverage(view, leg, reason);
 }
 
 function addLongLegReasonCheck(view: AuditView, legs: AuditLeg[], checks: AuditCheck[]): void {
