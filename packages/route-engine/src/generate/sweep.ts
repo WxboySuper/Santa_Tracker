@@ -3,6 +3,44 @@ import type { Candidate, EastwardReason, StopTier } from './types';
 
 const MINUTE_MS = 60_000;
 const LOCAL_MIDNIGHT = Date.UTC(2026, 11, 25);
+const PREFERRED_WINDOW_START = 22 * 60;
+const PREFERRED_WINDOW_END = 6 * 60;
+const HARD_WINDOW_START = 20 * 60;
+const HARD_WINDOW_END = 8 * 60;
+
+export type LocalWindowStatus = 'GREEN' | 'YELLOW' | 'RED';
+
+function minuteOfLocalDay(instant: number, offsetMinutes: number): number {
+  const local = new Date(instant + offsetMinutes * MINUTE_MS);
+  return local.getUTCHours() * 60 + local.getUTCMinutes();
+}
+
+function isInsideOvernightWindow(minute: number, start: number, end: number): boolean {
+  return minute >= start || minute <= end;
+}
+
+export function localWindowStatus(instant: number, offsetMinutes: number): LocalWindowStatus {
+  const minute = minuteOfLocalDay(instant, offsetMinutes);
+  if (isInsideOvernightWindow(minute, PREFERRED_WINDOW_START, PREFERRED_WINDOW_END)) return 'GREEN';
+  if (isInsideOvernightWindow(minute, HARD_WINDOW_START, HARD_WINDOW_END)) return 'YELLOW';
+  return 'RED';
+}
+
+export function localWindowPenaltyMinutes(instant: number, offsetMinutes: number): number {
+  const minute = minuteOfLocalDay(instant, offsetMinutes);
+  if (isInsideOvernightWindow(minute, PREFERRED_WINDOW_START, PREFERRED_WINDOW_END)) return 0;
+  return Math.min(PREFERRED_WINDOW_START - minute, minute - PREFERRED_WINDOW_END);
+}
+
+export function localWindowDeadline(instant: number, offsetMinutes: number): number | undefined {
+  if (localWindowStatus(instant, offsetMinutes) === 'RED') return undefined;
+  const localInstant = instant + offsetMinutes * MINUTE_MS;
+  const local = new Date(localInstant);
+  const minute = local.getUTCHours() * 60 + local.getUTCMinutes();
+  const nextDay = minute >= HARD_WINDOW_START ? 1 : 0;
+  const deadline = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() + nextDay, 8);
+  return deadline - offsetMinutes * MINUTE_MS;
+}
 
 export type ChristmasWindow = { startUtc: number; idealUtc: number; endUtc: number };
 export type LocalClock = { year: number; month: number; day: number; hour: number; minute: number };

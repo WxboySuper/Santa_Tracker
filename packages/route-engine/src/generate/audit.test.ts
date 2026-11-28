@@ -1,23 +1,32 @@
 import { describe, expect, it } from 'vitest';
 import { auditRouteDocument, coordinateAuditFailures } from './audit';
+import { localWindowStatus } from './sweep';
 import { DEFAULT_GENERATOR_LIMITS } from './types';
 import type { Candidate, GeneratorConfig } from './types';
 
 type AuditTestConfig = GeneratorConfig & { requiredStopIds: string[]; requiredCountries: string[] };
 
-function routeFixture(points: { id: string; name: string; lng: number; country?: string; offset?: number; reason?: string; routeReason?: string; population?: number; category?: string; arrivalUtc?: string; tier?: string; duration?: number; transitSeconds?: number }[]): { document: unknown; selected: Candidate[] } {
+function routeFixture(points: { id: string; name: string; lng: number; country?: string; offset?: number; reason?: string; routeReason?: string; population?: number; category?: string; arrivalUtc?: string; status?: string; tier?: string; duration?: number; transitSeconds?: number }[]): { document: unknown; selected: Candidate[] } {
   const selected = points.map((point) => ({ id: point.id, name: point.name, country: point.country ?? 'US', timezone: 'Etc/UTC', utcOffsetMinutes: point.offset ?? 0,
     category: point.category ?? 'populated', population: point.population ?? 1000, lat: 0, lng: point.lng }));
   const start = { id: 'start', type: 'START', location: { name: 'North Pole', region: 'Arctic', lat: 80, lng: 180 }, schedule: { arrival_utc: null, departure_utc: '2026-12-24T10:00:00.000Z' }, stop_experience: {}, transit_to_here: null };
-  const deliveries = points.map((point, index) => ({
-    id: point.id, type: 'DELIVERY', candidate_id: point.id,
-    location: { name: point.name, region: 'Test', country_code: point.country ?? 'US', timezone: 'Etc/UTC', timezone_offset: 0, lat: 0, lng: point.lng },
-    schedule: { arrival_utc: point.arrivalUtc ?? `2026-12-24T23:${String(20 + index * 10).padStart(2, '0')}:00.000Z`, departure_utc: point.arrivalUtc ? new Date(Date.parse(point.arrivalUtc) + 30_000).toISOString() : `2026-12-24T23:${String(20 + index * 10).padStart(2, '0')}:30.000Z` },
-    stop_experience: { presents_delivered_at_stop: 1, camera_zoom: 1, weather_condition: 'clear', stop_tier: point.tier ?? 'town', duration_seconds: point.duration ?? 10 },
-    transit_to_here: { duration_seconds: point.transitSeconds ?? 0, distance_km: 1, speed_kmh: 100,
-      ...(point.reason ? { eastward_reason: point.reason } : {}), ...(point.routeReason ? { route_reason: point.routeReason } : {}) },
-    notes: 'https://www.wikidata.org/wiki/Q1',
-  }));
+  const deliveries = points.map((point, index) => {
+    const defaultArrival = new Date(Date.parse('2026-12-24T23:20:00.000Z') + index * 10 * 60_000).toISOString();
+    const arrival = point.arrivalUtc ?? defaultArrival;
+    return {
+      id: point.id, type: 'DELIVERY', candidate_id: point.id,
+      location: { name: point.name, region: 'Test', country_code: point.country ?? 'US', timezone: 'Etc/UTC', timezone_offset: (point.offset ?? 0) / 60, lat: 0, lng: point.lng },
+      schedule: {
+        arrival_utc: arrival,
+        departure_utc: new Date(Date.parse(arrival) + 30_000).toISOString(),
+        time_window_status: point.status ?? localWindowStatus(Date.parse(arrival), point.offset ?? 0),
+      },
+      stop_experience: { presents_delivered_at_stop: 1, camera_zoom: 1, weather_condition: 'clear', stop_tier: point.tier ?? 'town', duration_seconds: point.duration ?? 10 },
+      transit_to_here: { duration_seconds: point.transitSeconds ?? 0, distance_km: 1, speed_kmh: 100,
+        ...(point.reason ? { eastward_reason: point.reason } : {}), ...(point.routeReason ? { route_reason: point.routeReason } : {}) },
+      notes: 'https://www.wikidata.org/wiki/Q1',
+    };
+  });
   const end = { ...start, id: 'end', type: 'END', schedule: { arrival_utc: '2026-12-25T01:00:00.000Z', departure_utc: '2026-12-25T01:00:00.000Z' }, transit_to_here: { duration_seconds: 0, distance_km: 1, speed_kmh: 100, eastward_reason: 'return' } };
   return { document: { meta: { route_version: '2026-draft-1', generated_at: DEFAULT_GENERATOR_LIMITS.generatedAt }, route_nodes: [start, ...deliveries, end] }, selected };
 }
@@ -153,7 +162,7 @@ describe('auditRouteDocument', () => {
   it('checks local arrival boundaries, travel chronology, speed, and stop tier duration', () => {
     const startOfWindow = auditFixture(routeFixture([{ id: 'a', name: 'A', lng: -100, arrivalUtc: '2026-12-24T23:00:00.000Z' }]));
     expect(startOfWindow.find((check) => check.name === 'Timezone and local arrival window')?.pass).toBe(true);
-    const outsideWindow = auditFixture(routeFixture([{ id: 'a', name: 'A', lng: -100, arrivalUtc: '2026-12-24T20:00:00.000Z' }]));
+    const outsideWindow = auditFixture(routeFixture([{ id: 'a', name: 'A', lng: -100, arrivalUtc: '2026-12-24T19:59:00.000Z' }]));
     expect(outsideWindow.find((check) => check.name === 'Timezone and local arrival window')?.pass).toBe(false);
 
     const earlyArrival = auditFixture(routeFixture([
@@ -170,6 +179,38 @@ describe('auditRouteDocument', () => {
       { id: 'a', name: 'A', lng: -100 }, { id: 'b', name: 'B', lng: 0, arrivalUtc: '2026-12-24T23:21:00.000Z' },
     ]));
     expect(fastLeg.find((check) => check.name === 'Leg speed')?.pass).toBe(false);
+  });
+
+  it('requires 90 percent local-night arrivals and matching status labels', () => {
+    const hours = Array.from({ length: 10 }, (_, index) => ({
+      id: `night-${index}`, name: `Night ${index}`, lng: -120 + index,
+      arrivalUtc: index === 9 ? '2026-12-25T12:00:00.000Z' : '2026-12-25T02:00:00.000Z',
+    }));
+    const result = auditFixture(routeFixture(hours), true);
+    expect(result.find((check) => check.name === 'Preferred local-night coverage')?.pass).toBe(true);
+
+    const belowThreshold = auditFixture(routeFixture(hours.map((point, index) => ({
+      ...point, arrivalUtc: index >= 2 ? '2026-12-25T12:00:00.000Z' : point.arrivalUtc,
+    }))), true);
+    expect(belowThreshold.find((check) => check.name === 'Preferred local-night coverage')?.pass).toBe(false);
+
+    const mislabeled = auditFixture(routeFixture([{ id: 'label', name: 'Wrong label', lng: -100,
+      arrivalUtc: '2026-12-25T12:00:00.000Z', status: 'GREEN' }]), true);
+    expect(mislabeled.find((check) => check.name === 'Local time-window status labels')?.pass).toBe(false);
+    expect(mislabeled.find((check) => check.name === 'Timezone and local arrival window')?.pass).toBe(false);
+  });
+
+  it('caps single-country and combined US+CA shares', () => {
+    const points = [
+      { id: 'us-1', name: 'US one', lng: -110, country: 'US' },
+      { id: 'us-2', name: 'US two', lng: -100, country: 'US' },
+      { id: 'ca-1', name: 'Canada one', lng: -90, country: 'CA' },
+      { id: 'mx-1', name: 'Mexico one', lng: -80, country: 'MX' },
+      { id: 'br-1', name: 'Brazil one', lng: -70, country: 'BR' },
+    ];
+    const result = auditFixture(routeFixture(points), true);
+    expect(result.find((check) => check.name === 'Country stop-share caps')?.pass).toBe(false);
+    expect(result.find((check) => check.name === 'Country stop-share caps')?.detail).toContain('US and CA');
   });
 
   it('reports repeated long north-south reversals and requires reasons for legs over 4,000 km', () => {
