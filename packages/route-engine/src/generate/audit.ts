@@ -807,7 +807,16 @@ function plausibleOffsetAnomaly(view: AuditView, leg: AuditLeg): boolean {
   const destination = view.places[index]?.utcOffsetMinutes;
   if (origin === undefined) return false;
   if (destination === undefined) return false;
-  return destination > origin;
+  const offsetJump = destination - origin;
+  return isSmallOffsetReset(offsetJump) || isUnexpectedOffsetAdvance(offsetJump, leg.eastward);
+}
+
+function isSmallOffsetReset(offsetJump: number): boolean {
+  return offsetJump < 0 && offsetJump >= -120;
+}
+
+function isUnexpectedOffsetAdvance(offsetJump: number, eastwardDegrees: number): boolean {
+  return offsetJump > eastwardDegrees * 4 + 10;
 }
 
 function destinationIsBeforeSweep(view: AuditView, index: number): boolean {
