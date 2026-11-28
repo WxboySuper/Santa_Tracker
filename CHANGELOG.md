@@ -1,5 +1,10 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Admin-1 route coverage metadata
+
+- **Coverage units:** Adds the committed US, Canadian, and Australian state, province, and territory codes used to seed mandatory stops.
+- **Refresh tool:** Adds a reproducible Natural Earth based refresh command and tests for resolving candidate places to required units.
+
 ## [Unreleased] - Route generation audit model
 
 - **Orienteering spec:** Replaces the every-leg-westward sweep with mandatory country and admin-1 coverage, cheapest-marginal optional insertion, soft direction and local-time penalties, and the 28-hour return budget.
