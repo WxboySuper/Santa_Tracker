@@ -292,7 +292,7 @@ function localArrivalFailures(node: RouteNode, place: Candidate): string[] {
   if (!arrival) return [`${node.location.name}: missing arrival time`];
   const offset = place.utcOffsetMinutes;
   if (offset === undefined) return [`${node.location.name}: missing snapshot UTC offset`];
-  const status = localWindowStatus(Date.parse(arrival), offset);
+  const status = localWindowStatus({ instant: Date.parse(arrival), offsetMinutes: offset });
   return status === 'RED' ? [`${node.location.name}: local arrival is outside 20:00–08:00`] : [];
 }
 
@@ -335,7 +335,7 @@ function assessLocalArrivals(view: AuditView): LocalArrivalAssessment[] {
     const place = view.places[index];
     const arrival = Date.parse(node.schedule.arrival_utc ?? '');
     if (place?.utcOffsetMinutes === undefined || !Number.isFinite(arrival)) return { node, place };
-    return { node, place, status: localWindowStatus(arrival, place.utcOffsetMinutes) };
+    return { node, place, status: localWindowStatus({ instant: arrival, offsetMinutes: place.utcOffsetMinutes }) };
   });
 }
 
