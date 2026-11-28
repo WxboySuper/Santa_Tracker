@@ -9,7 +9,8 @@ import { scheduledTravelMilliseconds, sweepOrder } from './order';
 import { orienteeringOrder } from './orienteering';
 import { classifyRegion } from './regions';
 import { buildReport } from './report';
-import { christmasArrival, eastwardLegReason, isEastwardDelta, isInChristmasWindow, isInSouthernChristmasWindow, localClock, longitudeDelta, stopDurationSeconds } from './sweep';
+import { christmasArrival, eastwardLegReason, isEastwardDelta, isInChristmasWindow, isInSouthernChristmasWindow,
+  localClock, localWindowStatus, longitudeDelta, stopDurationSeconds } from './sweep';
 import { InvalidCandidateTimezoneError, isInvalidCandidateTimezoneError } from './timezone-error';
 import { ianaOffsetMinutesAt } from './timezone';
 import type { TimedCandidate } from './order-shared';
@@ -283,7 +284,7 @@ function buildDeliveryNode({ place, displayName, presents, index, config, tables
       arrival_utc: new Date(stopArrival).toISOString(),
       departure_utc: new Date(stopDeparture).toISOString(),
       local_arrival_time: localTimeLabel(place, stopArrival),
-      time_window_status: 'GREEN',
+      time_window_status: localWindowStatus({ instant: stopArrival, offsetMinutes: candidateOffset(place) }),
     },
     stop_experience: { duration_seconds: durationSeconds, stop_tier: tier, camera_zoom: 14, weather_condition: 'clear', presents, presents_delivered_at_stop: presents },
     transit_to_here: transit({

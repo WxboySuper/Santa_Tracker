@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { christmasArrival, christmasWindow, detourRatio, eastwardLegReason, isInChristmasWindow, isInSouthernChristmasWindow, localClock, stopDurationSeconds, stopTier } from './sweep';
+import { christmasArrival, christmasWindow, detourRatio, eastwardLegReason, isInChristmasWindow, isInSouthernChristmasWindow,
+  localClock, localWindowDeadline, localWindowPenaltyMinutes, localWindowStatus, stopDurationSeconds, stopTier } from './sweep';
 import { christmasOffset, ianaOffsetMinutesAt, parseUtcOffset } from './timezone';
 import type { Candidate } from './types';
 
@@ -144,5 +145,32 @@ describe('christmasArrival', () => {
   it('resolves an IANA offset at the supplied arrival instant', () => {
     expect(ianaOffsetMinutesAt({ timezone: 'America/Denver', instant: Date.parse('2026-12-25T08:00:00Z') })).toBe(-420);
     expect(ianaOffsetMinutesAt({ timezone: 'America/Denver', instant: Date.parse('2026-07-25T08:00:00Z') })).toBe(-360);
+  });
+});
+
+describe('localWindowStatus', () => {
+  it('marks the preferred night, the hard-window shoulders, and daytime', () => {
+    expect(localWindowStatus({ instant: Date.parse('2026-12-24T22:00:00Z'), offsetMinutes: 0 })).toBe('GREEN');
+    expect(localWindowStatus({ instant: Date.parse('2026-12-25T06:00:00Z'), offsetMinutes: 0 })).toBe('GREEN');
+    expect(localWindowStatus({ instant: Date.parse('2026-12-24T21:59:00Z'), offsetMinutes: 0 })).toBe('YELLOW');
+    expect(localWindowStatus({ instant: Date.parse('2026-12-25T07:00:00Z'), offsetMinutes: 0 })).toBe('YELLOW');
+    expect(localWindowStatus({ instant: Date.parse('2026-12-25T08:01:00Z'), offsetMinutes: 0 })).toBe('RED');
+    expect(localWindowStatus({ instant: Date.parse('2026-12-24T19:59:00Z'), offsetMinutes: 0 })).toBe('RED');
+  });
+
+  it('uses the local offset for status and the next hard-window deadline', () => {
+    const beforeMidnightUtc = Date.parse('2026-12-25T03:00:00Z');
+    expect(localWindowStatus({ instant: beforeMidnightUtc, offsetMinutes: -300 })).toBe('GREEN');
+    expect(localWindowDeadline({ instant: Date.parse('2026-12-25T01:00:00Z'), offsetMinutes: 0 }))
+      .toBe(Date.parse('2026-12-25T08:00:00Z'));
+    expect(localWindowDeadline({ instant: Date.parse('2026-12-24T23:00:00Z'), offsetMinutes: 0 }))
+      .toBe(Date.parse('2026-12-25T08:00:00Z'));
+    expect(localWindowDeadline({ instant: Date.parse('2026-12-25T09:00:00Z'), offsetMinutes: 0 })).toBeUndefined();
+  });
+
+  it('measures distance from the preferred window edges', () => {
+    expect(localWindowPenaltyMinutes({ instant: Date.parse('2026-12-24T21:30:00Z'), offsetMinutes: 0 })).toBe(30);
+    expect(localWindowPenaltyMinutes({ instant: Date.parse('2026-12-25T07:00:00Z'), offsetMinutes: 0 })).toBe(60);
+    expect(localWindowPenaltyMinutes({ instant: Date.parse('2026-12-25T01:00:00Z'), offsetMinutes: 0 })).toBe(0);
   });
 });
