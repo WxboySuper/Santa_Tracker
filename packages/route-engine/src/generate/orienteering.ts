@@ -9,6 +9,7 @@ const MAX_STOPS = 700;
 const MINUTES_PER_MS = 1 / 60_000;
 const BUDGET_END = Date.parse(RETURN_DEADLINE_UTC);
 const IMPROVEMENT_EPSILON = 0.01;
+const MAX_TOUR_IMPROVEMENT_ROUNDS = 100;
 
 type Timing = { places: TimedCandidate[]; arrivals: number[]; departures: number[]; returnArrival: number };
 type Insertion = { index: number; cost: number; extraMs: number };
@@ -230,7 +231,7 @@ function localArrivalPenalty(place: Candidate, arrival: number): number {
   const minute = new Date(arrival + (place.utcOffsetMinutes ?? 0) * 60_000).getUTCHours() * 60
     + new Date(arrival + (place.utcOffsetMinutes ?? 0) * 60_000).getUTCMinutes();
   const outside = minute < 23 * 60 ? 23 * 60 - minute : minute > 5 * 60 ? minute - 5 * 60 : 0;
-  return Math.max(0, outside - 30) * 0.65;
+  return Math.max(0, outside - 30) * 0.05;
 }
 
 function directionPenalty(from: Candidate | typeof NORTH_POLE, to: Candidate | typeof NORTH_POLE, config: GeneratorConfig): number {
@@ -239,7 +240,7 @@ function directionPenalty(from: Candidate | typeof NORTH_POLE, to: Candidate | t
   const meanLatitude = (from.lat + to.lat) / 2;
   const clockMinutesLost = eastwardDegrees * 4 * Math.max(0.15, Math.cos(meanLatitude * Math.PI / 180));
   const travelMinutes = scheduledTravelMilliseconds(from, to, config) * MINUTES_PER_MS;
-  return Math.max(0, clockMinutesLost - travelMinutes) * 0.35;
+  return Math.min(Math.max(0, clockMinutesLost - travelMinutes) * 0.05, travelMinutes * 0.25);
 }
 
 function regionCrossingPenalty(from: Candidate | typeof NORTH_POLE, to: Candidate | typeof NORTH_POLE, distanceKm: number): number {
@@ -249,7 +250,7 @@ function regionCrossingPenalty(from: Candidate | typeof NORTH_POLE, to: Candidat
   const origin = classifyRegion(from);
   const destination = classifyRegion(to);
   if (origin.continent === destination.continent) return 0;
-  return Math.min(45, distanceKm / 250);
+  return Math.min(8, distanceKm / 2_500);
 }
 
 function legCost(from: Candidate | typeof NORTH_POLE, to: Candidate | typeof NORTH_POLE, config: GeneratorConfig): number {
@@ -260,35 +261,15 @@ function legCost(from: Candidate | typeof NORTH_POLE, to: Candidate | typeof NOR
 
 function detourPenalty(from: Candidate | typeof NORTH_POLE, via: Candidate, to: Candidate | typeof NORTH_POLE): number {
   const ratio = detourRatio(from, via, to);
-  return Math.max(0, ratio - 1.5) * 12;
-}
-
-function routeCostForStop(order: Candidate[], plan: Timing, index: number, config: GeneratorConfig): number {
-  const place = order[index]!;
-  const previous = order[index - 1] ?? NORTH_POLE;
-  const next = order[index + 1] ?? NORTH_POLE;
-  return legCost(previous, place, config)
-    + localArrivalPenalty(place, plan.arrivals[index] ?? 0)
-    + detourPenalty(previous, place, next);
-}
-
-function routeCost(order: Candidate[], config: GeneratorConfig): number {
-  const plan = timing(order, config);
-  if (!plan) return Number.POSITIVE_INFINITY;
-  let total = 0;
-  for (const [index] of order.entries()) total += routeCostForStop(order, plan, index, config);
-  const last = order.at(-1) ?? NORTH_POLE;
-  total += legCost(last, NORTH_POLE, config);
-  const overBudgetMinutes = Math.max(0, plan.returnArrival - BUDGET_END) * MINUTES_PER_MS;
-  return total + overBudgetMinutes * 1_000;
+  return Math.min(8, Math.max(0, ratio - 1.5) * 4);
 }
 
 function nearestNeighborScore(place: Candidate, previous: Candidate | typeof NORTH_POLE, previousDeparture: number,
   previousRank: number, config: GeneratorConfig): number {
   const rank = localMidnightRank(place);
   const arrival = previousDeparture + scheduledTravelMilliseconds(previous, place, config);
-  const backtrackPenalty = Math.max(0, previousRank - rank - 60) * 2;
-  const skippedWindowPenalty = Math.max(0, rank - previousRank - 240) * 0.35;
+  const backtrackPenalty = Math.max(0, previousRank - rank - 60) * 0.02;
+  const skippedWindowPenalty = Math.max(0, rank - previousRank - 240) * 0.01;
   return legCost(previous, place, config) + backtrackPenalty + skippedWindowPenalty + localArrivalPenalty(place, arrival);
 }
 
@@ -327,21 +308,47 @@ function midnightBiasedNearestNeighbor(seed: Candidate[], config: GeneratorConfi
   return order;
 }
 
-function betterTourProposal(places: Candidate[], score: number, best: TourProposal): TourProposal {
-  if (score + IMPROVEMENT_EPSILON < best.score) return { places, score };
-  return best;
+function travelMinutes(from: Candidate | typeof NORTH_POLE, to: Candidate | typeof NORTH_POLE,
+  config: GeneratorConfig): number {
+  return scheduledTravelMilliseconds(from, to, config) * MINUTES_PER_MS;
+}
+
+function tourTravelMinutes(order: Candidate[], config: GeneratorConfig): number {
+  let total = travelMinutes(NORTH_POLE, order[0] ?? NORTH_POLE, config);
+  for (let index = 1; index < order.length; index++) {
+    total += travelMinutes(order[index - 1]!, order[index]!, config);
+  }
+  return total + travelMinutes(order.at(-1) ?? NORTH_POLE, NORTH_POLE, config);
+}
+
+function reversalTravelDelta(current: Candidate[], start: number, end: number, config: GeneratorConfig): number {
+  const before = current[start - 1] ?? NORTH_POLE;
+  const first = current[start]!;
+  const last = current[end]!;
+  const after = current[end + 1] ?? NORTH_POLE;
+  return travelMinutes(before, last, config) + travelMinutes(first, after, config)
+    - travelMinutes(before, first, config) - travelMinutes(last, after, config);
+}
+
+function reversedTour(current: Candidate[], start: number, end: number): Candidate[] {
+  return [...current.slice(0, start), ...current.slice(start, end + 1).reverse(), ...current.slice(end + 1)];
 }
 
 function bestReversalProposal(current: Candidate[], config: GeneratorConfig, initial: TourProposal): TourProposal {
-  let best = initial;
-  const spanLimit = current.length - 1;
+  let bestDelta = -IMPROVEMENT_EPSILON;
+  let bestStart = -1;
+  let bestEnd = -1;
   for (let start = 0; start < current.length - 1; start++) {
-    for (let span = 2; span <= spanLimit && start + span <= current.length; span++) {
-      const proposal = [...current.slice(0, start), ...current.slice(start, start + span).reverse(), ...current.slice(start + span)];
-      best = betterTourProposal(proposal, routeCost(proposal, config), best);
+    for (let end = start + 1; end < current.length; end++) {
+      const delta = reversalTravelDelta(current, start, end, config);
+      if (delta >= bestDelta) continue;
+      bestDelta = delta;
+      bestStart = start;
+      bestEnd = end;
     }
   }
-  return best;
+  if (bestStart < 0) return initial;
+  return { places: reversedTour(current, bestStart, bestEnd), score: initial.score + bestDelta };
 }
 
 function relocatedTour(current: Candidate[], from: number, to: number): Candidate[] | undefined {
@@ -352,17 +359,44 @@ function relocatedTour(current: Candidate[], from: number, to: number): Candidat
   return proposal;
 }
 
+function indexWithoutPlace(from: number, index: number): number {
+  return index >= from ? index + 1 : index;
+}
+
+function relocationTravelDelta(current: Candidate[], from: number, to: number, config: GeneratorConfig): number {
+  const place = current[from]!;
+  const beforeRemoval = current[from - 1] ?? NORTH_POLE;
+  const afterRemoval = current[from + 1] ?? NORTH_POLE;
+  const insertionIndex = Math.min(to, current.length - 1);
+  const previousIndex = insertionIndex - 1;
+  const nextIndex = insertionIndex;
+  const beforeInsertion = previousIndex < 0 ? NORTH_POLE : current[indexWithoutPlace(from, previousIndex)] ?? NORTH_POLE;
+  const afterInsertion = nextIndex >= current.length - 1 ? NORTH_POLE : current[indexWithoutPlace(from, nextIndex)] ?? NORTH_POLE;
+  const removedEdges = travelMinutes(beforeRemoval, place, config) + travelMinutes(place, afterRemoval, config);
+  const removalBridge = travelMinutes(beforeRemoval, afterRemoval, config);
+  const insertionBridge = travelMinutes(beforeInsertion, afterInsertion, config);
+  const addedEdges = travelMinutes(beforeInsertion, place, config) + travelMinutes(place, afterInsertion, config);
+  return removalBridge + addedEdges - removedEdges - insertionBridge;
+}
+
 function bestRelocationProposal(current: Candidate[], config: GeneratorConfig, initial: TourProposal): TourProposal {
-  let best = initial;
+  let bestDelta = -IMPROVEMENT_EPSILON;
+  let bestFrom = -1;
+  let bestTo = -1;
   for (let from = 0; from < current.length; from++) {
     for (let to = 0; to <= current.length; to++) {
       if (Math.abs(from - to) < 2) continue;
-      const proposal = relocatedTour(current, from, to);
-      if (!proposal) continue;
-      best = betterTourProposal(proposal, routeCost(proposal, config), best);
+      const delta = relocationTravelDelta(current, from, to, config);
+      if (delta >= bestDelta) continue;
+      bestDelta = delta;
+      bestFrom = from;
+      bestTo = to;
     }
   }
-  return best;
+  if (bestFrom < 0) return initial;
+  const proposal = relocatedTour(current, bestFrom, bestTo);
+  if (!proposal) return initial;
+  return { places: proposal, score: initial.score + bestDelta };
 }
 
 function bestTourProposal(current: Candidate[], score: number, config: GeneratorConfig): TourProposal {
@@ -373,10 +407,10 @@ function bestTourProposal(current: Candidate[], score: number, config: Generator
 
 function improveTour(seed: Candidate[], config: GeneratorConfig): Candidate[] {
   const neighborSeed = midnightBiasedNearestNeighbor(seed, config);
-  const neighborScore = routeCost(neighborSeed, config);
-  let current = neighborScore < routeCost(seed, config) ? neighborSeed : [...seed];
-  let score = routeCost(current, config);
-  for (let round = 0; round < 6; round++) {
+  const neighborScore = tourTravelMinutes(neighborSeed, config);
+  let current = neighborScore < tourTravelMinutes(seed, config) ? neighborSeed : [...seed];
+  let score = tourTravelMinutes(current, config);
+  for (let round = 0; round < MAX_TOUR_IMPROVEMENT_ROUNDS; round++) {
     const best = bestTourProposal(current, score, config);
     if (best.places === current) break;
     current = best.places;
@@ -394,8 +428,23 @@ function possibleInsertionIndexes(order: Candidate[], place: Candidate): number[
     if (localMidnightRank(order[middle]!) <= rank) low = middle + 1;
     else high = middle;
   }
-  return [...new Set([0, order.length, low - 2, low - 1, low, low + 1, low + 2]
+  const nearbyStops = nearestRouteIndexes(order, place);
+  return [...new Set([0, order.length, low - 2, low - 1, low, low + 1, low + 2, ...nearbyStops]
     .filter((index) => index >= 0 && index <= order.length))];
+}
+
+function nearestRouteIndexes(order: Candidate[], place: Candidate): number[] {
+  let nearest = -1;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+  for (const [index, stop] of order.entries()) {
+    const latitudeDelta = stop.lat - place.lat;
+    const longitudeOffset = longitudeDelta(place, stop) * Math.cos(place.lat * Math.PI / 180);
+    const distance = latitudeDelta * latitudeDelta + longitudeOffset * longitudeOffset;
+    if (distance >= nearestDistance) continue;
+    nearest = index;
+    nearestDistance = distance;
+  }
+  return nearest < 0 ? [] : [nearest, nearest + 1];
 }
 
 function insertionAt({ order, place, index, plan, config }: InsertionOptions): Insertion {
