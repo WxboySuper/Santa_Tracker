@@ -182,9 +182,16 @@ function longLegReason(from: Candidate | LatLng, to: Candidate | LatLng): string
   if (!('country' in to)) return 'polar-return';
   const origin = classifyRegion(from);
   const destination = classifyRegion(to);
-  if (origin.continent !== destination.continent || origin.pacificIsland || destination.pacificIsland) return 'ocean-crossing';
+  if (isOceanCrossing(origin.continent, destination.continent, origin.pacificIsland, destination.pacificIsland)) return 'ocean-crossing';
   if (from.country !== to.country) return 'cross-border-coverage';
   return 'long-regional-transfer';
+}
+
+function isOceanCrossing(originContinent: string, destinationContinent: string, originPacificIsland: boolean,
+  destinationPacificIsland: boolean): boolean {
+  if (originContinent !== destinationContinent) return true;
+  if (originPacificIsland) return true;
+  return destinationPacificIsland;
 }
 
 function localTimeLabel(place: Candidate, arrival: number): string {
@@ -390,17 +397,20 @@ function buildDocument(places: TimedCandidate[], config: GeneratorConfig, tables
 
 function validateArrivalWindow(route: Route, places: Candidate[], config: GeneratorConfig): void {
   if (config.useOrienteering) return;
-  route.stops.forEach((stop, index) => {
-    const place = places[index];
-    if (!place) throw new Error(`Missing candidate for route stop ${index + 1}`);
-    const timezoneOffset = candidateOffset(place);
-    if (!isInChristmasWindow({ iso: stop.arrivalIso, timezoneOrOffset: timezoneOffset })) {
-      throw new Error(`${place.name} arrives outside its local window`);
-    }
-    if (place.lat < -35 && !isInSouthernChristmasWindow({ iso: stop.arrivalIso, timezoneOrOffset: timezoneOffset })) {
-      throw new Error(`${place.name} arrives after the southern 02:30 local limit`);
-    }
-  });
+  for (const [index, stop] of route.stops.entries()) validateStopArrival(stop, places[index], index);
+}
+
+function validateStopArrival(stop: Route['stops'][number], place: Candidate | undefined, index: number): void {
+  if (!place) throw new Error(`Missing candidate for route stop ${index + 1}`);
+  const timezoneOffset = candidateOffset(place);
+  const arrival = { iso: stop.arrivalIso, timezoneOrOffset: timezoneOffset };
+  if (!isInChristmasWindow(arrival)) throw new Error(`${place.name} arrives outside its local window`);
+  if (!isSouthernPlace(place)) return;
+  if (!isInSouthernChristmasWindow(arrival)) throw new Error(`${place.name} arrives after the southern 02:30 local limit`);
+}
+
+function isSouthernPlace(place: Candidate): boolean {
+  return place.lat < -35;
 }
 
 function validateIntegerSettings(config: GeneratorConfig): void {

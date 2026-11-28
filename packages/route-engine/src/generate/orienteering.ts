@@ -8,18 +8,53 @@ import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC,
 const MAX_STOPS = 700;
 const MINUTES_PER_MS = 1 / 60_000;
 const BUDGET_END = Date.parse(RETURN_DEADLINE_UTC);
+const IMPROVEMENT_EPSILON = 0.01;
 
 type Timing = { places: TimedCandidate[]; arrivals: number[]; departures: number[]; returnArrival: number };
 type Insertion = { index: number; cost: number; extraMs: number };
+type MandatorySelection = {
+  chosen: Candidate[];
+  separation: SeparationIndex;
+  selected: Set<string>;
+  missing: string[];
+};
+type TourProposal = { places: Candidate[]; score: number };
+type OptionalSelection = {
+  route: Candidate[];
+  selectedIds: Set<string>;
+  separation: SeparationIndex;
+  pending: Candidate[];
+  random: () => number;
+};
+type InsertionOptions = {
+  order: Candidate[];
+  place: Candidate;
+  index: number;
+  plan: Timing;
+  config: GeneratorConfig;
+};
+type InsertionSearchOptions = {
+  order: Candidate[];
+  place: Candidate;
+  plan: Timing;
+  config: GeneratorConfig;
+  random: () => number;
+};
 
 function localMidnightRank(place: Candidate): number {
   return -(place.utcOffsetMinutes ?? 0);
 }
 
+function isCapitalPlace(place: Candidate): boolean {
+  if (place.isNationalCapital) return true;
+  if (place.isCapital) return true;
+  if (place.capital) return true;
+  return place.category === 'capital';
+}
+
 function candidatePriority(place: Candidate): number {
   const population = place.population ?? 0;
-  const isCapital = [place.isNationalCapital, place.isCapital, place.capital, place.category === 'capital'].some(Boolean);
-  return Number(isCapital) * 1_000_000
+  return Number(isCapitalPlace(place)) * 1_000_000
     + Number(place.headlineLandmark) * 500_000 + Math.min(population, 400_000);
 }
 
@@ -28,61 +63,121 @@ function candidatesByPriority(places: Candidate[]): Candidate[] {
     || localMidnightRank(a) - localMidnightRank(b) || a.id.localeCompare(b.id));
 }
 
-function mandatoryTour(pool: Candidate[], minimumSeparationKm: number): { places: Candidate[]; missing: string[] } {
-  const chosen: Candidate[] = [];
-  const separation = new SeparationIndex(minimumSeparationKm);
-  const selected = new Set<string>();
-  const missing: string[] = [];
+function emptyMandatorySelection(minimumSeparationKm: number): MandatorySelection {
+  return {
+    chosen: [],
+    separation: new SeparationIndex(minimumSeparationKm),
+    selected: new Set<string>(),
+    missing: [],
+  };
+}
+
+function admin1CandidatesByUnit(pool: Candidate[]): Map<string, Candidate[]> {
   const units = new Map<string, Candidate[]>();
   for (const place of pool) {
     const unit = admin1UnitFor(place);
-    if (unit && REQUIRED_ADMIN1_CODES.has(unit)) units.set(unit, [...(units.get(unit) ?? []), place]);
+    if (!unit) continue;
+    if (!REQUIRED_ADMIN1_CODES.has(unit)) continue;
+    units.set(unit, [...(units.get(unit) ?? []), place]);
   }
-  const orderedUnits = [...REQUIRED_ADMIN1_CODES].sort((a, b) => {
-    const offsetA = Math.max(...(units.get(a) ?? []).map(localMidnightRank), -Infinity);
-    const offsetB = Math.max(...(units.get(b) ?? []).map(localMidnightRank), -Infinity);
+  return units;
+}
+
+function maxMidnightRank(places: Candidate[]): number {
+  return Math.max(...places.map(localMidnightRank), Number.NEGATIVE_INFINITY);
+}
+
+function orderedAdmin1Units(units: Map<string, Candidate[]>): string[] {
+  return [...REQUIRED_ADMIN1_CODES].sort((a, b) => {
+    const offsetA = maxMidnightRank(units.get(a) ?? []);
+    const offsetB = maxMidnightRank(units.get(b) ?? []);
     return offsetA - offsetB || a.localeCompare(b);
   });
-  for (const unit of orderedUnits) {
-    const candidates = candidatesByPriority(units.get(unit) ?? []);
-    const place = candidates.find((candidate) => separation.allows(candidate));
-    if (!place) {
-      missing.push(`${unit}: no candidate at least ${minimumSeparationKm} km from the mandatory stops`);
-      continue;
-    }
-    chosen.push(place);
-    selected.add(place.id);
-    separation.add(place);
-  }
+}
 
-  const countries = new Set(pool.map((place) => place.country));
-  const represented = new Set(chosen.map((place) => place.country));
-  const countryCandidates = new Map<string, Candidate[]>();
+function recordMandatoryPlace(place: Candidate, selection: MandatorySelection): void {
+  selection.chosen.push(place);
+  selection.selected.add(place.id);
+  selection.separation.add(place);
+}
+
+function addAdmin1Unit(unit: string, candidates: Candidate[], minimumSeparationKm: number,
+  selection: MandatorySelection): void {
+  const place = candidatesByPriority(candidates).find((candidate) => selection.separation.allows(candidate));
+  if (!place) {
+    selection.missing.push(`${unit}: no candidate at least ${minimumSeparationKm} km from the mandatory stops`);
+    return;
+  }
+  recordMandatoryPlace(place, selection);
+}
+
+function addMandatoryAdmin1(pool: Candidate[], minimumSeparationKm: number, selection: MandatorySelection): void {
+  const units = admin1CandidatesByUnit(pool);
+  for (const unit of orderedAdmin1Units(units)) {
+    addAdmin1Unit(unit, units.get(unit) ?? [], minimumSeparationKm, selection);
+  }
+}
+
+function countryCandidatesByCode(pool: Candidate[]): Map<string, Candidate[]> {
+  const countries = new Map<string, Candidate[]>();
   for (const place of pool) {
-    if (!countryCandidates.has(place.country)) countryCandidates.set(place.country, []);
-    countryCandidates.get(place.country)?.push(place);
+    if (!countries.has(place.country)) countries.set(place.country, []);
+    countries.get(place.country)?.push(place);
   }
-  const countryOrder = [...countries].sort((a, b) => (countryCandidates.get(a)?.length ?? 0) - (countryCandidates.get(b)?.length ?? 0)
+  return countries;
+}
+
+function orderedCountries(countryCandidates: Map<string, Candidate[]>): string[] {
+  return [...countryCandidates.keys()].sort((a, b) => (countryCandidates.get(a)?.length ?? 0) - (countryCandidates.get(b)?.length ?? 0)
     || a.localeCompare(b));
-  for (const country of countryOrder) {
-    if (represented.has(country)) continue;
-    const place = candidatesByPriority(countryCandidates.get(country) ?? [])
-      .find((candidate) => !selected.has(candidate.id) && separation.allows(candidate));
-    if (!place) {
-      const nearest = candidatesByPriority(countryCandidates.get(country) ?? [])
-        .flatMap((candidate) => chosen.map((selectedPlace) => ({ candidate, selectedPlace, km: haversineKm(candidate, selectedPlace) })))
-        .sort((a, b) => a.km - b.km || a.candidate.id.localeCompare(b.candidate.id))[0];
-      missing.push(nearest
-        ? `${country}: no representative at least ${minimumSeparationKm} km from mandatory stops; closest ${nearest.candidate.name} is ${nearest.km.toFixed(1)} km from ${nearest.selectedPlace.name} (${nearest.selectedPlace.country})`
-        : `${country}: no country representative at least ${minimumSeparationKm} km from mandatory stops`);
-      continue;
-    }
-    chosen.push(place);
-    selected.add(place.id);
-    represented.add(country);
-    separation.add(place);
+}
+
+function isEligibleMandatoryCandidate(candidate: Candidate, selection: MandatorySelection): boolean {
+  if (selection.selected.has(candidate.id)) return false;
+  return selection.separation.allows(candidate);
+}
+
+function nearestSelectedStop(candidates: Candidate[], chosen: Candidate[]): { candidate: Candidate; selectedPlace: Candidate; km: number } | undefined {
+  return candidates
+    .flatMap((candidate) => chosen.map((selectedPlace) => ({ candidate, selectedPlace, km: haversineKm(candidate, selectedPlace) })))
+    .sort((a, b) => a.km - b.km || a.candidate.id.localeCompare(b.candidate.id))[0];
+}
+
+function countryCoverageFailure(country: string, candidates: Candidate[], minimumSeparationKm: number,
+  chosen: Candidate[]): string {
+  const nearest = nearestSelectedStop(candidatesByPriority(candidates), chosen);
+  if (!nearest) return `${country}: no country representative at least ${minimumSeparationKm} km from mandatory stops`;
+  return `${country}: no representative at least ${minimumSeparationKm} km from mandatory stops; closest ${nearest.candidate.name} is ${nearest.km.toFixed(1)} km from ${nearest.selectedPlace.name} (${nearest.selectedPlace.country})`;
+}
+
+function addCountryRepresentative(country: string, candidates: Candidate[], minimumSeparationKm: number,
+  selection: MandatorySelection): void {
+  const sortedCandidates = candidatesByPriority(candidates);
+  const place = sortedCandidates.find((candidate) => isEligibleMandatoryCandidate(candidate, selection));
+  if (!place) {
+    selection.missing.push(countryCoverageFailure(country, candidates, minimumSeparationKm, selection.chosen));
+    return;
   }
-  return { places: chosen.sort((a, b) => localMidnightRank(a) - localMidnightRank(b) || a.id.localeCompare(b.id)), missing };
+  recordMandatoryPlace(place, selection);
+}
+
+function addMandatoryCountries(pool: Candidate[], minimumSeparationKm: number, selection: MandatorySelection): void {
+  const countryCandidates = countryCandidatesByCode(pool);
+  const represented = new Set(selection.chosen.map((place) => place.country));
+  for (const country of orderedCountries(countryCandidates)) {
+    if (represented.has(country)) continue;
+    addCountryRepresentative(country, countryCandidates.get(country) ?? [], minimumSeparationKm, selection);
+    const chosen = selection.chosen.at(-1);
+    if (chosen?.country === country) represented.add(country);
+  }
+}
+
+function mandatoryTour(pool: Candidate[], minimumSeparationKm: number): { places: Candidate[]; missing: string[] } {
+  const selection = emptyMandatorySelection(minimumSeparationKm);
+  addMandatoryAdmin1(pool, minimumSeparationKm, selection);
+  addMandatoryCountries(pool, minimumSeparationKm, selection);
+  const places = selection.chosen.sort((a, b) => localMidnightRank(a) - localMidnightRank(b) || a.id.localeCompare(b.id));
+  return { places, missing: selection.missing };
 }
 
 function timing(order: Candidate[], config: GeneratorConfig): Timing | undefined {
@@ -125,10 +220,13 @@ function directionPenalty(from: Candidate | typeof NORTH_POLE, to: Candidate | t
 }
 
 function regionCrossingPenalty(from: Candidate | typeof NORTH_POLE, to: Candidate | typeof NORTH_POLE, distanceKm: number): number {
-  if (!('country' in from) || !('country' in to) || distanceKm < 3_500) return 0;
+  if (!('country' in from)) return 0;
+  if (!('country' in to)) return 0;
+  if (distanceKm < 3_500) return 0;
   const origin = classifyRegion(from);
   const destination = classifyRegion(to);
-  return origin.continent === destination.continent ? 0 : Math.min(45, distanceKm / 250);
+  if (origin.continent === destination.continent) return 0;
+  return Math.min(45, distanceKm / 250);
 }
 
 function legCost(from: Candidate | typeof NORTH_POLE, to: Candidate | typeof NORTH_POLE, config: GeneratorConfig): number {
@@ -142,20 +240,40 @@ function detourPenalty(from: Candidate | typeof NORTH_POLE, via: Candidate, to: 
   return Math.max(0, ratio - 1.5) * 12;
 }
 
+function routeCostForStop(order: Candidate[], plan: Timing, index: number, config: GeneratorConfig): number {
+  const place = order[index]!;
+  const previous = order[index - 1] ?? NORTH_POLE;
+  const next = order[index + 1] ?? NORTH_POLE;
+  return legCost(previous, place, config)
+    + localArrivalPenalty(place, plan.arrivals[index] ?? 0)
+    + detourPenalty(previous, place, next);
+}
+
 function routeCost(order: Candidate[], config: GeneratorConfig): number {
   const plan = timing(order, config);
   if (!plan) return Number.POSITIVE_INFINITY;
   let total = 0;
-  let previous: Candidate | typeof NORTH_POLE = NORTH_POLE;
-  for (const [index, place] of order.entries()) {
-    total += legCost(previous, place, config) + localArrivalPenalty(place, plan.arrivals[index] ?? 0);
-    const next = order[index + 1] ?? NORTH_POLE;
-    total += detourPenalty(previous, place, next);
-    previous = place;
-  }
-  total += legCost(previous, NORTH_POLE, config);
+  for (const [index] of order.entries()) total += routeCostForStop(order, plan, index, config);
+  const last = order.at(-1) ?? NORTH_POLE;
+  total += legCost(last, NORTH_POLE, config);
   const overBudgetMinutes = Math.max(0, plan.returnArrival - BUDGET_END) * MINUTES_PER_MS;
   return total + overBudgetMinutes * 1_000;
+}
+
+function nearestNeighborScore(place: Candidate, previous: Candidate | typeof NORTH_POLE, previousDeparture: number,
+  previousRank: number, config: GeneratorConfig): number {
+  const rank = localMidnightRank(place);
+  const arrival = previousDeparture + scheduledTravelMilliseconds(previous, place, config);
+  const backtrackPenalty = Math.max(0, previousRank - rank - 60) * 2;
+  const skippedWindowPenalty = Math.max(0, rank - previousRank - 240) * 0.35;
+  return legCost(previous, place, config) + backtrackPenalty + skippedWindowPenalty + localArrivalPenalty(place, arrival);
+}
+
+function isBetterNearestNeighbor(place: Candidate, score: number, bestPlace: Candidate | undefined, bestScore: number): boolean {
+  if (score < bestScore) return true;
+  if (score > bestScore) return false;
+  if (!bestPlace) return true;
+  return place.id.localeCompare(bestPlace.id) < 0;
 }
 
 function midnightBiasedNearestNeighbor(seed: Candidate[], config: GeneratorConfig): Candidate[] {
@@ -167,17 +285,13 @@ function midnightBiasedNearestNeighbor(seed: Candidate[], config: GeneratorConfi
   while (remaining.length > 0) {
     let bestIndex = 0;
     let bestScore = Number.POSITIVE_INFINITY;
+    let bestPlace: Candidate | undefined;
     for (const [index, place] of remaining.entries()) {
-      const rank = localMidnightRank(place);
-      const arrival = previousDeparture + scheduledTravelMilliseconds(previous, place, config);
-      const backtrackPenalty = Math.max(0, previousRank - rank - 60) * 2;
-      const skippedWindowPenalty = Math.max(0, rank - previousRank - 240) * 0.35;
-      const score = legCost(previous, place, config) + backtrackPenalty + skippedWindowPenalty
-        + localArrivalPenalty(place, arrival);
-      if (score < bestScore || (score === bestScore && place.id.localeCompare(remaining[bestIndex]!.id) < 0)) {
-        bestIndex = index;
-        bestScore = score;
-      }
+      const score = nearestNeighborScore(place, previous, previousDeparture, previousRank, config);
+      if (!isBetterNearestNeighbor(place, score, bestPlace, bestScore)) continue;
+      bestIndex = index;
+      bestScore = score;
+      bestPlace = place;
     }
     const [next] = remaining.splice(bestIndex, 1);
     if (!next) break;
@@ -190,36 +304,60 @@ function midnightBiasedNearestNeighbor(seed: Candidate[], config: GeneratorConfi
   return order;
 }
 
+function betterTourProposal(places: Candidate[], score: number, best: TourProposal): TourProposal {
+  if (score + IMPROVEMENT_EPSILON < best.score) return { places, score };
+  return best;
+}
+
+function bestReversalProposal(current: Candidate[], config: GeneratorConfig, initial: TourProposal): TourProposal {
+  let best = initial;
+  const spanLimit = current.length - 1;
+  for (let start = 0; start < current.length - 1; start++) {
+    for (let span = 2; span <= spanLimit && start + span <= current.length; span++) {
+      const proposal = [...current.slice(0, start), ...current.slice(start, start + span).reverse(), ...current.slice(start + span)];
+      best = betterTourProposal(proposal, routeCost(proposal, config), best);
+    }
+  }
+  return best;
+}
+
+function relocatedTour(current: Candidate[], from: number, to: number): Candidate[] | undefined {
+  const proposal = [...current];
+  const [place] = proposal.splice(from, 1);
+  if (!place) return undefined;
+  proposal.splice(to, 0, place);
+  return proposal;
+}
+
+function bestRelocationProposal(current: Candidate[], config: GeneratorConfig, initial: TourProposal): TourProposal {
+  let best = initial;
+  for (let from = 0; from < current.length; from++) {
+    for (let to = 0; to <= current.length; to++) {
+      if (Math.abs(from - to) < 2) continue;
+      const proposal = relocatedTour(current, from, to);
+      if (!proposal) continue;
+      best = betterTourProposal(proposal, routeCost(proposal, config), best);
+    }
+  }
+  return best;
+}
+
+function bestTourProposal(current: Candidate[], score: number, config: GeneratorConfig): TourProposal {
+  const initial = { places: current, score };
+  const withReversals = bestReversalProposal(current, config, initial);
+  return bestRelocationProposal(current, config, withReversals);
+}
+
 function improveTour(seed: Candidate[], config: GeneratorConfig): Candidate[] {
   const neighborSeed = midnightBiasedNearestNeighbor(seed, config);
-  let current = routeCost(neighborSeed, config) < routeCost(seed, config) ? neighborSeed : [...seed];
+  const neighborScore = routeCost(neighborSeed, config);
+  let current = neighborScore < routeCost(seed, config) ? neighborSeed : [...seed];
   let score = routeCost(current, config);
-  const maxRounds = 6;
-  for (let round = 0; round < maxRounds; round++) {
-    let best = current;
-    let bestScore = score;
-    const spanLimit = current.length - 1;
-    for (let start = 0; start < current.length - 1; start++) {
-      for (let span = 2; span <= spanLimit && start + span <= current.length; span++) {
-        const proposal = [...current.slice(0, start), ...current.slice(start, start + span).reverse(), ...current.slice(start + span)];
-        const proposalScore = routeCost(proposal, config);
-        if (proposalScore + 0.01 < bestScore) { best = proposal; bestScore = proposalScore; }
-      }
-    }
-    for (let from = 0; from < current.length; from++) {
-      for (let to = 0; to <= current.length; to++) {
-        if (Math.abs(from - to) < 2) continue;
-        const proposal = [...current];
-        const [place] = proposal.splice(from, 1);
-        if (!place) continue;
-        proposal.splice(to, 0, place);
-        const proposalScore = routeCost(proposal, config);
-        if (proposalScore + 0.01 < bestScore) { best = proposal; bestScore = proposalScore; }
-      }
-    }
-    if (best === current) break;
-    current = best;
-    score = bestScore;
+  for (let round = 0; round < 6; round++) {
+    const best = bestTourProposal(current, score, config);
+    if (best.places === current) break;
+    current = best.places;
+    score = best.score;
   }
   return current;
 }
@@ -237,7 +375,7 @@ function possibleInsertionIndexes(order: Candidate[], place: Candidate): number[
     .filter((index) => index >= 0 && index <= order.length))];
 }
 
-function insertionAt(order: Candidate[], place: Candidate, index: number, plan: Timing, config: GeneratorConfig): Insertion {
+function insertionAt({ order, place, index, plan, config }: InsertionOptions): Insertion {
   const from = index === 0 ? NORTH_POLE : order[index - 1]!;
   const to = order[index] ?? NORTH_POLE;
   const fromDeparture = index === 0 ? Date.parse(TAKEOFF_UTC) : plan.departures[index - 1]!;
@@ -254,50 +392,103 @@ function insertionAt(order: Candidate[], place: Candidate, index: number, plan: 
   return { index, cost, extraMs };
 }
 
-function addOptionalStops(mandatory: Candidate[], pool: Candidate[], config: GeneratorConfig): Candidate[] {
+function isWithinBudget(plan: Timing): boolean {
+  return plan.returnArrival <= BUDGET_END;
+}
+
+function isInsertionWithinBudget(plan: Timing, insertion: Insertion): boolean {
+  return plan.returnArrival + insertion.extraMs <= BUDGET_END;
+}
+
+function betterInsertion(place: Candidate, rank: number, best: { place: Candidate; insertion: Insertion; rank: number } | undefined): boolean {
+  if (!best) return true;
+  if (rank < best.rank) return true;
+  if (rank > best.rank) return false;
+  return place.id.localeCompare(best.place.id) < 0;
+}
+
+function findBestInsertion({ order, place, plan, config, random }: InsertionSearchOptions,
+  best: { place: Candidate; insertion: Insertion; rank: number } | undefined): { place: Candidate; insertion: Insertion; rank: number } | undefined {
+  for (const index of possibleInsertionIndexes(order, place)) {
+    const insertion = insertionAt({ order, place, index, plan, config });
+    if (!isInsertionWithinBudget(plan, insertion)) continue;
+    const rank = insertion.cost + random() * 0.0001;
+    if (!betterInsertion(place, rank, best)) continue;
+    best = { place, insertion, rank };
+  }
+  return best;
+}
+
+function isAvailableOptionalCandidate(place: Candidate, selection: OptionalSelection): boolean {
+  if (selection.selectedIds.has(place.id)) return false;
+  return selection.separation.allows(place);
+}
+
+function bestOptionalInsertion(selection: OptionalSelection, plan: Timing, config: GeneratorConfig): { place: Candidate; insertion: Insertion; rank: number } | undefined {
+  let best: { place: Candidate; insertion: Insertion; rank: number } | undefined;
+  for (const place of selection.pending) {
+    if (!isAvailableOptionalCandidate(place, selection)) continue;
+    best = findBestInsertion({ order: selection.route, place, plan, config, random: selection.random }, best);
+  }
+  return best;
+}
+
+function commitOptionalInsertion(selection: OptionalSelection, best: { place: Candidate; insertion: Insertion }): void {
+  selection.route.splice(best.insertion.index, 0, best.place);
+  selection.selectedIds.add(best.place.id);
+  selection.separation.add(best.place);
+  selection.pending.splice(selection.pending.findIndex((place) => place.id === best.place.id), 1);
+}
+
+function canConsiderOptionalStops(selection: OptionalSelection): boolean {
+  return selection.pending.length > 0 && selection.route.length < MAX_STOPS;
+}
+
+function optionalSelection(mandatory: Candidate[], pool: Candidate[], config: GeneratorConfig): OptionalSelection {
   const route = [...mandatory];
   const selectedIds = new Set(route.map((place) => place.id));
   const separation = new SeparationIndex(config.minStopSeparationKm);
   route.forEach((place) => separation.add(place));
-  const random = seededRandom(config.seed);
   const pending = pool.filter((place) => !selectedIds.has(place.id)).sort((a, b) => a.id.localeCompare(b.id));
-  while (pending.length > 0 && route.length < MAX_STOPS) {
-    const plan = timing(route, config);
-    if (!plan || plan.returnArrival > BUDGET_END) break;
-    let best: { place: Candidate; insertion: Insertion; rank: number } | undefined;
-    for (const place of pending) {
-      if (!separation.allows(place)) continue;
-      for (const index of possibleInsertionIndexes(route, place)) {
-        const insertion = insertionAt(route, place, index, plan, config);
-        if (plan.returnArrival + insertion.extraMs > BUDGET_END) continue;
-        const rank = insertion.cost + random() * 0.0001;
-        if (!best || rank < best.rank || (rank === best.rank && place.id.localeCompare(best.place.id) < 0)) {
-          best = { place, insertion, rank };
-        }
-      }
-    }
+  return { route, selectedIds, separation, pending, random: seededRandom(config.seed) };
+}
+
+function addOptionalStops(mandatory: Candidate[], pool: Candidate[], config: GeneratorConfig): Candidate[] {
+  const selection = optionalSelection(mandatory, pool, config);
+  while (canConsiderOptionalStops(selection)) {
+    const plan = timing(selection.route, config);
+    if (!plan || !isWithinBudget(plan)) break;
+    const best = bestOptionalInsertion(selection, plan, config);
     if (!best) break;
-    route.splice(best.insertion.index, 0, best.place);
-    selectedIds.add(best.place.id);
-    separation.add(best.place);
-    pending.splice(pending.findIndex((place) => place.id === best.place.id), 1);
+    commitOptionalInsertion(selection, best);
   }
-  return route;
+  return selection.route;
+}
+
+function validateMandatorySelection(seed: { places: Candidate[]; missing: string[] }): void {
+  if (seed.missing.length === 0) return;
+  throw new Error(`Mandatory coverage cannot satisfy candidate availability or 20 km separation: ${seed.missing.slice(0, 20).join('; ')}`);
+}
+
+function validateMandatoryStopLimit(places: Candidate[]): void {
+  if (places.length <= MAX_STOPS) return;
+  throw new Error(`Mandatory coverage needs ${places.length} stops, above the ${MAX_STOPS} stop cap`);
+}
+
+function assertWithinRouteBudget(final: Timing | undefined, mandatoryCount: number): asserts final is Timing {
+  if (final && isWithinBudget(final)) return;
+  const returnAt = final ? new Date(final.returnArrival).toISOString() : 'no feasible timing';
+  const overByMinutes = final ? Math.ceil((final.returnArrival - BUDGET_END) * MINUTES_PER_MS) : 0;
+  throw new Error(`Mandatory coverage cannot fit the 28-hour return budget. ${mandatoryCount} mandatory stops were retained; return would be ${returnAt} (${overByMinutes} minutes late). Speed and 20 km separation were enforced.`);
 }
 
 export function orienteeringOrder(pool: Candidate[], config: GeneratorConfig = DEFAULT_GENERATOR_LIMITS): TimedCandidate[] {
   const seed = mandatoryTour(pool, config.minStopSeparationKm);
-  if (seed.missing.length > 0) {
-    throw new Error(`Mandatory coverage cannot satisfy candidate availability or 20 km separation: ${seed.missing.slice(0, 20).join('; ')}`);
-  }
-  if (seed.places.length > MAX_STOPS) throw new Error(`Mandatory coverage needs ${seed.places.length} stops, above the ${MAX_STOPS} stop cap`);
+  validateMandatorySelection(seed);
+  validateMandatoryStopLimit(seed.places);
   const improved = improveTour(seed.places, config);
   const selected = addOptionalStops(improved, pool, config);
   const final = timing(selected, config);
-  if (!final || final.returnArrival > BUDGET_END) {
-    const returnAt = final ? new Date(final.returnArrival).toISOString() : 'no feasible timing';
-    const overByMinutes = final ? Math.ceil((final.returnArrival - BUDGET_END) * MINUTES_PER_MS) : 0;
-    throw new Error(`Mandatory coverage cannot fit the 28-hour return budget. ${seed.places.length} mandatory stops were retained; return would be ${returnAt} (${overByMinutes} minutes late). Speed and 20 km separation were enforced.`);
-  }
+  assertWithinRouteBudget(final, seed.places.length);
   return final.places;
 }
