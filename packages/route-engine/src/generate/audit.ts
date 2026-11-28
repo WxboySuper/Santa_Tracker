@@ -138,7 +138,7 @@ function addCheck(checks: AuditCheck[], name: string, pass: boolean, detail: str
 }
 
 function usesOrienteering(context: RouteAuditContext): boolean {
-  return Boolean((context.config as typeof context.config & { useOrienteering?: boolean }).useOrienteering);
+  return (context.config as typeof context.config & { useOrienteering?: boolean }).useOrienteering;
 }
 
 function addNameAndRegionCheck(view: AuditView, checks: AuditCheck[]): void {
@@ -430,7 +430,7 @@ function addExperienceCheck(view: AuditView, checks: AuditCheck[]): void {
     `${sourceFailures.length} missing source links; ${experienceFailures.length} incomplete delivery experiences; ${transitFailures.length} missing transit metrics.`);
 }
 
-const STOP_TIER_SECONDS: Record<string, number> = { major: 60, city: 30, town: 10, hop: 3 };
+const STOP_TIER_SECONDS: Record<string, number> = { major: 30, city: 20, town: 5, hop: 3 };
 
 function isCapitalCandidate(place: Candidate): boolean {
   return place.category === 'capital' || ('isNationalCapital' in place && place.isNationalCapital === true)

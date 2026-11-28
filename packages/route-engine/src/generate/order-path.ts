@@ -63,7 +63,7 @@ function recordSelectedPlace(place: Candidate, state: SelectionState): void {
 }
 
 export function selectionConstraintsAllow(order: Candidate[], config: GeneratorConfig, checkSeparation = true): boolean {
-  const state: SelectionState = { separation: checkSeparation ? new SeparationIndex(config.minStopSeparationKm) : undefined,
+  const state: SelectionState = { separation: checkSeparation ? new SeparationIndex({ minimumKm: config.minStopSeparationKm }) : undefined,
     countryCounts: new Map(), coveredAdmin1: new Set(), coveredOffsets: new Set(), config };
   for (const place of order) {
     if (!selectionPlaceAllows(place, state)) return false;

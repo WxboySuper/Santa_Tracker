@@ -67,7 +67,7 @@ function candidatesByPriority(places: Candidate[]): Candidate[] {
 function emptyMandatorySelection(minimumSeparationKm: number): MandatorySelection {
   return {
     chosen: [],
-    separation: new SeparationIndex(minimumSeparationKm),
+    separation: new SeparationIndex({ minimumKm: minimumSeparationKm }),
     selected: new Set<string>(),
     missing: [],
   };
@@ -519,7 +519,7 @@ function canConsiderOptionalStops(selection: OptionalSelection): boolean {
 function optionalSelection(mandatory: Candidate[], pool: Candidate[], config: GeneratorConfig): OptionalSelection {
   const route = [...mandatory];
   const selectedIds = new Set(route.map((place) => place.id));
-  const separation = new SeparationIndex(config.minStopSeparationKm);
+  const separation = new SeparationIndex({ minimumKm: config.minStopSeparationKm });
   route.forEach((place) => separation.add(place));
   const pending = pool.filter((place) => !selectedIds.has(place.id)).sort((a, b) => a.id.localeCompare(b.id));
   return { route, selectedIds, separation, pending, random: seededRandom(config.seed) };
