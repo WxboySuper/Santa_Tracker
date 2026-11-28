@@ -138,7 +138,7 @@ function addCheck(checks: AuditCheck[], name: string, pass: boolean, detail: str
 }
 
 function usesOrienteering(context: RouteAuditContext): boolean {
-  return (context.config as typeof context.config & { useOrienteering?: boolean }).useOrienteering === true;
+  return Boolean((context.config as typeof context.config & { useOrienteering?: boolean }).useOrienteering);
 }
 
 function addNameAndRegionCheck(view: AuditView, checks: AuditCheck[]): void {
