@@ -3,10 +3,10 @@ import type { Candidate, EastwardReason, StopTier } from './types';
 
 const MINUTE_MS = 60_000;
 const LOCAL_MIDNIGHT = Date.UTC(2026, 11, 25);
-const PREFERRED_WINDOW_START = 22 * 60;
-const PREFERRED_WINDOW_END = 6 * 60;
-const HARD_WINDOW_START = 20 * 60;
-const HARD_WINDOW_END = 8 * 60;
+const PREFERRED_WINDOW_START = 23 * 60;
+const PREFERRED_WINDOW_END = 5 * 60;
+const HARD_WINDOW_START = 22 * 60 + 30;
+const HARD_WINDOW_END = 5 * 60 + 30;
 
 export type LocalWindowStatus = 'GREEN' | 'YELLOW' | 'RED';
 type InstantOffsetOptions = { instant: number; offsetMinutes: number };
@@ -43,7 +43,8 @@ export function localWindowDeadline({ instant, offsetMinutes }: InstantOffsetOpt
   const local = new Date(localInstant);
   const minute = local.getUTCHours() * 60 + local.getUTCMinutes();
   const nextDay = minute >= HARD_WINDOW_START ? 1 : 0;
-  const deadline = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() + nextDay, 8);
+  const deadline = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() + nextDay,
+    Math.floor(HARD_WINDOW_END / 60), HARD_WINDOW_END % 60);
   return deadline - offsetMinutes * MINUTE_MS;
 }
 
