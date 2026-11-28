@@ -11,6 +11,7 @@
 - **Local arrivals:** Requires at least 85% of stops from 23:00 to 05:00 local and rejects arrivals outside 22:30 to 05:30. `GREEN`, `YELLOW`, and `RED` labels now follow the recorded local arrival.
 - **Audit:** Detects repeated long north-south reversals, checks country shares and local-night coverage, requires reasons for eastward legs over 1,500 km, records mandatory spacing exceptions, and reports speed percentiles and long-leg reasons.
 - **Audit tests:** Names the orienteering-specific audit config type explicitly, so the rework branch typechecks without depending on a later route PR.
+- **Coverage policy:** Requires sovereign states and the US, Canadian, and Australian admin-1 units. Territories stay optional, and the audit lists which were visited or skipped.
 
 ## [Unreleased] - Place notes and photos in the globe's Here panel
 
