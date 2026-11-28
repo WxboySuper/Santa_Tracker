@@ -1,5 +1,10 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Admin-1 route coverage metadata
+
+- **Coverage units:** Adds the committed US, Canadian, and Australian state, province, and territory codes used to seed mandatory stops.
+- **Refresh tool:** Adds a reproducible Natural Earth based refresh command and tests for resolving candidate places to required units.
+
 ## [Unreleased] - Local-night route pacing and audit limits
 
 - **Route ordering:** Keeps mandatory country and admin-1 coverage while advancing through timezone bands with local night. Optional stops are weighted by population and importance, with 12% per-country and 20% combined US+Canada share caps.
