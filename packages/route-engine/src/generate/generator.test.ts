@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { legSpeedKmh } from '../geo';
+import { haversineKm, legSpeedKmh } from '../geo';
 import { generateRoute, type Candidate, DEFAULT_GENERATOR_LIMITS } from './generator';
+import { reinsertLongLegStops } from './orienteering';
 import { isInChristmasWindow, localClock } from './sweep';
 import { scheduledTravelMilliseconds } from './order';
 import { NORTH_POLE } from './types';
@@ -13,6 +14,26 @@ const candidates: Candidate[] = [
 ];
 
 const config = { ...DEFAULT_GENERATOR_LIMITS, useOrienteering: false, maxStopsPerCountry: 6, minStopSeparationKm: 20 };
+
+describe('long-leg reinsertion', () => {
+  it('moves a stop across the route when every insertion position is cheaper', () => {
+    const west: Candidate = { id: 'west', name: 'West', country: 'US', lat: 0, lng: 0,
+      timezone: 'Etc/GMT+11', utcOffsetMinutes: -660, category: 'hub' };
+    const eastern: Candidate = { id: 'eastern', name: 'Eastern', country: 'US', lat: 0, lng: 60,
+      timezone: 'Etc/GMT+11', utcOffsetMinutes: -660, category: 'hub' };
+    const nearWest: Candidate = { id: 'near-west', name: 'Near West', country: 'US', lat: 0, lng: 5,
+      timezone: 'Etc/GMT+11', utcOffsetMinutes: -660, category: 'hub' };
+
+    const original = [west, eastern, nearWest];
+    const result = reinsertLongLegStops(original, config);
+    const pathDistance = (order: Candidate[]) => order.slice(1).reduce((total, place, index) =>
+      total + haversineKm(order[index]!, place), 0);
+
+    expect(new Set(result.map((place) => place.id))).toEqual(new Set(original.map((place) => place.id)));
+    expect(pathDistance(result)).toBeLessThan(pathDistance(original));
+    expect(result.every((place) => place.longLegReinsertionChecked)).toBe(true);
+  });
+});
 
 describe('generateRoute midnight sweep', () => {
   it('creates reproducible route output with westward ordering', () => {

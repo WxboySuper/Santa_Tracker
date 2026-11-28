@@ -313,6 +313,25 @@ describe('auditRouteDocument', () => {
     expect(result.find((check) => check.name === 'Eastward legs')?.pass).toBe(false);
   });
 
+  it('rejects generic long-leg reasons and accepts a specific checked reason', () => {
+    const generic = routeFixture([
+      { id: 'origin', name: 'Origin', lng: 0, country: 'US', routeReason: 'ocean-crossing' },
+      { id: 'destination', name: 'Destination', lng: 50, country: 'CA', routeReason: 'cross-border-coverage' },
+    ]);
+    const genericResult = auditFixture(generic, true);
+    expect(genericResult.find((check) => check.name === 'Reasons for legs over 4,000 km')?.pass).toBe(false);
+
+    const specific = routeFixture([
+      { id: 'origin', name: 'Origin', lng: 0, country: 'US', routeReason: 'polar launch to US; best feasible insertion checked' },
+      { id: 'destination', name: 'Destination', lng: 50, country: 'CA',
+        routeReason: 'ocean crossing US to CA for mandatory country/admin-1 coverage; best feasible insertion checked' },
+    ]);
+    const nodes = (specific.document as { route_nodes: { transit_to_here?: { route_reason?: string } }[] }).route_nodes;
+    nodes.at(-1)!.transit_to_here = { route_reason: 'polar return from CA' };
+    const specificResult = auditFixture(specific, true);
+    expect(specificResult.find((check) => check.name === 'Reasons for legs over 4,000 km')?.pass).toBe(true);
+  });
+
   it('fails repeated-country detours in hard-rule mode', () => {
     const fixture = routeFixture([
       { id: 'a', name: 'Origin', lng: 0 },

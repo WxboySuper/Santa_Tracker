@@ -12,6 +12,7 @@ import {
 } from './sweep';
 import { requiredSnapshotOffset, scheduledTravelMilliseconds } from './order-shared';
 import { admin1Coverage } from './admin1';
+import { longLegReason } from './route-reasons';
 import { NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type GeneratorConfig, type RouteDetourReport, type RouteLegReport, type RouteReport, type StopTier } from './types';
 
 export type BuildReportOptions = {
@@ -63,24 +64,6 @@ function requiresEastwardReason(eastwardDegrees: number, distanceKm: number, eas
   return !eastwardReason;
 }
 
-function longLegReason(from: Candidate | LatLng, to: Candidate | LatLng, distanceKm: number): string | undefined {
-  if (distanceKm <= 4_000) return undefined;
-  if (!('country' in from)) return 'polar-launch';
-  if (!('country' in to)) return 'polar-return';
-  const origin = classifyRegion(from);
-  const destination = classifyRegion(to);
-  if (isOceanCrossing(origin.continent, destination.continent, origin.pacificIsland, destination.pacificIsland)) return 'ocean-crossing';
-  if (from.country !== to.country) return 'cross-border-coverage';
-  return 'long-regional-transfer';
-}
-
-function isOceanCrossing(originContinent: string, destinationContinent: string, originPacificIsland: boolean,
-  destinationPacificIsland: boolean): boolean {
-  if (originContinent !== destinationContinent) return true;
-  if (originPacificIsland) return true;
-  return destinationPacificIsland;
-}
-
 function percentile(values: number[], fraction: number): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
@@ -112,7 +95,7 @@ function deliveryLegs(places: Candidate[], route: Route, config: GeneratorConfig
     legs.push(actualLeg({ from, to, fromName: from.name, toName: to.name,
       elapsedDurationSeconds: (arrival - Date.parse(fromStop.departureIso)) / 1000,
       kind: 'delivery', gapMinutes: (arrival - Date.parse(fromStop.arrivalIso)) / 60_000,
-      eastwardDegrees: eastward, eastwardReason: reason, routeReason: longLegReason(from, to, haversineKm(from, to)) }));
+      eastwardDegrees: eastward, eastwardReason: reason, routeReason: longLegReason(from, to, { reinsertionChecked: to.longLegReinsertionChecked }) }));
   }
   return legs;
 }
@@ -124,7 +107,7 @@ function launchLeg(first: Candidate, firstStop: Route['stops'][number]): RouteLe
   return actualLeg({ from: NORTH_POLE, to: first, fromName: 'North Pole', toName: first.name,
     elapsedDurationSeconds: (arrival - Date.parse(TAKEOFF_UTC)) / 1000,
     kind: 'launch', gapMinutes: (arrival - Date.parse(TAKEOFF_UTC)) / 60_000,
-    eastwardDegrees: eastward, eastwardReason: reason, routeReason: longLegReason(NORTH_POLE, first, haversineKm(NORTH_POLE, first)) });
+    eastwardDegrees: eastward, eastwardReason: reason, routeReason: longLegReason(NORTH_POLE, first, { reinsertionChecked: first.longLegReinsertionChecked }) });
 }
 
 function returnLeg(last: Candidate, lastStop: Route['stops'][number], routeEnd: number): RouteLegReport {
@@ -133,7 +116,7 @@ function returnLeg(last: Candidate, lastStop: Route['stops'][number], routeEnd: 
     elapsedDurationSeconds: (routeEnd - Date.parse(lastStop.departureIso)) / 1000,
     kind: 'return', gapMinutes: (routeEnd - Date.parse(lastStop.departureIso)) / 60_000,
     eastwardDegrees: eastward, eastwardReason: isEastwardDelta(eastward) ? 'return' : undefined,
-    routeReason: longLegReason(last, NORTH_POLE, haversineKm(last, NORTH_POLE)) });
+    routeReason: longLegReason(last, NORTH_POLE) });
 }
 
 function detourAt(places: Candidate[], index: number, countryCounts: Map<string, number>): RouteDetourReport {

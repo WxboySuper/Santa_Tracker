@@ -27,6 +27,8 @@ export type Candidate = LatLng & {
   plannedStopDurationSeconds?: number;
   /** True only when mandatory country coverage has no candidate 20 km from selected mandatory stops. */
   mandatoryCoverageSpacingException?: boolean;
+  mandatoryCoverageStop?: boolean;
+  longLegReinsertionChecked?: boolean;
 };
 
 export type GeneratorConfig = {
