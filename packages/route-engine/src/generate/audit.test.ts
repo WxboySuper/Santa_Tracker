@@ -136,6 +136,10 @@ describe('auditRouteDocument', () => {
       { id: 'a', name: 'A', lng: -100, offset: 300 }, { id: 'b', name: 'B', lng: -75, offset: -300, reason: 'offset-anomaly' },
     ]));
     expect(wrongAnomaly.find((check) => check.name === 'Eastward legs')?.pass).toBe(false);
+    const smallOffsetReset = auditFixture(routeFixture([
+      { id: 'a', name: 'A', lng: 74, offset: 360 }, { id: 'b', name: 'B', lng: 83, offset: 345, reason: 'offset-anomaly' },
+    ]));
+    expect(smallOffsetReset.find((check) => check.name === 'Eastward legs')?.pass).toBe(true);
 
     const dateline = auditFixture(routeFixture([
       { id: 'a', name: 'A', lng: 170, offset: 780 }, { id: 'b', name: 'B', lng: -170, offset: 840, reason: 'dateline' },
