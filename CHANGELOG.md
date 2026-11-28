@@ -8,8 +8,8 @@
 ## [Unreleased] - Local-night route pacing and audit limits
 
 - **Route ordering:** Keeps mandatory country and admin-1 coverage while advancing through timezone bands with local night. Optional stops are weighted by population and importance, with 12% per-country and 20% combined US+Canada share caps.
-- **Local arrivals:** Requires at least 85% of stops from 23:00 to 05:00 local and rejects arrivals outside 22:30 to 05:30. `GREEN`, `YELLOW`, and `RED` labels now follow the recorded local arrival.
-- **Audit:** Detects repeated long north-south reversals, checks country shares and local-night coverage, requires reasons for eastward legs over 1,500 km, records mandatory spacing exceptions, and reports speed percentiles and long-leg reasons.
+- **Local arrivals:** Requires at least 97% of stops from 23:00 to 05:00 local and rejects arrivals outside 22:30 to 05:30. `GREEN`, `YELLOW`, and `RED` labels now follow the recorded local arrival.
+- **Audit:** Detects repeated long north-south reversals, checks sovereign-state coverage, country shares, and local-night coverage, requires reasons for eastward legs over 1,500 km, records mandatory spacing exceptions, and reports speed percentiles and long-leg reasons.
 - **Audit tests:** Names the orienteering-specific audit config type explicitly, so the rework branch typechecks without depending on a later route PR.
 - **Legacy route audit:** Audits the committed superseded route against its candidate rows directly, so changed generator caps cannot fail the audit test before the audit runs.
 - **Coverage policy:** Requires sovereign states and the US, Canadian, and Australian admin-1 units. Territories stay optional, and the audit lists which were visited or skipped.
